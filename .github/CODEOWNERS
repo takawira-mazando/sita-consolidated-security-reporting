@@ -1,0 +1,7 @@
+* @sita-platform/core-team
+
+/backend/ @sita-platform/backend-team
+
+/frontend/ @sita-platform/frontend-team
+
+/infrastructure/ @sita-platform/devops-team

@@ -1,0 +1,126 @@
+rules:
+  - id: critical_record
+    name: "Critical Finding Ingested"
+    severity: critical
+    condition:
+      type: record
+      match: all
+      fields:
+        severity: [critical]
+    throttle:
+      window_minutes: 60
+      max_alerts: 5
+    channels:
+      - email
+      - teams
+      - pagerduty
+
+  - id: high_imperva_dam
+    name: "High Severity Imperva DAM Event"
+    severity: high
+    condition:
+      type: record
+      match: all
+      fields:
+        severity: [critical, high]
+        source: [imperva_dam]
+    throttle:
+      window_minutes: 15
+      max_alerts: 3
+    channels:
+      - teams
+
+  - id: appscan_high
+    name: "High Severity AppScan Finding"
+    severity: high
+    condition:
+      type: record
+      match: all
+      fields:
+        severity: [critical, high]
+        source: [appscan]
+    throttle:
+      window_minutes: 30
+      max_alerts: 3
+    channels:
+      - teams
+
+  - id: risk_critical
+    name: "Risk Score Critical"
+    severity: critical
+    condition:
+      type: sql_query
+      query: "SELECT app_name, fused_score FROM warehouse.risk_scores WHERE score_date = CURRENT_DATE AND bucket = 'critical'"
+    throttle:
+      window_minutes: 60
+      max_alerts: 1
+    channels:
+      - email
+      - teams
+      - pagerduty
+
+  - id: new_critical_cve
+    name: "New Critical CVE"
+    severity: critical
+    condition:
+      type: delta_query
+      base_query: "SELECT app_name, COUNT(*) as cnt FROM warehouse.findings WHERE source = 'appscan' AND severity = 'critical' AND status = 'open' AND first_seen > now() - INTERVAL '24 hours' GROUP BY app_name"
+      min_delta: 1
+    throttle:
+      window_minutes: 1440
+      max_alerts: 1
+    channels:
+      - email
+      - teams
+      - pagerduty
+
+  - id: shadow_api
+    name: "Shadow API Detected"
+    severity: high
+    condition:
+      type: sql_query
+      query: "SELECT app_name, endpoint, method, exposure_score FROM warehouse.api_endpoints WHERE is_shadow = TRUE AND discovered_at > now() - INTERVAL '24 hours'"
+    throttle:
+      window_minutes: 1440
+      max_alerts: 5
+    channels:
+      - email
+      - teams
+
+  - id: compliance_drop
+    name: "Compliance Score Drop"
+    severity: high
+    condition:
+      type: sql_query
+      query: "WITH prev AS (SELECT framework, overall_score FROM warehouse.compliance_snapshots WHERE snapshot_date = CURRENT_DATE - 1), curr AS (SELECT framework, overall_score FROM warehouse.compliance_snapshots WHERE snapshot_date = CURRENT_DATE) SELECT curr.framework, curr.overall_score - prev.overall_score AS delta FROM curr JOIN prev ON curr.framework = prev.framework WHERE curr.overall_score < prev.overall_score - 5"
+    throttle:
+      window_minutes: 1440
+      max_alerts: 1
+    channels:
+      - email
+      - teams
+
+  - id: imperva_spike
+    name: "Imperva Violation Spike"
+    severity: high
+    condition:
+      type: sql_query
+      query: "WITH daily AS (SELECT DATE(last_seen) as d, COUNT(*) as cnt FROM warehouse.findings WHERE source IN ('imperva_dam','imperva_waf') AND last_seen > now() - INTERVAL '7 days' GROUP BY DATE(last_seen)), baseline AS (SELECT AVG(cnt) as avg, STDDEV(cnt) as std FROM daily WHERE d < CURRENT_DATE), today AS (SELECT COUNT(*) as cnt FROM warehouse.findings WHERE source IN ('imperva_dam','imperva_waf') AND last_seen >= CURRENT_DATE) SELECT today.cnt, baseline.avg, baseline.std, (today.cnt - baseline.avg) / NULLIF(baseline.std, 0) AS sigma FROM today, baseline WHERE baseline.std > 0 AND (today.cnt - baseline.avg) / baseline.std > 3"
+    throttle:
+      window_minutes: 60
+      max_alerts: 1
+    channels:
+      - teams
+
+  - id: connector_auth_failure
+    name: "Connector Authentication Failure"
+    severity: critical
+    condition:
+      type: sql_query
+      query: "SELECT name, source, error_count, circuit_state FROM warehouse.connector_health WHERE status IN ('degraded','down') AND error_count >= 3"
+    throttle:
+      window_minutes: 30
+      max_alerts: 1
+    channels:
+      - teams
+      - pagerduty

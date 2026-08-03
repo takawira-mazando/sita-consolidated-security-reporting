@@ -1,0 +1,63 @@
+sources:
+  appscan:
+    severity_map:
+      "4 - Critical": critical
+      "3 - High": high
+      "2 - Medium": medium
+      "1 - Low": low
+      "Informational": info
+    field_mappings:
+      external_id: "$.id"
+      app_name: "$.application_name"
+      title: "$.vulnerability_name"
+      description: "$.description"
+      category: "$.owasp_category"
+      first_seen: "$.first_found_date"
+      last_seen: "$.last_found_date"
+      status: "$.status"
+
+  imperva_dam:
+    severity_map:
+      "Emergency": critical
+      "Alert": critical
+      "Critical": critical
+      "Error": high
+      "Warning": medium
+      "Notice": low
+      "Info": info
+    field_mappings:
+      external_id: "$.event_id"
+      app_name: "$.database_name"
+      title: "$.rule_name"
+      description: "$.attack_type"
+      category: "$.violation_type"
+      first_seen: "$.timestamp"
+      last_seen: "$.timestamp"
+
+  imperva_waf:
+    severity_map:
+      "Emergency": critical
+      "Alert": critical
+      "Critical": critical
+      "Error": high
+      "Warning": medium
+      "Notice": low
+      "Info": info
+    field_mappings:
+      external_id: "$.event_id"
+      app_name: "$.application_name"
+      title: "$.attack_name"
+      description: "$.request_uri"
+      category: "$.attack_type"
+      first_seen: "$.block_time"
+      last_seen: "$.block_time"
+
+  apisec:
+    field_mappings:
+      external_id: "$.api_id"
+      app_name: "$.application"
+      title: "$.endpoint"
+      description: "$.exposure_notes"
+      category: "$.issue_type"
+      first_seen: "$.discovered_at"
+      last_seen: "$.last_active"

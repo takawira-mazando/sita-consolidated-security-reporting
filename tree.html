@@ -1,0 +1,1128 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>sita-platform â€” Architecture</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: linear-gradient(135deg, #0b0f15 0%, #111822 50%, #0d1117 100%);
+      color: #e6edf3;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Consolas', monospace;
+      padding: 2.5rem;
+      font-size: 14px;
+      line-height: 1.7;
+      max-width: 1800px;
+      margin: 0 auto;
+      min-height: 100vh;
+    }
+    h1 {
+      color: #f0883e;
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid rgba(48,54,61,0.6);
+      padding-bottom: 0.75rem;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    h1 small {
+      color: #8b949e;
+      font-weight: 400;
+      font-size: 0.85rem;
+    }
+    .layout { display: flex; gap: 2rem; align-items: flex-start; }
+    .tree-col { flex: 0 0 auto; min-width: 500px; }
+    .detail-col { flex: 1; min-width: 300px; }
+
+    /* Stage command buttons */
+    .stages {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+      align-items: stretch;
+    }
+    .stage-btn {
+      flex: 1 1 0;
+      min-width: 150px;
+      background: rgba(22,27,34,0.85);
+      border: 1px solid rgba(48,54,61,0.6);
+      color: #e6edf3;
+      border-radius: 10px;
+      padding: 0.7rem 0.9rem;
+      text-align: left;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s;
+      font-family: inherit;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .stage-btn:hover {
+      border-color: rgba(240,136,62,0.6);
+      box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+      transform: translateY(-1px);
+    }
+    .stage-btn.active {
+      border-color: #f0883e;
+      outline: 1px solid rgba(240,136,62,0.35);
+      background: rgba(240,136,62,0.08);
+    }
+    .stage-btn .st-num {
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: #8b949e;
+    }
+    .stage-btn .st-name {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #f0c674;
+    }
+    .stage-btn .st-path {
+      font-size: 0.68rem;
+      color: #79c0ff;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      word-break: break-word;
+    }
+    .stage-flow {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem;
+      margin-bottom: 1.5rem;
+      padding: 0.6rem 1rem;
+      background: rgba(22,27,34,0.6);
+      border: 1px dashed rgba(48,54,61,0.6);
+      border-radius: 10px;
+    }
+.stage-flow .flow-node {
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      color: #e6edf3;
+      background: rgba(31,41,55,0.8);
+      border: 1px solid rgba(48,54,61,0.5);
+      padding: 5px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s, box-shadow 0.15s, transform 0.1s;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      text-align: left;
+      align-items: flex-start;
+    }
+    .stage-flow .flow-node:hover {
+      border-color: rgba(240,136,62,0.6);
+      background: rgba(31,41,55,1);
+      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      transform: translateY(-1px);
+    }
+    .stage-flow .flow-node.active {
+      border-color: #f0883e;
+      outline: 1px solid rgba(240,136,62,0.35);
+      background: rgba(240,136,62,0.1);
+    }
+    .stage-flow .flow-node .fn-name {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #f0c674;
+      white-space: nowrap;
+    }
+    .stage-flow .flow-node.active .fn-name {
+      color: #f0883e;
+    }
+    .stage-flow .flow-node .fn-path {
+      font-size: 0.6rem;
+      color: #79c0ff;
+      white-space: nowrap;
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .stage-flow .flow-arrow {
+      color: #79c0ff;
+      font-weight: 700;
+      align-self: center;
+    }
+
+    .tree {
+      background: rgba(22,27,34,0.85);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(48,54,61,0.6);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      transition: box-shadow 0.3s;
+    }
+    .tree:hover {
+      box-shadow: 0 6px 32px rgba(0,0,0,0.55);
+    }
+    .tree pre { margin: 0; white-space: pre; font-family: 'JetBrains Mono', 'Consolas', monospace; font-size: 12px; }
+    .dir  { color: #79c0ff; cursor: pointer; transition: color 0.15s; }
+    .file { color: #e6edf3; }
+    .pipe { color: rgba(48,54,61,0.8); }
+    .root { color: #f0883e; font-weight: 700; cursor: pointer; transition: color 0.15s; }
+    .dir:hover, .root:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: rgba(240,136,62,0.5);
+      text-decoration-thickness: 2px;
+    }
+    .dir.active, .root.active {
+      background: rgba(240,136,62,0.12);
+      border-radius: 4px;
+      outline: 1px solid rgba(240,136,62,0.3);
+      padding: 0 2px;
+    }
+    .tree .hl {
+      background: rgba(240,136,62,0.18);
+      outline: 1px solid rgba(240,136,62,0.5);
+      border-radius: 4px;
+      box-shadow: 0 0 12px rgba(240,136,62,0.2);
+      padding: 0 2px;
+    }
+    .tree .dim { opacity: 0.28; transition: opacity 0.2s; }
+    .tree .hl.dim { opacity: 1; }
+    .stage-btn .st-num.hl { color: #f0883e; }
+
+    .detail-panel {
+      background: rgba(22,27,34,0.85);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(48,54,61,0.6);
+      border-radius: 12px;
+      padding: 1.75rem;
+      min-height: 350px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      transition: box-shadow 0.3s, opacity 0.25s ease;
+      overflow-y: auto;
+      max-height: 85vh;
+    }
+    .detail-panel h2 {
+      color: #f0883e;
+      font-size: 1.3rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      letter-spacing: -0.01em;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid rgba(48,54,61,0.4);
+    }
+    .detail-panel h2 .badge {
+      font-size: 0.6rem;
+      background: rgba(139,148,158,0.15);
+      color: #8b949e;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border: 1px solid rgba(48,54,61,0.4);
+    }
+    .detail-panel h3 {
+      color: #7ee787;
+      font-size: 0.95rem;
+      margin: 1.4rem 0 0.5rem;
+      letter-spacing: -0.01em;
+    }
+    .detail-panel p, .detail-panel li {
+      color: #e6edf3;
+      font-size: 0.85rem;
+      line-height: 1.75;
+    }
+    .detail-panel ul, .detail-panel ol { padding-left: 1.3rem; margin: 0.4rem 0; }
+    .detail-panel li { margin-bottom: 0.3rem; }
+    .detail-panel ol li { list-style-type: decimal; }
+    .detail-panel li strong { color: #f0c674; }
+    .detail-panel code {
+      background: rgba(48,54,61,0.5);
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 0.8rem;
+      color: #f0c674;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+      border: 1px solid rgba(48,54,61,0.3);
+    }
+    .detail-panel .flow-arrow {
+      color: #79c0ff;
+      margin: 0 5px;
+      font-weight: 700;
+    }
+    .detail-panel .empty-state {
+      color: #8b949e;
+      text-align: center;
+      padding: 4rem 0;
+      font-style: italic;
+    }
+    .detail-panel .file-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      margin: 0.5rem 0;
+    }
+    .detail-panel .file-tag {
+      background: rgba(31,41,55,0.7);
+      border: 1px solid rgba(48,54,61,0.5);
+      border-radius: 5px;
+      padding: 3px 9px;
+      font-size: 0.77rem;
+      color: #e6edf3;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+    }
+    .detail-panel em {
+      color: #8b949e;
+      font-size: 0.8rem;
+    }
+    .detail-panel::-webkit-scrollbar { width: 6px; }
+    .detail-panel::-webkit-scrollbar-track { background: transparent; }
+    .detail-panel::-webkit-scrollbar-thumb { background: rgba(48,54,61,0.6); border-radius: 3px; }
+    .detail-panel::-webkit-scrollbar-thumb:hover { background: rgba(48,54,61,0.9); }
+
+    @media (max-width: 800px) {
+      body { padding: 1.25rem; }
+      .layout { flex-direction: column; }
+      .tree-col { min-width: 0; width: 100%; }
+      .detail-col { width: 100%; }
+      .detail-panel { max-height: none; }
+      .stage-btn { min-width: 120px; }
+    }
+  </style>
+</head>
+<body>
+
+<h1>&#128451; sita-platform <small>&mdash; security pipeline architecture &amp; reporting interface</small></h1>
+
+<div class="stages">
+  <button class="stage-btn" data-stage="ingest"><span class="st-num">Stage 1</span><span class="st-name">OEM Ingestion</span><span class="st-path">connectors/ ingestion/</span></button>
+  <button class="stage-btn" data-stage="process"><span class="st-num">Stage 2</span><span class="st-name">Pipeline Processing</span><span class="st-path">processing/ dispatch/</span></button>
+  <button class="stage-btn" data-stage="store"><span class="st-num">Stage 3</span><span class="st-name">PostgreSQL Warehouse</span><span class="st-path">init-db.sql seed-demo.sql</span></button>
+  <button class="stage-btn" data-stage="api"><span class="st-num">Stage 4</span><span class="st-name">REST API</span><span class="st-path">api/routers/</span></button>
+  <button class="stage-btn" data-stage="ui"><span class="st-num">Stage 5</span><span class="st-name">Reports UI</span><span class="st-path">frontend/src/</span></button>
+  <button class="stage-btn" data-stage="reports"><span class="st-num">Stage 6</span><span class="st-name">Reports</span><span class="st-path">pages/ data/ grafana/</span></button>
+</div>
+
+<div class="stage-flow">
+  <span class="flow-node" data-flow="oem"><span class="fn-name">OEM Tools</span><span class="fn-path">External (no repo path)</span></span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node" data-flow="connectors"><span class="fn-name">Connectors</span><span class="fn-path">backend\app\connectors\</span></span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node" data-flow="staging"><span class="fn-name">staging.raw_records</span><span class="fn-path">DB: staging schema (init-db.sql)</span></span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node" data-flow="normaliser"><span class="fn-name">Normaliser</span><span class="fn-path">backend\app\processing\normaliser.py</span></span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node" data-flow="findings"><span class="fn-name">warehouse.findings</span><span class="fn-path">DB: warehouse schema (init-db.sql)</span></span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node" data-flow="engines"><span class="fn-name">Alert / Risk / Compliance Engines</span><span class="fn-path">backend\app\processing\</span></span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node" data-flow="warehouse"><span class="fn-name">warehouse.*</span><span class="fn-path">DB: warehouse schema (init-db.sql)</span></span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node" data-flow="api"><span class="fn-name">REST API</span><span class="fn-path">backend\app\api\routers\</span></span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node" data-flow="ui"><span class="fn-name">Reports UI</span><span class="fn-path">frontend\src\pages\</span></span>
+</div>
+
+<div class="layout">
+
+<div class="tree-col">
+  <div class="tree">
+<pre><span class="root" data-key="root">C:\sita-platform\</span>
+<span class="pipe">â”œâ”€â”€</span> <span class="dir" data-key="github">C:\sita-platform\.github\</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\.github\CODEOWNERS</span>
+<span class="pipe">â”‚   â””â”€â”€</span> <span class="dir">C:\sita-platform\.github\workflows\</span>
+<span class="pipe">â”‚       â””â”€â”€</span> <span class="file">C:\sita-platform\.github\workflows\ci.yml</span>
+<span class="pipe">â”œâ”€â”€</span> <span class="dir" data-key="backend">C:\sita-platform\backend\</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\main.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\config.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\db.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\api\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\auth.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\deps.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\errors.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\api\routers\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\admin.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\alerts.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\compliance.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\dashboard.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\findings.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\risks.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="dir">C:\sita-platform\backend\app\api\schemas\</span>
+<span class="pipe">â”‚   â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\alert.py</span>
+<span class="pipe">â”‚   â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\common.py</span>
+<span class="pipe">â”‚   â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\compliance.py</span>
+<span class="pipe">â”‚   â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\finding.py</span>
+<span class="pipe">â”‚   â”‚   â”‚       â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\risk.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\bus\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\bus\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\bus\consumer.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\bus\producer.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\bus\streams.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\connectors\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\apisec.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\appscan.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\base.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\compliance.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\imperva.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\dispatch\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\dispatch\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\dispatch\email_adapter.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\dispatch\pagerduty_adapter.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\dispatch\teams_adapter.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\dispatch\worker.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\entrypoints\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\analytics.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\dispatch.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\ingestion.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\processing.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\ingestion\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\circuit_breaker.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\dlq.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\retry.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\scheduler.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\token_bucket.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\lake\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\lake\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\lake\writer.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\models\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\alert.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\base.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\compliance.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\connector_status.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\dlq.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\finding.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\risk_score.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\monitoring\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\monitoring\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\monitoring\logging.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\monitoring\metrics.py</span>
+<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="dir">C:\sita-platform\backend\app\processing\</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\__init__.py</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_dedup.py</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_engine.py</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_enricher.py</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_rules.yaml</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\compliance.py</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\field_mapper.yaml</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\normaliser.py</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\risk_aggregator.py</span>
+<span class="pipe">â”‚   â”‚       â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\risk_engine.py</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\migrations\</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\migrations\alembic.ini</span>
+<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\migrations\env.py</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\Dockerfile</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\requirements.txt</span>
+<span class="pipe">â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\.env.example</span>
+<span class="pipe">â”œâ”€â”€</span> <span class="dir" data-key="frontend">C:\sita-platform\frontend\</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\public\</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\api\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\admin.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\alerts.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\client.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\compliance.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\dashboard.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\findings.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\risks.ts</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\components\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\components\dashboard\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\BarRow.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\Chip.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\DashHeader.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\ExplainOverlay.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\Gauge.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\MiniBarChart.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\OemTag.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\Panel.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\StatCard.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\components\layout\</span>
+<span class="pipe">â”‚   â”‚   â”‚       â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\layout\RoleNav.tsx</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\context\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\context\AuthContext.tsx</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\data\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\data\explanations.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\data\mappers.ts</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\hooks\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useApi.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useAppSecData.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useAuth.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useComplianceData.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useDbSecData.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useExecData.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\usePolling.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useSocData.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useSreData.ts</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\pages\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\AppSecDashboard.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\ComplianceDashboard.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\DbSecDashboard.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\ExecDashboard.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\LoginPage.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\SocDashboard.tsx</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\SreDashboard.tsx</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\styles\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\styles\global.css</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\styles\theme.ts</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\utils\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\utils\constants.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\utils\formatters.ts</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\utils\jwt.ts</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\App.tsx</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\main.tsx</span>
+<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\types.ts</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\Dockerfile</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\index.html</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\nginx.conf</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\package.json</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\tsconfig.json</span>
+<span class="pipe">â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\vite.config.ts</span>
+<span class="pipe">â”œâ”€â”€</span> <span class="dir" data-key="infrastructure">C:\sita-platform\infrastructure\</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\infrastructure\monitoring\</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\infrastructure\monitoring\grafana-dashboards\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\monitoring\grafana-dashboards\sita-pipeline.json</span>
+<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\monitoring\prometheus.yml</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\infrastructure\nginx\</span>
+<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\nginx\sita.conf</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\infrastructure\scripts\</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\backup.sh</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\deploy.sh</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\init-db.sql</span>
+<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\seed-demo.sql</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\docker-compose.yml</span>
+<span class="pipe">â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\docker-compose.prod.yml</span>
+<span class="pipe">â””â”€â”€</span> <span class="root" data-key="reporting">C:\sita-platform\  (reporting interface â€” final product)</span>
+  </div>
+</div>
+
+<div class="detail-col">
+  <div class="detail-panel" id="detail">
+    <div class="empty-state">Click a stage button above or a directory name in the tree to view its architecture breakdown</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+const details = {
+  root: {
+    title: 'sita-platform',
+    badge: 'root',
+    body: String.raw`
+      <p>A full-stack security pipeline platform that ingests findings from <strong>multiple OEM security tools</strong> (HCL AppScan, Imperva DAM/WAF, API Security platform, compliance CSV sources), normalises and deduplicates them into a <strong>central PostgreSQL database</strong>, runs risk scoring and alert engines against the warehouse, and serves <strong>reports via REST API</strong> to a React frontend. Alerts are also dispatched out-of-band through Email, PagerDuty, or Microsoft Teams.</p>
+      <h3>Data flow: OEMs &rarr; Pipeline &rarr; Database &rarr; Reports</h3>
+      <p><code>OEM Tools</code> <span class="flow-arrow">&rarr;</span> <code>Connectors</code> <span class="flow-arrow">&rarr;</span> <code>Ingestion</code> <span class="flow-arrow">&rarr;</span> <code>staging.raw_records</code> <span class="flow-arrow">&rarr;</span> <code>Normaliser</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.findings</code> <span class="flow-arrow">&rarr;</span> <code>Alert/Risk/Compliance Engines</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.*</code> <span class="flow-arrow">&rarr;</span> <code>API</code> <span class="flow-arrow">&rarr;</span> <code>Reports UI</code></p>
+      <h3>Key directories</h3>
+      <ul>
+        <li><code>C:\sita-platform\.github\</code> &mdash; CI pipeline</li>
+        <li><code>C:\sita-platform\backend\</code> &mdash; Python/FastAPI API server</li>
+        <li><code>C:\sita-platform\frontend\</code> &mdash; React/TypeScript dashboard</li>
+        <li><code>C:\sita-platform\infrastructure\</code> &mdash; Docker, nginx, monitoring, deploy scripts</li>
+        <li><code>&#128202; reporting interface</code> &mdash; the final product: role-based dashboards for all users (click the tree item below)</li>
+      </ul>
+      <h3>Demo data</h3>
+      <p>The database is populated by <code>C:\sita-platform\infrastructure\scripts\seed-demo.sql</code> so every dashboard renders realistic content: 150 rows of 30-day risk trends, 36 findings (AppScan / Imperva DAM / API Security), 36 alerts, POPIA + ISO 27001 snapshots and gaps, connector health, shadow-API endpoints, and DLQ records.</p>
+    `
+  },
+  github: {
+    title: '.github',
+    badge: 'CI / CD',
+    body: String.raw`
+      <p>Contains the CI workflow configuration for GitHub Actions.</p>
+      <h3>Files</h3>
+      <div class="file-list"><span class="file-tag">CODEOWNERS</span><span class="file-tag">ci.yml</span></div>
+      <ul>
+        <li><code>C:\sita-platform\.github\CODEOWNERS</code> &mdash; Defines which teams/users are responsible for code review on each path.</li>
+        <li><code>C:\sita-platform\.github\workflows\ci.yml</code> &mdash; GitHub Actions CI pipeline. Likely runs linting, type-checking, tests, and builds for both backend and frontend on every push/PR.</li>
+      </ul>
+    `
+  },
+  backend: {
+    title: 'backend',
+    badge: 'FastAPI &middot; Python',
+    body: String.raw`
+      <p>The Python backend built with FastAPI. It orchestrates the entire pipeline: <strong>pulls raw data from OEM tools</strong> via connectors, normalises it into the PostgreSQL warehouse, runs processing engines that write results back to the database, and finally <strong>serves reports via REST API</strong> by reading directly from the warehouse tables.</p>
+      <h3>Layers</h3>
+      <ul>
+        <li><code>C:\sita-platform\backend\app\main.py</code> &mdash; FastAPI application entry point.</li>
+        <li><code>C:\sita-platform\backend\app\config.py</code> &mdash; Central configuration (env-based).</li>
+        <li><code>C:\sita-platform\backend\app\api\</code> &mdash; REST layer: routers (<code>alerts</code>, <code>findings</code>, <code>risks</code>, <code>compliance</code>, <code>admin</code>, <code>dashboard</code>), Pydantic <code>schemas/</code>, auth deps, and error handling. <strong>Every endpoint queries the warehouse DB</strong> to serve report data.</li>
+        <li><code>C:\sita-platform\backend\app\connectors\</code> &mdash; Adapters for OEM security tools: <code>appscan</code> (HCL), <code>apisec</code>, <code>imperva</code>, and <code>compliance</code> (CSV/API). All extend a <code>base</code> connector.</li>
+        <li><code>C:\sita-platform\backend\app\ingestion\</code> &mdash; Reliable data intake from OEMs with <code>circuit_breaker</code>, <code>retry</code>, <code>token_bucket</code> rate limiting, a <code>scheduler</code>, and a dead-letter queue (<code>dlq</code>). Writes raw payloads to <code>staging.raw_records</code>.</li>
+        <li><code>C:\sita-platform\backend\app\bus\</code> &mdash; Internal event stream producer/consumer used to hand records between the ingestion, processing, and analytics stages.</li>
+        <li><code>C:\sita-platform\backend\app\lake\</code> &mdash; Raw-record writer that persists OEM payloads before normalisation.</li>
+        <li><code>C:\sita-platform\backend\app\processing\</code> &mdash; Core pipeline: <code>normaliser</code> (canonical field mapping via <code>field_mapper.yaml</code>), <code>alert_dedup</code>, <code>alert_enricher</code>, <code>alert_engine</code> (rule-based via <code>alert_rules.yaml</code>), <code>risk_engine</code> + <code>risk_aggregator</code>, and <code>compliance</code> checks. <strong>Reads from and writes to warehouse tables.</strong></li>
+        <li><code>C:\sita-platform\backend\app\dispatch\</code> &mdash; Notifications via <code>email_adapter</code>, <code>pagerduty_adapter</code>, <code>teams_adapter</code>, routed through a background <code>worker</code>.</li>
+        <li><code>C:\sita-platform\backend\app\models\</code> &mdash; SQLAlchemy ORM models mapping to warehouse tables (<code>alert</code>, <code>finding</code>, <code>risk_score</code>, <code>compliance</code>, <code>connector_status</code>, <code>dlq</code>).</li>
+        <li><code>C:\sita-platform\backend\app\entrypoints\</code> &mdash; Runnable entry points for each long-running process (ingestion, processing, dispatch, analytics) used by the Docker Compose services.</li>
+        <li><code>C:\sita-platform\backend\app\monitoring\</code> &mdash; Structured <code>logging</code> and Prometheus <code>metrics</code>.</li>
+        <li><code>C:\sita-platform\backend\migrations\</code> &mdash; Alembic database migration config.</li>
+      </ul>
+      <h3>OEM &rarr; Pipeline &rarr; DB &rarr; Reports flow</h3>
+      <p><code>OEM Connector</code> <span class="flow-arrow">&rarr;</span> <code>Ingestion</code> (circuit-breaker/retry/DLQ) <span class="flow-arrow">&rarr;</span> <code>staging.raw_records</code> <span class="flow-arrow">&rarr;</span> <code>Normaliser</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.findings</code> <span class="flow-arrow">&rarr;</span> <code>Alert Engine</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.alerts</code> <span class="flow-arrow">&rarr;</span> <code>Risk Engine</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.risk_scores</code> <span class="flow-arrow">&rarr;</span> <code>API reads warehouse</code> <span class="flow-arrow">&rarr;</span> <code>Report UI</code></p>
+    `
+  },
+  frontend: {
+    title: 'frontend',
+    badge: 'React &middot; TypeScript &middot; Vite',
+    body: String.raw`
+      <p>A single-page application built with React, TypeScript, and Vite. Authenticated users log in with a role, and the app renders that role's dashboard. <strong>All dashboard numbers come from the backend REST API, which reads PostgreSQL</strong> â€” there is no hardcoded sample data in the UI.</p>
+      <h3>Structure</h3>
+      <ul>
+        <li><code>C:\sita-platform\frontend\src\api\</code> &mdash; Typed API client modules: <code>client.ts</code> (axios, JWT from localStorage, 401 redirect), plus domain files for <code>alerts</code>, <code>findings</code>, <code>risks</code>, <code>compliance</code>, <code>dashboard</code>, <code>admin</code>.</li>
+        <li><code>C:\sita-platform\frontend\src\components\dashboard\</code> &mdash; Reusable widgets: <code>StatCard</code>, <code>Panel</code>, <code>Gauge</code>, <code>MiniBarChart</code>, <code>BarRow</code>, <code>Chip</code>, <code>OemTag</code>, <code>DashHeader</code>, <code>ExplainOverlay</code>.</li>
+        <li><code>C:\sita-platform\frontend\src\components\layout\RoleNav.tsx</code> &mdash; Role-aware navigation sidebar.</li>
+        <li><code>C:\sita-platform\frontend\src\context\AuthContext.tsx</code> &mdash; Auth state provider; demo accounts map to roles; token minted via <code>src\utils\jwt.ts</code>.</li>
+        <li><code>C:\sita-platform\frontend\src\hooks\</code> &mdash; Data hooks: <code>useExecData</code>, <code>useSocData</code>, <code>useAppSecData</code>, <code>useDbSecData</code>, <code>useComplianceData</code>, <code>useSreData</code>, built on the generic <code>useApi</code> fetcher.</li>
+        <li><code>C:\sita-platform\frontend\src\data\</code> &mdash; <code>mappers.ts</code> (severity/bucket/status color mapping) and <code>explanations.ts</code> (dynamic "how this dashboard is built" narratives built from live API facts).</li>
+        <li><code>C:\sita-platform\frontend\src\pages\</code> &mdash; Six role-gated dashboards: <code>ExecDashboard</code>, <code>SocDashboard</code>, <code>AppSecDashboard</code>, <code>DbSecDashboard</code>, <code>ComplianceDashboard</code>, <code>SreDashboard</code>, plus <code>LoginPage</code>.</li>
+        <li><code>C:\sita-platform\frontend\src\utils\</code> &mdash; <code>constants.ts</code>, <code>formatters.ts</code>, and <code>jwt.ts</code> (mints the demo JWT with <code>aud: ""</code>).</li>
+      </ul>
+      <h3>Routing &amp; data flow</h3>
+      <p><code>LoginPage</code> <span class="flow-arrow">&rarr;</span> <code>AuthContext</code> (role JWT) <span class="flow-arrow">&rarr;</span> <code>RoleNav</code> <span class="flow-arrow">&rarr;</span> role dashboard <span class="flow-arrow">&rarr;</span> <code>useXData</code> hook <span class="flow-arrow">&rarr;</span> <code>/api/v1/*</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.*</code> tables</p>
+    `
+  },
+  infrastructure: {
+    title: 'infrastructure',
+    badge: 'Docker &middot; nginx &middot; Prometheus &middot; Grafana',
+    body: String.raw`
+      <p>Container orchestration, reverse proxy, monitoring stack, and operational scripts for deploying and running the platform.</p>
+      <h3>Components</h3>
+      <ul>
+        <li><code>C:\sita-platform\infrastructure\docker-compose.yml</code> &mdash; Local stack: postgres + redis + backend + frontend + ingestion/processing/dispatch/analytics services + nginx.</li>
+        <li><code>C:\sita-platform\infrastructure\docker-compose.prod.yml</code> &mdash; Production overrides (resource limits, secrets, replicas).</li>
+        <li><code>C:\sita-platform\infrastructure\nginx\sita.conf</code> &mdash; Reverse proxy config routing <code>/api/*</code> and <code>/admin/*</code> to the backend and serving the frontend SPA.</li>
+        <li><code>C:\sita-platform\infrastructure\monitoring\prometheus.yml</code> &mdash; Prometheus scrape config targeting the backend metrics endpoint.</li>
+        <li><code>C:\sita-platform\infrastructure\monitoring\grafana-dashboards\sita-pipeline.json</code> &mdash; Pre-built Grafana dashboard for pipeline health, throughput, error rates, and latency.</li>
+        <li><code>C:\sita-platform\infrastructure\scripts\deploy.sh</code> &mdash; Deployment script (pull images, run migrations, restart services).</li>
+        <li><code>C:\sita-platform\infrastructure\scripts\backup.sh</code> &mdash; Database and config backup.</li>
+        <li><code>C:\sita-platform\infrastructure\scripts\init-db.sql</code> &mdash; Initial schema: <code>staging</code>, <code>warehouse</code>, <code>archive</code>, <code>audit</code> schemas and tables.</li>
+        <li><code>C:\sita-platform\infrastructure\scripts\seed-demo.sql</code> &mdash; Demo seed (idempotent via <code>ON CONFLICT</code>) filling every warehouse table so the dashboards render realistic data.</li>
+      </ul>
+      <h3>Architecture</h3>
+      <p><code>Browser</code> <span class="flow-arrow">&rarr;</span> <code>nginx :80</code> <span class="flow-arrow">&rarr;</span> <code>/api/* &rarr; backend :8000</code> &nbsp;|&nbsp; <code>/ &rarr; frontend (static files)</code></p>
+      <p><code>Prometheus</code> <span class="flow-arrow">&rarr;</span> scrapes <code>backend/metrics</code> <span class="flow-arrow">&rarr;</span> <code>Grafana</code> visualises</p>
+    `
+  },
+  reporting: {
+    title: 'Reporting Interface',
+    badge: 'final product &mdash; 6 role-gated views',
+    body: String.raw`
+      <p>The reporting interface is the end-user facing product. It surfaces all processed data &mdash; alerts, findings, risk scores, compliance status &mdash; through <strong>six role-gated dashboards</strong> in the React SPA, plus a Grafana dashboard for operational health monitoring. <strong>Every displayed number is queried from the PostgreSQL warehouse via the REST API.</strong></p>
+
+      <h3>Architecture: OEMs &rarr; Pipeline &rarr; Database &rarr; Reports</h3>
+      <p>Data flows through three distinct stages before reaching the user:</p>
+      <ol>
+        <li><strong>OEM ingestion</strong> &mdash; connectors pull raw findings from HCL AppScan, Imperva DAM/WAF, API Security platform, and compliance CSV sources into <code>staging.raw_records</code></li>
+        <li><strong>Pipeline processing</strong> &mdash; the normaliser, alert engine, risk engine, and compliance engine read from staging, transform/deduplicate/enrich, and write results into the <code>warehouse</code> schema</li>
+        <li><strong>Database &rarr; Reports</strong> &mdash; the REST API queries <code>warehouse.*</code> tables directly; the React frontend pages render these query results as reports. <em>Reports never read from the live pipeline or staging tables.</em></li>
+      </ol>
+
+      <h3>Database schema (PostgreSQL)</h3>
+      <p>Defined in <code>C:\sita-platform\infrastructure\scripts\init-db.sql</code>. All reports query only the <code>warehouse</code> schema:</p>
+      <ul>
+        <li><code>staging</code> &mdash; raw OEM ingestion: <code>batch_runs</code>, <code>raw_records</code> (JSONB, 7-day TTL), <code>rejected_records</code> (DLQ, 30-day TTL). <em>Only the DLQ is exposed to reports (SRE admin).</em></li>
+        <li><code>warehouse</code> &mdash; normalised data for reporting: <code>connector_health</code>, <code>findings</code>, <code>alerts</code>, <code>risk_scores</code>, <code>compliance_snapshots</code>, <code>compliance_gaps</code>, <code>api_endpoints</code>. <strong>This is what all reports query.</strong></li>
+        <li><code>archive</code> &mdash; historical retention</li>
+        <li><code>audit</code> &mdash; governance trail</li>
+      </ul>
+      <p>TTL cleanup via <code>pg_cron</code> nightly at 2 AM.</p>
+
+      <h3>End-to-end flow: OEM &rarr; Pipeline &rarr; DB &rarr; Report</h3>
+      <p><code>OEM Tools</code> <span class="flow-arrow">&rarr;</span> <code>Connectors</code> <span class="flow-arrow">&rarr;</span> <code>staging.raw_records</code> <span class="flow-arrow">&rarr;</span> <code>Normaliser</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.findings</code> <span class="flow-arrow">&rarr;</span> <code>Processing Engines</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.alerts/risk_scores/compliance_*</code> <span class="flow-arrow">&rarr;</span> <code>API queries warehouse</code> <span class="flow-arrow">&rarr;</span> <code>Report UI</code></p>
+
+      <h3>Demo data (seed-demo.sql)</h3>
+      <p>Run once against the live database (<code>docker exec -i infrastructure-postgres-1 psql -U sita -d sita &lt; infrastructure\\scripts\\seed-demo.sql</code>). Idempotent <code>ON CONFLICT</code> upserts produce:</p>
+      <ul>
+        <li><strong>150 risk-score rows</strong> &mdash; 30-day fused-risk trends for legacy-api (critical), payment-gateway (monitored), customer-portal, document-svc, internal-hr</li>
+        <li><strong>36 findings</strong> &mdash; 27 AppScan (SQLi/RCE/XSS/IDOR/SSRF/XXE + CVE-2026 CVEs), 7 Imperva DAM, 4 API-Security (shadow APIs)</li>
+        <li><strong>36 alerts</strong> &mdash; risk_critical, new_critical_cve, shadow_api_detected, violation_spike, connector_auth_failure, compliance_drop, WAF/RCE, etc.</li>
+        <li><strong>Compliance</strong> &mdash; POPIA (84%) + ISO 27001 (72%) snapshots and 12 gaps, some overdue</li>
+        <li><strong>Operational</strong> &mdash; 5 connector-health rows (apisec degraded), 6 API endpoints (2 shadow), 4 DLQ records + batch runs</li>
+      </ul>
+
+      <h3>Role-based dashboard access</h3>
+      <p>Access is controlled by JWT role claims. The backend RBAC hierarchy (<code>C:\sita-platform\backend\app\api\auth.py</code>) grants each role specific API permissions, and <code>RoleNav</code> (<code>C:\sita-platform\frontend\src\components\layout\RoleNav.tsx</code>) renders only the routes each role may open:</p>
+      <ul>
+        <li><strong>Executive</strong> (<code>exec</code>) &mdash; <code>ExecDashboard</code>: fused risk, findings, compliance gauges, alerts</li>
+        <li><strong>SOC Analyst</strong> (<code>soc</code>) &mdash; <code>SocDashboard</code>: unified alert timeline, alert queue, findings</li>
+        <li><strong>AppSec</strong> (<code>appsec</code>) &mdash; <code>AppSecDashboard</code>: findings by app/severity, OWASP categories, critical CVEs</li>
+        <li><strong>DB Security</strong> (<code>dbsec</code>) &mdash; <code>DbSecDashboard</code>: database violations, categories, active DAM alerts</li>
+        <li><strong>Compliance Officer</strong> (<code>compliance</code>) &mdash; <code>ComplianceDashboard</code>: POPIA/ISO scores, audit gaps, evidence</li>
+        <li><strong>SRE</strong> (<code>sre</code>) &mdash; <code>SreDashboard</code>: connector health, throughput, error rate, DLQ</li>
+      </ul>
+
+      <h3>Page-by-page breakdown</h3>
+
+      <h3 style="color:#f0c674">&#128202; ExecDashboard (/exec)</h3>
+      <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\ExecDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /api/v1/dashboard/summary</code>, <code>/api/v1/risks</code>, <code>/api/v1/findings</code>, <code>/api/v1/compliance</code>, <code>/api/v1/alerts</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.risk_scores</code>, <code>warehouse.alerts</code>, <code>warehouse.findings</code></p>
+      <p>The executive landing dashboard. Displays KPI cards, a 30-day fused-risk trend, compliance gauges, severity donut, application heatmap, top-5 risk table, and a live alert summary &mdash; all computed from warehouse queries:</p>
+      <ul>
+        <li><strong>Fused Risk Score</strong> &mdash; composite score (0&ndash;100) across all monitored apps</li>
+        <li><strong>Open Findings</strong> &mdash; total unfixed vulnerabilities from <code>warehouse.findings</code></li>
+        <li><strong>POPIA / ISO gauges</strong> &mdash; from <code>warehouse.compliance_snapshots</code></li>
+        <li><strong>Active Alerts</strong> &mdash; unacknowledged alert count from <code>warehouse.alerts</code></li>
+      </ul>
+
+      <h3 style="color:#f0c674">&#128680; SocDashboard (/soc)</h3>
+      <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\SocDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /api/v1/alerts</code>, <code>PATCH /api/v1/alerts/{id}/acknowledge</code>, <code>PATCH /api/v1/alerts/{id}/resolve</code>, <code>GET /api/v1/findings</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.alerts</code>, <code>warehouse.findings</code></p>
+      <p>The SOC incident view reads from <code>warehouse.alerts</code>: a chronological timeline, an alert queue with acknowledge/resolve actions (PATCH writes status back to the DB), and a findings table.</p>
+      <p>Alerts are generated by <code>AlertRuleEngine</code> (<code>C:\sita-platform\backend\app\processing\alert_engine.py</code>), deduplicated by <code>AlertDeduplicator</code> (<code>alert_dedup.py</code>), enriched by <code>AlertEnricher</code> (<code>alert_enricher.py</code>), and dispatched to Email/PagerDuty/Teams via <code>DispatchWorker</code> (<code>C:\sita-platform\backend\app\dispatch\worker.py</code>).</p>
+
+      <h3 style="color:#f0c674">&#128269; AppSecDashboard (/appsec)</h3>
+      <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\AppSecDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /api/v1/findings</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.findings</code></p>
+      <p>Raw vulnerability findings from all connected OEMs, grouped by application and by OWASP category, plus a critical-findings list. Columns from <code>warehouse.findings</code> (<code>id</code>, <code>source</code>, <code>external_id</code>, <code>app_name</code>, <code>severity</code>, <code>title</code>, <code>category</code>, <code>raw_data</code>, <code>first_seen</code>, <code>last_seen</code>, <code>status</code>). Data arrives via OEM connectors into <code>staging.raw_records</code>, normalised by <code>Normaliser</code> (<code>C:\sita-platform\backend\app\processing\normaliser.py</code>) via <code>field_mapper.yaml</code>, and lands in <code>warehouse.findings</code>.</p>
+
+      <h3 style="color:#f0c674">&#128737;&#65039; DbSecDashboard (/dbsec)</h3>
+      <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\DbSecDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /api/v1/findings</code> (source=imperva), <code>GET /api/v1/alerts</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.findings</code>, <code>warehouse.alerts</code></p>
+      <p>Imperva DAM database violations per DB server (DB-CUST-01, DB-PAY-01, DB-DOC-01, DB-HR-01), violation categories, alert activity, and the active database alert table.</p>
+
+      <h3 style="color:#f0c674">&#128203; ComplianceDashboard (/compliance)</h3>
+      <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\ComplianceDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /api/v1/compliance</code>, <code>GET /api/v1/compliance/gaps</code>, <code>GET /api/v1/compliance/evidence</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.compliance_snapshots</code>, <code>warehouse.compliance_gaps</code></p>
+      <p>Dual-framework compliance dashboard reading from <code>warehouse.compliance_snapshots</code> and <code>warehouse.compliance_gaps</code>:</p>
+      <ul>
+        <li><strong>POPIA Readiness</strong> &mdash; weighted score (<code>framework='popia'</code>, <code>overall_score</code>, <code>details</code> JSONB)</li>
+        <li><strong>ISO 27001 Progress</strong> &mdash; (<code>framework='iso_27001'</code>)</li>
+        <li><strong>Compliance Gaps</strong> &mdash; control gaps with severity, owner, due date, status, evidence count</li>
+        <li><strong>Evidence Collection</strong> &mdash; <em>computed from the gaps table</em>: available = gaps with <code>evidence_count &gt; 0</code>, missing = the rest, expiring = non-closed gaps due within 30 days</li>
+      </ul>
+      <p>Computed by <code>C:\sita-platform\backend\app\processing\compliance.py</code> and upserted into the warehouse.</p>
+
+      <h3 style="color:#f0c674">&#9881;&#65039; SreDashboard (/sre)</h3>
+      <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\SreDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /admin/connectors</code>, <code>GET /admin/dead-letter</code>, <code>POST /admin/connectors/{name}/reset</code>, <code>POST /admin/dead-letter/reprocess/{id}</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.connector_health</code>, <code>staging.rejected_records</code></p>
+      <p>Operational views for SRE:</p>
+      <ul>
+        <li><strong>Connector Health</strong> &mdash; reads <code>warehouse.connector_health</code> (status, circuit state, latency, events/hour, errors); the API Security connector is seeded as <code>degraded</code></li>
+        <li><strong>Dead-Letter Queue</strong> &mdash; reads <code>staging.rejected_records</code> (rejection reason, code, source, reprocessed flag)</li>
+        <li><strong>Reset / Reprocess</strong> actions to recover from OEM connector failures</li>
+      </ul>
+
+      <h3>"Explain this dashboard" overlays</h3>
+      <p>Every dashboard header exposes <strong>Explain</strong> and <strong>Layman's Guide</strong> buttons. The narrative is generated by <code>C:\sita-platform\frontend\src\data\explanations.ts</code> (<code>buildExplain</code> / <code>buildLayman</code>), which interpolates the <em>live</em> numbers from each dashboard's hook &mdash; no hardcoded figures.</p>
+
+      <h3>Alert dispatch (out-of-band reporting)</h3>
+      <p>Beyond the UI, critical/high alerts are pushed via <code>DispatchWorker</code> (<code>C:\sita-platform\backend\app\dispatch\worker.py</code>):</p>
+      <ul>
+        <li><code>C:\sita-platform\backend\app\dispatch\email_adapter.py</code> &mdash; HTML email via Jinja2</li>
+        <li><code>C:\sita-platform\backend\app\dispatch\teams_adapter.py</code> &mdash; Microsoft Teams MessageCard</li>
+        <li><code>C:\sita-platform\backend\app\dispatch\pagerduty_adapter.py</code> &mdash; PagerDuty Events API v2</li>
+      </ul>
+      <p>Critical/high fire on all three; medium/low go to email + Teams only.</p>
+
+      <h3>Grafana dashboard (infrastructure monitoring)</h3>
+      <p><strong>File:</strong> <code>C:\sita-platform\infrastructure\monitoring\grafana-dashboards\sita-pipeline.json</code></p>
+      <p>Visualises Prometheus metrics from <code>C:\sita-platform\backend\app\monitoring\metrics.py</code>: connector poll rates, ingestion throughput, normalisation outcomes, API latency, alert rule firings, active alert counts.</p>
+
+      <h3>Key design observations</h3>
+      <ul>
+        <li>No CSV/PDF export &mdash; reporting is on-screen only</li>
+        <li>No charting library used in the dashboards (recharts in package.json but not imported; custom CSS charts instead)</li>
+        <li>All API endpoints query PostgreSQL; no hardcoded report data remains</li>
+        <li>Most complete aggregation: <code>fused_risk()</code> in <code>risk_engine.py</code></li>
+        <li>TTL lifecycle: <code>staging.raw_records</code> purged after 7 days, DLQ after 30 via <code>pg_cron</code></li>
+      </ul>
+    `
+  },
+  ingest: {
+    title: 'Stage 1 â€” OEM Ingestion',
+    badge: 'pull & persist raw',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Pull raw security data from each OEM tool and persist it, untouched, into <code>staging.raw_records</code> so nothing is lost and the pipeline can be replayed.</p>
+      <h3>How it works</h3>
+      <ol>
+        <li><strong>Connector</strong> (<code>C:\sita-platform\backend\app\connectors\</code>) â€” one adapter per OEM: <code>appscan.py</code> (HCL AppScan), <code>imperva.py</code> (DAM/WAF), <code>apisec.py</code> (API security), <code>compliance.py</code> (CSV/API). Each extends <code>base.py</code>.</li>
+        <li><strong>Ingestion hardening</strong> (<code>C:\sita-platform\backend\app\ingestion\</code>) â€” <code>circuit_breaker.py</code> stops hammering a failing OEM, <code>retry.py</code> back-off, <code>token_bucket.py</code> rate limiting, <code>scheduler.py</code> cadence.</li>
+        <li><strong>Dead-letter queue</strong> (<code>dlq.py</code>) â€” records that fail validation go to <code>staging.rejected_records</code> instead of being dropped.</li>
+        <li><strong>Persist</strong> â€” the <code>lake/writer.py</code> writes each raw payload (JSONB) plus a <code>batch_run</code> record into the <code>staging</code> schema (7-day TTL).</li>
+      </ol>
+      <h3>Tables touched</h3>
+      <div class="file-list"><span class="file-tag">staging.batch_runs</span><span class="file-tag">staging.raw_records</span><span class="file-tag">staging.rejected_records</span></div>
+<p><em>Run as its own container/service: <code>C:\sita-platform\backend\app\entrypoints\ingestion.py</code>.</em></p>
+    `
+  },
+  oem: {
+    title: 'OEM Tools',
+    badge: 'external security sources',
+    body: String.raw`
+      <p><strong>What this is:</strong> The third-party security tools that produce raw findings. These are the <em>source</em> systems feeding the pipeline &mdash; nothing in the platform generates data on its own.</p>
+      <h3>The connected OEMs</h3>
+      <ul>
+        <li><strong>HCL AppScan</strong> &mdash; application security / SAST &amp; DAST scanning (SQLi, RCE, XSS, IDOR, SSRF, XXE + CVE-2026 CVEs); pulled by <code>backend\app\connectors\appscan.py</code>.</li>
+        <li><strong>Imperva DAM / WAF</strong> &mdash; database activity monitoring and web-app firewall events (DB-CUST-01, DB-PAY-01, DB-DOC-01, DB-HR-01); pulled by <code>backend\app\connectors\imperva.py</code>.</li>
+        <li><strong>API Security platform</strong> &mdash; discovers shadow APIs and API risk; pulled by <code>backend\app\connectors\apisec.py</code>.</li>
+        <li><strong>Compliance sources</strong> &mdash; CSV / API feeds of compliance posture; pulled by <code>backend\app\connectors\compliance.py</code>.</li>
+      </ul>
+      <h3>Role in the flow</h3>
+      <p>Each OEM exposes its findings over its own API; the pipeline never touches these tools directly &mdash; it talks to them <em>only through its connector adapters</em>. Data leaves the OEM as raw JSON/CSV and enters <code>staging.raw_records</code> untouched.</p>
+    `
+  },
+  connectors: {
+    title: 'Connectors',
+    badge: 'one adapter per OEM',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Bridging code that adapts each OEM tool&rsquo;s API into a uniform interface, so the rest of the pipeline talks to a single contract instead of each vendor&rsquo;s quirks.</p>
+      <h3>Location</h3>
+      <p><code>C:\sita-platform\backend\app\connectors\</code> &mdash; every connector extends <code>base.py</code> (shared fetch/auth/parse logic):</p>
+      <div class="file-list"><span class="file-tag">appscan.py</span><span class="file-tag">imperva.py</span><span class="file-tag">apisec.py</span><span class="file-tag">compliance.py</span><span class="file-tag">base.py</span></div>
+      <ul>
+        <li><code>base.py</code> &mdash; common interface &amp; retry hooks</li>
+        <li><code>appscan.py</code> &mdash; HCL AppScan findings</li>
+        <li><code>imperva.py</code> &mdash; Imperva DAM/WAF events</li>
+        <li><code>apisec.py</code> &mdash; API security / shadow-API risks</li>
+        <li><code>compliance.py</code> &mdash; compliance CSV/API feeds</li>
+      </ul>
+      <h3>Important</h3>
+      <p>Connectors only <strong>pull</strong>. Any robustness (retries, rate limiting, circuit breaking, dead-lettering) is layered on by <code>backend\app\ingestion\</code>, not here &mdash; so a connector stays thin and focused purely on translation.</p>
+    `
+  },
+  staging: {
+    title: 'staging.raw_records',
+    badge: 'raw, replayable buffer',
+    body: String.raw`
+      <p><strong>What it is:</strong> A PostgreSQL table in the <code>staging</code> schema that holds each OEM payload, verbatim, as <code>JSONB</code> &mdash; the durable copy before anything is transformed.</p>
+      <h3>Why it exists</h3>
+      <ul>
+        <li><strong>Nothing is lost</strong> &mdash; even malformed records are preserved (or moved to <code>staging.rejected_records</code>, the DLQ) rather than silently dropped.</li>
+        <li><strong>Replayability</strong> &mdash; the normaliser can reprocess raw data if the field map or rules change.</li>
+        <li><strong>Audit</strong> &mdash; you can always trace a canonical warehouse row back to its original OEM payload.</li>
+      </ul>
+      <h3>Lifecycle</h3>
+      <ul>
+        <li>Written by <code>backend\app\lake\writer.py</code> under <code>entrypoints\ingestion.py</code>.</li>
+        <li>Consumed by the Normaliser (<code>backend\app\processing\normaliser.py</code>).</li>
+        <li><strong>TTL:</strong> purged after 7 days via <code>pg_cron</code> (nightly 2 AM); the DLQ is retained 30 days.</li>
+        <li>Reports <em>never</em> read this table directly &mdash; only the SRE DLQ view touches staging.</li>
+      </ul>
+      <h3>Schema</h3>
+      <div class="file-list"><span class="file-tag">staging.batch_runs</span><span class="file-tag">staging.raw_records</span><span class="file-tag">staging.rejected_records</span></div>
+    `
+  },
+  normaliser: {
+    title: 'Normaliser',
+    badge: 'canonical field mapping',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Convert raw OEM records <em>and their vendor-specific field names</em> into the platform&rsquo;s canonical schema, writing clean, report-ready rows into <code>warehouse.findings</code>.</p>
+      <h3>How it works</h3>
+      <p>Implemented in <code>C:\sita-platform\backend\app\processing\normaliser.py</code>, driven by <code>field_mapper.yaml</code> &mdash; a declarative map of <code>source-field &rarr; canonical-field</code> per OEM.</p>
+      <ol>
+        <li>Read raw records from <code>staging.raw_records</code> (JSONB).</li>
+        <li>Map each OEM&rsquo;s fields onto canonical columns (<code>app_name</code>, <code>severity</code>, <code>title</code>, <code>category</code>, <code>status</code>, &hellip;).</li>
+        <li>Deduplicate &amp; enrich (collapsing on <code>dedup_key</code>) &mdash; co-located in <code>alert_dedup.py</code> and <code>alert_enricher.py</code>.</li>
+        <li>Upsert into <code>warehouse.findings</code>.</li>
+      </ol>
+      <h3>Canonical <code>findings</code> columns</h3>
+      <div class="file-list"><span class="file-tag">id</span><span class="file-tag">source</span><span class="file-tag">external_id</span><span class="file-tag">app_name</span><span class="file-tag">severity</span><span class="file-tag">title</span><span class="file-tag">category</span><span class="file-tag">raw_data</span><span class="file-tag">first_seen</span><span class="file-tag">last_seen</span><span class="file-tag">status</span></div>
+    `
+  },
+  findings: {
+    title: 'warehouse.findings',
+    badge: 'canonical findings table',
+    body: String.raw`
+      <p><strong>What it is:</strong> The primary <code>warehouse</code> table holding normalised, deduplicated vulnerability findings from every OEM &mdash; the single source of truth for the AppSec, DB Sec, and Exec dashboards.</p>
+      <h3>Lifecycle</h3>
+      <ul>
+        <li><strong>Writes:</strong> output of the Normaliser (<code>backend\app\processing\normaliser.py</code>) &mdash; read from staging and persisted here.</li>
+        <li><strong>Reads:</strong> <code>GET /api/v1/findings</code> (<code>backend\app\api\routers\findings.py</code>) &rarr; <code>AppSecDashboard</code> and <code>SocDashboard</code>.</li>
+      </ul>
+      <h3>Key columns</h3>
+      <div class="file-list"><span class="file-tag">id</span><span class="file-tag">source</span><span class="file-tag">app_name</span><span class="file-tag">severity</span><span class="file-tag">category</span><span class="file-tag">status</span><span class="file-tag">raw_data</span></div>
+      <p><em>Reports queried from this table: findings by app/severity/OWASP category, critical CVE lists (AppSec), violation categories (DbSec), and open-finding counts (Exec).</em></p>
+    `
+  },
+  engines: {
+    title: 'Alert / Risk / Compliance Engines',
+    badge: 'rule-based processors',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Pattern-match against normalised data to generate <strong>alerts</strong>, compute <strong>risk scores</strong>, and evaluate <strong>compliance</strong> posture &mdash; each writing its results back into the <code>warehouse</code>.</p>
+      <h3>Alert engine</h3>
+      <p><code>alert_engine.py</code> evaluates rules from <code>alert_rules.yaml</code> (e.g. <code>risk_critical</code>, <code>new_critical_cve</code>, <code>shadow_api_detected</code>, <code>violation_spike</code>, <code>connector_auth_failure</code>) &rarr; deduplicated by <code>alert_dedup.py</code>, enriched by <code>alert_enricher.py</code> &rarr; <code>warehouse.alerts</code>.</p>
+      <h3>Risk engine</h3>
+      <p><code>risk_engine.py</code> + <code>risk_aggregator.py</code> compute the fused risk score &mdash; appscan 35% / imperva 25% / exposure 20% / compliance 20% &rarr; <code>warehouse.risk_scores</code>. Most complete aggregation in the system.</p>
+      <h3>Compliance engine</h3>
+      <p><code>backend\app\processing\compliance.py</code> scores POPIA &amp; ISO 27001 domains and writes <code>compliance_snapshots</code> + <code>compliance_gaps</code>.</p>
+      <h3>Files</h3>
+      <div class="file-list"><span class="file-tag">alert_engine.py</span><span class="file-tag">alert_rules.yaml</span><span class="file-tag">alert_dedup.py</span><span class="file-tag">alert_enricher.py</span><span class="file-tag">risk_engine.py</span><span class="file-tag">risk_aggregator.py</span><span class="file-tag">compliance.py</span></div>
+      <p><em>Reads from findings, writes back to <code>warehouse.*</code> &mdash; bridging the finding/risk/compliance/alert tables shown next.</em></p>
+    `
+  },
+  warehouse: {
+    title: 'warehouse.*',
+    badge: 'reporting schema',
+    body: String.raw`
+      <p><strong>What it is:</strong> The <code>warehouse</code> PostgreSQL schema &mdash; the <em>only</em> source the reporting layer is allowed to read. All normalised, report-ready data lives here.</p>
+      <h3>Tables</h3>
+      <div class="file-list"><span class="file-tag">findings</span><span class="file-tag">alerts</span><span class="file-tag">risk_scores</span><span class="file-tag">compliance_snapshots</span><span class="file-tag">compliance_gaps</span><span class="file-tag">connector_health</span><span class="file-tag">api_endpoints</span></div>
+      <ul>
+        <li><strong>findings</strong> &mdash; normalised vulnerabilities (from Normaliser)</li>
+        <li><strong>alerts</strong> &mdash; engine-generated, deduped alerts (SOC/SRE + dispatch)</li>
+        <li><strong>risk_scores</strong> &mdash; fused per-app risk trends (Exec)</li>
+        <li><strong>compliance_snapshots / compliance_gaps</strong> &mdash; POPIA + ISO 27001 posture (Compliance)</li>
+        <li><strong>connector_health</strong> &mdash; OEM connector status (SRE)</li>
+        <li><strong>api_endpoints</strong> &mdash; shadow-API discovery (SRE/AppSec)</li>
+      </ul>
+      <h3>Contract</h3>
+      <p>The REST API (<code>backend\app\api\routers\</code>) queries these tables and serves them to the frontend &mdash; the database is the boundary between the pipeline and reporting. Seeded by <code>infrastructure\scripts\seed-demo.sql</code>.</p>
+    `
+  },
+  process: {
+    title: 'Stage 2 â€” Pipeline Processing',
+    badge: 'normalise &amp; enrich',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Transform raw OEM records into canonical, deduplicated, enriched data and run the rule engines that produce alerts, risk scores, and compliance results.</p>
+      <h3>How it works</h3>
+      <ol>
+        <li><strong>Normaliser</strong> (<code>C:\sita-platform\backend\app\processing\normaliser.py</code>) â€” maps each OEM's fields onto the canonical schema using <code>field_mapper.yaml</code>; writes to <code>warehouse.findings</code>.</li>
+        <li><strong>Alert dedup / enrich</strong> (<code>alert_dedup.py</code>, <code>alert_enricher.py</code>) â€” collapse duplicates via <code>dedup_key</code>/<code>dedup_count</code>, attach context.</li>
+        <li><strong>Alert engine</strong> (<code>alert_engine.py</code>) â€” evaluates rules from <code>alert_rules.yaml</code> (e.g. <code>risk_critical</code>, <code>new_critical_cve</code>, <code>shadow_api_detected</code>) and writes to <code>warehouse.alerts</code>.</li>
+        <li><strong>Risk engine</strong> (<code>risk_engine.py</code> + <code>risk_aggregator.py</code>) â€” computes the fused risk score (appscan 35% / imperva 25% / exposure 20% / compliance 20%) and persists to <code>warehouse.risk_scores</code>.</li>
+        <li><strong>Compliance engine</strong> (<code>processing/compliance.py</code>) â€” scores POPIA / ISO 27001 domains and writes snapshots + gaps.</li>
+        <li><strong>Dispatch</strong> (<code>C:\sita-platform\backend\app\dispatch\</code>) â€” <code>worker.py</code> sends critical/high alerts via Email, PagerDuty, and Teams.</li>
+      </ol>
+      <h3>Tables written</h3>
+      <div class="file-list"><span class="file-tag">warehouse.findings</span><span class="file-tag">warehouse.alerts</span><span class="file-tag">warehouse.risk_scores</span><span class="file-tag">warehouse.compliance_snapshots</span><span class="file-tag">warehouse.compliance_gaps</span></div>
+      <p><em>Run as its own container/service: <code>C:\sita-platform\backend\app\entrypoints\processing.py</code> (+ <code>dispatch.py</code> for notifications).</em></p>
+    `
+  },
+  store: {
+    title: 'Stage 3 â€” PostgreSQL Warehouse',
+    badge: 'single source of truth',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Store normalised, report-ready data in PostgreSQL. The warehouse schema is the <em>only</em> source the reporting layer reads from.</p>
+      <h3>Schema</h3>
+      <ul>
+        <li><code>staging</code> â€” raw ingestion (<code>batch_runs</code>, <code>raw_records</code>, <code>rejected_records</code>). TTL: 7 / 30 days via <code>pg_cron</code>.</li>
+        <li><code>warehouse</code> â€” canonical reporting tables: <code>connector_health</code>, <code>findings</code>, <code>alerts</code>, <code>risk_scores</code>, <code>compliance_snapshots</code>, <code>compliance_gaps</code>, <code>api_endpoints</code>.</li>
+        <li><code>archive</code> â€” historical retention; <code>audit</code> â€” governance trail.</li>
+      </ul>
+      <h3>Seed / demo data</h3>
+      <p><code>C:\sita-platform\infrastructure\scripts\init-db.sql</code> creates the schema; <code>seed-demo.sql</code> fills it with realistic demo rows (idempotent <code>ON CONFLICT</code> upserts):</p>
+      <div class="file-list"><span class="file-tag">150 risk_scores</span><span class="file-tag">36 findings</span><span class="file-tag">36 alerts</span><span class="file-tag">2 compliance snapshots</span><span class="file-tag">12 gaps</span><span class="file-tag">5 connector_health</span><span class="file-tag">6 api_endpoints</span><span class="file-tag">4 DLQ records</span></div>
+      <p><em>Load with:</em> <code>docker exec -i infrastructure-postgres-1 psql -U sita -d sita &lt; infrastructure\\scripts\\seed-demo.sql</code></p>
+    `
+  },
+  api: {
+    title: 'Stage 4 â€” REST API',
+    badge: 'read-only reporting + actions',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Serve warehouse data to the frontend. Every endpoint queries PostgreSQL via SQLAlchemy â€” there is no hardcoded report data.</p>
+      <h3>Routers (<code>C:\sita-platform\backend\app\api\routers\</code>)</h3>
+      <ul>
+        <li><code>risks.py</code> &mdash; <code>GET /api/v1/risks</code>, <code>GET /api/v1/risks/{app}/trend</code> &rarr; <code>warehouse.risk_scores</code></li>
+        <li><code>findings.py</code> &mdash; <code>GET /api/v1/findings</code>, <code>GET /api/v1/findings/{id}</code> &rarr; <code>warehouse.findings</code></li>
+        <li><code>alerts.py</code> &mdash; <code>GET /api/v1/alerts</code>, <code>PATCH .../acknowledge</code>, <code>PATCH .../resolve</code> &rarr; <code>warehouse.alerts</code></li>
+        <li><code>compliance.py</code> &mdash; <code>GET /api/v1/compliance</code>, <code>.../gaps</code>, <code>.../evidence</code> &rarr; <code>warehouse.compliance_snapshots</code>, <code>compliance_gaps</code></li>
+        <li><code>dashboard.py</code> &mdash; <code>GET /api/v1/dashboard/summary</code> &rarr; aggregates from <code>risk_scores</code> + <code>alerts</code></li>
+        <li><code>admin.py</code> &mdash; <code>GET /admin/connectors</code>, <code>GET /admin/dead-letter</code> &rarr; <code>warehouse.connector_health</code>, <code>staging.rejected_records</code></li>
+      </ul>
+      <h3>Auth &amp; RBAC</h3>
+      <p><code>C:\sita-platform\backend\app\api\auth.py</code> validates the JWT (dev mode: <code>verify_signature=False</code>) and enforces a role hierarchy. Example grants: <code>exec</code> &rarr; risks/compliance/alerts; <code>soc</code> &rarr; findings/alerts; <code>dbsec</code> &rarr; risks/findings/alerts-read; <code>sre</code> &rarr; admin_read/admin_write.</p>
+      <p><em>Served by FastAPI on :8000; nginx proxies <code>/api/</code> and <code>/admin/</code> to it.</em></p>
+    `
+  },
+  ui: {
+    title: 'Stage 5 â€” Reports UI',
+    badge: 'role-gated React SPA',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Render the processed data as six role-gated dashboards. The UI contains <em>no</em> hardcoded sample numbers &mdash; every figure comes from the API (which reads PostgreSQL).</p>
+      <h3>Flow</h3>
+      <p><code>LoginPage</code> <span class="flow-arrow">&rarr;</span> <code>AuthContext</code> mints role JWT via <code>src/utils/jwt.ts</code> <span class="flow-arrow">&rarr;</span> <code>RoleNav</code> gates routes <span class="flow-arrow">&rarr;</span> role dashboard <span class="flow-arrow">&rarr;</span> <code>useXData</code> hook <span class="flow-arrow">&rarr;</span> <code>src/api/*.ts</code> <span class="flow-arrow">&rarr;</span> <code>/api/v1/*</code> or <code>/admin/*</code></p>
+      <h3>Dashboards (<code>C:\sita-platform\frontend\src\pages\</code>)</h3>
+      <ul>
+        <li><strong>Exec</strong> (<code>exec</code>) â€” fused risk trend, compliance gauges, heatmap, top-5 apps, alert summary</li>
+        <li><strong>SOC</strong> (<code>soc</code>) â€” unified timeline, alert queue with acknowledge/resolve, findings</li>
+        <li><strong>AppSec</strong> (<code>appsec</code>) â€” findings by app, OWASP categories, critical CVEs</li>
+        <li><strong>DB Security</strong> (<code>dbsec</code>) â€” violations by DB, categories, active alerts</li>
+        <li><strong>Compliance</strong> (<code>compliance</code>) â€” POPIA/ISO gauges, audit gaps, evidence</li>
+        <li><strong>SRE</strong> (<code>sre</code>) â€” connector health, throughput, error rate, DLQ</li>
+      </ul>
+      <h3>"Explain this dashboard"</h3>
+      <p>Each header has Explain / Layman's Guide buttons rendered by <code>src/components/dashboard/ExplainOverlay.tsx</code>. The narrative is built by <code>src/data/explanations.ts</code> (<code>buildExplain</code>/<code>buildLayman</code>) from the <em>live</em> facts of the page &mdash; no hardcoded figures.</p>
+      <p><em>Served as a static SPA by nginx; dev proxy <code>/api</code> &rarr; :8000.</em></p>
+    `
+  },
+  reports: {
+    title: 'Stage 6 &mdash; Reports',
+    badge: 'the reporting interface &mdash; final product',
+    body: String.raw`
+      <p><strong>Purpose:</strong> The reporting interface is the end-user product that surfaces all processed data. It is <em>not</em> a separate system &mdash; it is the combination of the role-gated React dashboards (frontend), the report-serving REST endpoints (backend), the out-of-band alert dispatch, and the Grafana operational dashboard. <strong>Every number shown is queried from PostgreSQL</strong> &mdash; reports never read the live pipeline or staging tables.</p>
+      <h3>What makes up "Reports"</h3>
+      <ul>
+        <li><strong>Report pages</strong> &mdash; <code>C:\sita-platform\frontend\src\pages\</code>: <code>ExecDashboard</code>, <code>SocDashboard</code>, <code>AppSecDashboard</code>, <code>DbSecDashboard</code>, <code>ComplianceDashboard</code>, <code>SreDashboard</code>.</li>
+        <li><strong>Data hooks</strong> &mdash; <code>C:\sita-platform\frontend\src\hooks\</code>: <code>useExecData</code>, <code>useSocData</code>, <code>useAppSecData</code>, <code>useDbSecData</code>, <code>useComplianceData</code>, <code>useSreData</code> (built on <code>useApi</code>).</li>
+        <li><strong>API clients</strong> &mdash; <code>C:\sita-platform\frontend\src\api\</code>: typed modules hitting <code>/api/v1/*</code> and <code>/admin/*</code>.</li>
+        <li><strong>Narratives</strong> &mdash; <code>C:\sita-platform\frontend\src\data\explanations.ts</code> (<code>buildExplain</code>/<code>buildLayman</code>) + <code>C:\sita-platform\frontend\src\components\dashboard\ExplainOverlay.tsx</code> render live-fact "how this is built" overlays.</li>
+        <li><strong>Report API</strong> &mdash; <code>C:\sita-platform\backend\app\api\routers\dashboard.py</code> (aggregations) plus risks/findings/alerts/compliance routers; all query the <code>warehouse</code> schema.</li>
+        <li><strong>Out-of-band reporting</strong> &mdash; <code>C:\sita-platform\backend\app\dispatch\</code>: critical/high alerts pushed via Email, PagerDuty, Teams.</li>
+        <li><strong>Operational reporting</strong> &mdash; <code>C:\sita-platform\infrastructure\monitoring\grafana-dashboards\sita-pipeline.json</code> + <code>prometheus.yml</code> for pipeline health.</li>
+      </ul>
+      <h3>Role &rarr; report matrix</h3>
+      <p><code>exec</code> &rarr; Exec &middot; <code>soc</code> &rarr; SOC &middot; <code>appsec</code> &rarr; AppSec &middot; <code>dbsec</code> &rarr; DB Sec &middot; <code>compliance</code> &rarr; Compliance &middot; <code>sre</code> &rarr; SRE + Grafana.</p>
+      <h3>Data contract</h3>
+      <p>Reports read only the <code>warehouse</code> schema tables (<code>risk_scores</code>, <code>findings</code>, <code>alerts</code>, <code>compliance_snapshots</code>, <code>compliance_gaps</code>, <code>connector_health</code>) and, for SRE only, <code>staging.rejected_records</code> (DLQ). Seeded by <code>C:\sita-platform\infrastructure\scripts\seed-demo.sql</code> so every view renders realistic demo data.</p>
+    `
+  }
+};
+
+const detailEl = document.getElementById('detail');
+
+const STAGES = ['oem', 'connectors', 'staging', 'normaliser', 'findings', 'engines', 'warehouse', 'ingest', 'process', 'store', 'api', 'ui', 'reports'];
+
+const STAGE_PATHS = {
+  oem: [
+    'backend\\app\\connectors\\appscan.py',
+    'backend\\app\\connectors\\imperva.py',
+    'backend\\app\\connectors\\apisec.py',
+    'backend\\app\\connectors\\compliance.py'
+  ],
+  connectors: ['backend\\app\\connectors'],
+  staging: [
+    'backend\\app\\ingestion',
+    'backend\\app\\lake',
+    'backend\\app\\bus',
+    'backend\\app\\entrypoints\\ingestion.py'
+  ],
+  normaliser: [
+    'backend\\app\\processing\\normaliser.py',
+    'backend\\app\\processing\\field_mapper.yaml',
+    'backend\\app\\processing\\alert_dedup.py',
+    'backend\\app\\processing\\alert_enricher.py'
+  ],
+  findings: [
+    'backend\\app\\processing\\normaliser.py',
+    'backend\\app\\models\\finding.py',
+    'backend\\app\\api\\routers\\findings.py',
+    'backend\\app\\processing\\field_mapper.yaml'
+  ],
+  engines: [
+    'backend\\app\\processing\\alert_engine.py',
+    'backend\\app\\processing\\alert_rules.yaml',
+    'backend\\app\\processing\\alert_dedup.py',
+    'backend\\app\\processing\\alert_enricher.py',
+    'backend\\app\\processing\\risk_engine.py',
+    'backend\\app\\processing\\risk_aggregator.py',
+    'backend\\app\\processing\\compliance.py'
+  ],
+  warehouse: [
+    'backend\\app\\models',
+    'backend\\app\\db.py',
+    'infrastructure\\scripts\\init-db.sql',
+    'infrastructure\\scripts\\seed-demo.sql',
+    'backend\\app\\api\\routers'
+  ],
+  ingest: [
+    'backend\\app\\connectors',
+    'backend\\app\\ingestion',
+    'backend\\app\\lake',
+    'backend\\app\\bus',
+    'backend\\app\\entrypoints\\ingestion.py'
+  ],
+  process: [
+    'backend\\app\\processing',
+    'backend\\app\\dispatch',
+    'backend\\app\\entrypoints\\processing.py',
+    'backend\\app\\entrypoints\\dispatch.py',
+    'backend\\app\\entrypoints\\analytics.py'
+  ],
+  store: [
+    'infrastructure\\scripts\\init-db.sql',
+    'infrastructure\\scripts\\seed-demo.sql',
+    'backend\\migrations',
+    'backend\\app\\models',
+    'backend\\app\\db.py',
+    'infrastructure\\docker-compose'
+  ],
+  api: [
+    'backend\\app\\api',
+    'backend\\app\\main.py',
+    'backend\\app\\config.py',
+    'backend\\app\\auth.py',
+    'infrastructure\\nginx'
+  ],
+  ui: ['frontend\\'],
+  reports: [
+    'frontend\\src\\pages',
+    'frontend\\src\\hooks',
+    'frontend\\src\\api',
+    'frontend\\src\\data',
+    'frontend\\src\\components',
+    'frontend\\src\\context',
+    'frontend\\src\\utils\\jwt.ts',
+    'backend\\app\\api\\routers\\dashboard.py',
+    'backend\\app\\dispatch',
+    'infrastructure\\monitoring'
+  ]
+};
+
+function highlightStage(stage) {
+  const prefixes = STAGE_PATHS[stage] || [];
+  document.querySelectorAll('.tree .dir, .tree .file, .tree .root').forEach(el => {
+    if (el.getAttribute('data-key') === 'root') return;
+    const path = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    const isReportingNode = stage === 'reports' && el.getAttribute('data-key') === 'reporting';
+    const hit = isReportingNode || prefixes.some(p => path.indexOf(p) !== -1);
+    el.classList.toggle('hl', hit);
+    el.classList.toggle('dim', !hit);
+  });
+  document.querySelectorAll('.stage-btn').forEach(b => {
+    const s = b.getAttribute('data-stage');
+    b.classList.toggle('hl', s === stage);
+  });
+}
+
+function clearStageHighlight() {
+  document.querySelectorAll('.tree .hl, .tree .dim, .stage-btn.hl').forEach(el => {
+    el.classList.remove('hl');
+    el.classList.remove('dim');
+  });
+}
+
+function render(key) {
+  document.querySelectorAll('[data-key]').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.stage-btn').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.flow-node').forEach(x => x.classList.remove('active'));
+  const treeEl = document.querySelector('[data-key="' + key + '"]');
+  const stageEl = document.querySelector('[data-stage="' + key + '"]');
+  const flowEl = document.querySelector('[data-flow="' + key + '"]');
+  if (treeEl) treeEl.classList.add('active');
+  if (stageEl) stageEl.classList.add('active');
+  if (flowEl) flowEl.classList.add('active');
+  const data = details[key];
+  if (!data) return;
+  detailEl.innerHTML = `
+    <h2>&#128194; ${data.title} <span class="badge">${data.badge}</span></h2>
+    ${data.body}
+  `;
+  if (STAGES.indexOf(key) !== -1) {
+    highlightStage(key);
+  } else {
+    clearStageHighlight();
+  }
+}
+
+document.querySelectorAll('[data-key]').forEach(el => {
+  el.addEventListener('click', () => render(el.getAttribute('data-key')));
+});
+
+document.querySelectorAll('[data-stage]').forEach(el => {
+  el.addEventListener('click', () => render(el.getAttribute('data-stage')));
+});
+
+document.querySelectorAll('[data-flow]').forEach(el => {
+  el.addEventListener('click', () => render(el.getAttribute('data-flow')));
+});
+
+</script>
+
+</body>
+</html>
