@@ -11,7 +11,6 @@ import {
   riskTrendSeries,
   groupAlertsByRule,
   toneForSeverity,
-  colorForSeverity,
   toneForStatus,
   oemForSource,
   barHeight,

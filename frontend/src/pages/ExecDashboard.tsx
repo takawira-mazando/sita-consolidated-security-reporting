@@ -9,7 +9,7 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useExecData } from '../hooks/useExecData';
-import { toneForBucket, colorForBucket, toneForStatus, oemForSource } from '../data/mappers';
+import { toneForBucket, colorForBucket, oemForSource } from '../data/mappers';
 
 export default function ExecDashboard() {
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
@@ -154,7 +154,7 @@ export default function ExecDashboard() {
           <thead><tr><th>Alert Rule</th><th>Application</th><th>Severity</th><th>Source</th><th>Count</th><th>Status</th></tr></thead>
           <tbody>
             {d.alertSummary.length ? d.alertSummary.map((a, i) => {
-              const [src, srcLabel] = oemForSource(a.src);
+              const [src] = oemForSource(a.src);
               return (
                 <tr key={i}>
                   <td><code>{a.rule}</code></td>

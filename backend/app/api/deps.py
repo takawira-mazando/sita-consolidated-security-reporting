@@ -1,10 +1,14 @@
-from app.config import settings
-from app.api.auth import verify_token, require_roles
+from fastapi import Depends
 
-__all__ = ["get_settings", "get_current_user", "require_roles"]
+from app.api.auth import require_roles, verify_token
+from app.config import settings
+
+__all__ = ["get_current_user", "get_settings", "require_roles"]
+
 
 def get_settings():
     return settings
+
 
 async def get_current_user(credentials=Depends(verify_token)):
     return credentials

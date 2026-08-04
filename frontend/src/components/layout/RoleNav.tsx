@@ -1,6 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { ROLE_LABELS } from '../../data/explanations';
 
 interface RoleTab {
   role: string;

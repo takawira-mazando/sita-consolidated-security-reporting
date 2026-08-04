@@ -4,7 +4,6 @@ import {
   toneForSeverity,
   toneForStatus,
   gapStatusCounts,
-  barHeight,
 } from '../data/mappers';
 import type { Tone } from '../data/mappers';
 

@@ -24,7 +24,6 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): UseA
         else setError(e?.message || 'Failed to load data.');
       })
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   useEffect(() => {

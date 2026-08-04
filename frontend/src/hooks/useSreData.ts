@@ -1,7 +1,6 @@
 import { useApi } from './useApi';
 import { fetchConnectors } from '../api/admin';
 import {
-  toneForStatus,
   oemForSource,
   barHeight,
 } from '../data/mappers';
