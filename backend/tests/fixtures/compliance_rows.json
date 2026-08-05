@@ -1,0 +1,35 @@
+[
+  {
+    "framework": "popia",
+    "control_id": "POPIA-19",
+    "domain": "Consent",
+    "description": "Consent records for marketing data incomplete.",
+    "owner": "DPO",
+    "severity": "high",
+    "due_date": "2026-08-20",
+    "status": "in_progress",
+    "evidence_count": 8
+  },
+  {
+    "framework": "popia",
+    "control_id": "POPIA-72",
+    "domain": "Cross-Border",
+    "description": "Cross-border data transfer not documented.",
+    "owner": "Legal",
+    "severity": "critical",
+    "due_date": "2026-08-05",
+    "status": "open",
+    "evidence_count": 2
+  },
+  {
+    "framework": "iso_27001",
+    "control_id": "ISO-A.12.6",
+    "domain": "Operations",
+    "description": "Vulnerability scan frequency inadequate.",
+    "owner": "AppSec",
+    "severity": "high",
+    "due_date": "2026-08-12",
+    "status": "in_progress",
+    "evidence_count": 6
+  }
+]

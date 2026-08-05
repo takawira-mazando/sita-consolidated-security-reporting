@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from redis import asyncio as aioredis
 from redis.exceptions import ResponseError

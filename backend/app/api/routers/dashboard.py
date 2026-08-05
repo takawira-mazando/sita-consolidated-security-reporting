@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import require_roles
 from app.db import get_session
 from app.models.alert import Alert, AlertStatus
-from app.models.risk_score import RiskScore, RiskBucket
+from app.models.risk_score import RiskBucket, RiskScore
 
 router = APIRouter(tags=["dashboard"])
 

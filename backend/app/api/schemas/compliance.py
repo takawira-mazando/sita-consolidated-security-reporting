@@ -1,6 +1,7 @@
-from pydantic import BaseModel
 from datetime import date
-from typing import Optional
+
+from pydantic import BaseModel
+
 
 class ComplianceSnapshot(BaseModel):
     framework: str
@@ -8,15 +9,15 @@ class ComplianceSnapshot(BaseModel):
     overall_score: float
     total_controls: int
     passed_controls: int
-    details: Optional[dict] = None
+    details: dict | None = None
 
 class ComplianceGap(BaseModel):
     id: str
     framework: str
     control_id: str
-    domain: Optional[str] = None
+    domain: str | None = None
     description: str
-    owner: Optional[str] = None
+    owner: str | None = None
     severity: str
-    due_date: Optional[date] = None
+    due_date: date | None = None
     status: str = "open"

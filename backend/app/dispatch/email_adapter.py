@@ -1,6 +1,8 @@
 import smtplib
 from email.mime.text import MIMEText
+
 from jinja2 import Template
+
 from app.config import settings
 
 EMAIL_TEMPLATE = Template("""

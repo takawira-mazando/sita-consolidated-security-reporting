@@ -1,0 +1,41 @@
+[
+  {
+    "id": "ASC-2026-1001",
+    "application_name": "legacy-api",
+    "vulnerability_name": "SQL Injection in SOAP endpoint",
+    "description": "Classic SQLi in /soap/login allows auth bypass.",
+    "owasp_category": "A03-injection",
+    "severity": "4 - Critical",
+    "status": "Open",
+    "first_found_date": "2026-07-24T09:00:00+00:00",
+    "last_found_date": "2026-08-03T11:30:00+00:00",
+    "cve": "CVE-2026-31142",
+    "cvss": 9.8
+  },
+  {
+    "id": "ASC-2026-1002",
+    "application_name": "payment-gateway",
+    "vulnerability_name": "JWT algorithm confusion",
+    "description": "Token signing algorithm not pinned.",
+    "owasp_category": "A07-identification-auth-failures",
+    "severity": "4 - Critical",
+    "status": "Open",
+    "first_found_date": "2026-07-26T10:00:00+00:00",
+    "last_found_date": "2026-08-02T15:45:00+00:00",
+    "cve": "CVE-2026-29188",
+    "cvss": 9.2
+  },
+  {
+    "id": "ASC-2026-1003",
+    "application_name": "customer-portal",
+    "vulnerability_name": "Stored XSS in profile",
+    "description": "Persistent XSS allows session hijacking.",
+    "owasp_category": "A07-identification-auth-failures",
+    "severity": "3 - High",
+    "status": "In Progress",
+    "first_found_date": "2026-07-28T08:00:00+00:00",
+    "last_found_date": "2026-08-04T09:15:00+00:00",
+    "cve": null,
+    "cvss": 6.5
+  }
+]

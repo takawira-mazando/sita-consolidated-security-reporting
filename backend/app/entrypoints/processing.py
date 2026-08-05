@@ -7,12 +7,12 @@ import pandas as pd
 from redis.exceptions import ResponseError
 
 from app.bus.producer import Producer, make_redis
-from app.bus.streams import STREAM_ALERTS, STREAM_RAW, STREAM_DLQ, GROUP_PROCESSING
+from app.bus.streams import GROUP_PROCESSING, STREAM_ALERTS, STREAM_DLQ, STREAM_RAW
 from app.config import settings
 from app.db import SessionFactory
 from app.lake.writer import upsert_lake_batch
-from app.processing.normaliser import Normaliser
 from app.processing.alert_engine import AlertRuleEngine
+from app.processing.normaliser import Normaliser
 
 logger = logging.getLogger(__name__)
 

@@ -1,6 +1,8 @@
 import aiohttp
 import pandas as pd
+
 from app.connectors.base import BaseConnector
+
 
 class ImpervaConnector(BaseConnector):
     def __init__(self, config: dict):
@@ -11,12 +13,11 @@ class ImpervaConnector(BaseConnector):
         self.source_type = source_type
 
     async def authenticate(self) -> bool:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{self.base_url}/api/v1/auth",
-                headers={"x-api-key": self.api_key}
-            ) as resp:
-                return resp.status == 200
+        async with aiohttp.ClientSession() as session, session.post(
+            f"{self.base_url}/api/v1/auth",
+            headers={"x-api-key": self.api_key}
+        ) as resp:
+            return resp.status == 200
 
     async def poll(self) -> list[dict]:
         results = []

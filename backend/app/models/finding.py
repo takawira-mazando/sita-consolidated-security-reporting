@@ -1,6 +1,9 @@
-from sqlalchemy import Column, String, Integer, DateTime, JSON, Enum, UniqueConstraint, func
-from app.models.base import Base
 import enum
+
+from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint, func
+
+from app.models.base import Base
+
 
 class Severity(str, enum.Enum):
     INFO = "info"

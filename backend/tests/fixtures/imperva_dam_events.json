@@ -1,0 +1,38 @@
+[
+  {
+    "event_id": "DAM-2026-0422",
+    "database_name": "DB-CUST-01",
+    "rule_name": "Unauthorized access attempt",
+    "attack_type": "brute-force",
+    "violation_type": "unauth_access",
+    "severity": "Critical",
+    "timestamp": "2026-08-04T02:10:00+00:00",
+    "db_user": "sa",
+    "source_ip": "203.0.113.7",
+    "rows_affected": 0
+  },
+  {
+    "event_id": "DAM-2026-0419",
+    "database_name": "DB-CUST-01",
+    "rule_name": "Data exfiltration pattern",
+    "attack_type": "sqli",
+    "violation_type": "data_exfil",
+    "severity": "Emergency",
+    "timestamp": "2026-08-03T03:00:00+00:00",
+    "db_user": "app_user",
+    "source_ip": "203.0.113.14",
+    "rows_affected": 1500000
+  },
+  {
+    "event_id": "DAM-2026-0415",
+    "database_name": "DB-PAY-01",
+    "rule_name": "Privilege escalation",
+    "attack_type": "privilege-abuse",
+    "violation_type": "privilege_abuse",
+    "severity": "Warning",
+    "timestamp": "2026-08-02T18:30:00+00:00",
+    "db_user": "dba_admin",
+    "source_ip": "198.51.100.9",
+    "rows_affected": 0
+  }
+]

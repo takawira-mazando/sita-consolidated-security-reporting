@@ -33,6 +33,51 @@
       font-weight: 400;
       font-size: 0.85rem;
     }
+    .h1-actions {
+      margin-left: auto;
+      display: flex;
+      gap: 0.55rem;
+      align-items: center;
+    }
+    .fw-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      background: rgba(22,27,34,0.9);
+      border: 1px solid rgba(48,54,61,0.6);
+      color: #e6edf3;
+      border-radius: 10px;
+      padding: 0.5rem 0.8rem;
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s, background 0.15s;
+      text-align: left;
+    }
+    .fw-btn:hover {
+      border-color: rgba(240,136,62,0.6);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      transform: translateY(-1px);
+    }
+    .fw-btn .fw-ic { font-size: 1rem; }
+    .fw-btn .fw-title { display: flex; flex-direction: column; line-height: 1.2; gap: 1px; }
+    .fw-btn .fw-title b { font-size: 0.72rem; color: #f0c674; }
+    .fw-btn .fw-title span { font-size: 0.62rem; color: #8b949e; font-weight: 500; }
+    .fw-btn.active {
+      border-color: #f0883e;
+      outline: 1px solid rgba(240,136,62,0.35);
+      background: rgba(240,136,62,0.1);
+      box-shadow: 0 0 0 3px rgba(240,136,62,0.12);
+    }
+    .fw-btn.active .fw-title b { color: #f0883e; }
+    .fw-btn.fw-frontend.active {
+      border-color: #7ee787;
+      outline-color: rgba(126,231,135,0.35);
+      background: rgba(126,231,135,0.08);
+      box-shadow: 0 0 0 3px rgba(126,231,135,0.12);
+    }
+    .fw-btn.fw-frontend.active .fw-title b { color: #7ee787; }
     .layout { display: flex; gap: 2rem; align-items: flex-start; }
     .tree-col { flex: 0 0 auto; min-width: 500px; }
     .detail-col { flex: 1; min-width: 300px; }
@@ -89,6 +134,30 @@
       font-family: 'JetBrains Mono', 'Consolas', monospace;
       word-break: break-word;
     }
+    .flow-head {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      margin: 0.2rem 0 0.6rem;
+    }
+    .flow-head h2 {
+      color: #f0c674;
+      font-size: 0.95rem;
+      letter-spacing: -0.01em;
+      text-transform: capitalize;
+      margin: 0;
+    }
+    .flow-head .badge {
+      font-size: 0.6rem;
+      background: rgba(139,148,158,0.15);
+      color: #8b949e;
+      padding: 3px 10px;
+      border-radius: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      border: 1px solid rgba(48,54,61,0.4);
+    }
     .stage-flow {
       display: flex;
       flex-wrap: wrap;
@@ -126,6 +195,13 @@
       outline: 1px solid rgba(240,136,62,0.35);
       background: rgba(240,136,62,0.1);
     }
+    .stage-flow .flow-node.hl {
+      border-color: rgba(126,231,135,0.7);
+      outline: 1px solid rgba(126,231,135,0.3);
+      background: rgba(126,231,135,0.08);
+      box-shadow: 0 0 10px rgba(126,231,135,0.15);
+    }
+    .stage-flow .flow-node.dim { opacity: 0.35; }
     .stage-flow .flow-node .fn-name {
       font-size: 0.72rem;
       font-weight: 700;
@@ -147,6 +223,38 @@
       color: #79c0ff;
       font-weight: 700;
       align-self: center;
+    }
+    .stage-flow .flow-node .fn-fw {
+      margin-top: 1px;
+      font-size: 0.54rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 8px;
+      line-height: 1.3;
+    }
+    .fn-fw.bk { color: #79c0ff; background: rgba(121,192,255,0.1); border: 1px solid rgba(121,192,255,0.28); }
+    .fn-fw.fe { color: #7ee787; background: rgba(126,231,135,0.1); border: 1px solid rgba(126,231,135,0.28); }
+    .fn-fw.ext { color: #8b949e; background: rgba(139,148,158,0.08); border: 1px solid rgba(48,54,61,0.4); }
+    .stage-flow .flow-node .fn-stage {
+      margin-top: 2px;
+      font-size: 0.54rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 8px;
+      line-height: 1.3;
+      color: #f0c674;
+      background: rgba(240,136,62,0.08);
+      border: 1px solid rgba(240,136,62,0.3);
+    }
+    .stage-flow .flow-node.active .fn-stage,
+    .stage-flow .flow-node.hl .fn-stage {
+      color: #f0883e;
+      border-color: rgba(240,136,62,0.6);
+      background: rgba(240,136,62,0.15);
     }
 
     .tree {
@@ -283,19 +391,278 @@
     .detail-panel::-webkit-scrollbar-thumb { background: rgba(48,54,61,0.6); border-radius: 3px; }
     .detail-panel::-webkit-scrollbar-thumb:hover { background: rgba(48,54,61,0.9); }
 
+    /* ---- OEM data approach modal ---- */
+    .oem-approach-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: linear-gradient(135deg, rgba(240,136,62,0.15), rgba(126,231,135,0.08));
+      border: 1px solid rgba(240,136,62,0.55);
+      color: #f0c674;
+      font-family: inherit;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0.55rem 1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: box-shadow 0.15s, transform 0.1s, background 0.15s;
+      margin-bottom: 1.25rem;
+      letter-spacing: 0.01em;
+    }
+    .oem-approach-btn:hover {
+      box-shadow: 0 4px 18px rgba(240,136,62,0.35);
+      transform: translateY(-1px);
+      background: linear-gradient(135deg, rgba(240,136,62,0.25), rgba(126,231,135,0.12));
+    }
+    .oem-approach-btn .pulse {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #7ee787;
+      box-shadow: 0 0 0 0 rgba(126,231,135,0.7);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(126,231,135,0.7); }
+      70%  { box-shadow: 0 0 0 8px rgba(126,231,135,0); }
+      100% { box-shadow: 0 0 0 0 rgba(126,231,135,0); }
+    }
+    .modal-overlay {
+      position: fixed; inset: 0; z-index: 100;
+      background: rgba(5,8,12,0.72);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: flex-start; justify-content: center;
+      padding: 3vh 1rem;
+      overflow-y: auto;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: #11161d;
+      border: 1px solid rgba(240,136,62,0.35);
+      border-radius: 14px;
+      max-width: 980px;
+      width: 100%;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.65);
+      overflow: hidden;
+      animation: modal-in 0.18s ease;
+    }
+    @keyframes modal-in {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+      padding: 1.1rem 1.5rem;
+      border-bottom: 1px solid rgba(48,54,61,0.6);
+      background: linear-gradient(135deg, rgba(240,136,62,0.1), rgba(126,231,135,0.05));
+    }
+    .modal-head h2 {
+      color: #f0883e; font-size: 1.15rem; margin: 0;
+      display: flex; align-items: center; gap: 0.6rem;
+    }
+    .modal-head .badge {
+      font-size: 0.6rem; background: rgba(139,148,158,0.15); color: #8b949e;
+      padding: 3px 10px; border-radius: 12px; font-weight: 500; text-transform: uppercase;
+      letter-spacing: 0.04em; border: 1px solid rgba(48,54,61,0.4);
+    }
+    .modal-close {
+      background: none; border: 1px solid rgba(48,54,61,0.6); color: #8b949e;
+      width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
+      font-size: 1.1rem; line-height: 1; transition: border-color 0.15s, color 0.15s;
+    }
+    .modal-close:hover { border-color: rgba(240,136,62,0.6); color: #f0c674; }
+    .modal-body { padding: 1.5rem; max-height: 75vh; overflow-y: auto; }
+    .modal-body::-webkit-scrollbar { width: 6px; }
+    .modal-body::-webkit-scrollbar-track { background: transparent; }
+    .modal-body::-webkit-scrollbar-thumb { background: rgba(48,54,61,0.6); border-radius: 3px; }
+    .modal-body h3 {
+      color: #7ee787; font-size: 0.95rem; margin: 1.4rem 0 0.5rem; letter-spacing: -0.01em;
+    }
+    .modal-body h3:first-child { margin-top: 0; }
+    .modal-body p, .modal-body li { color: #e6edf3; font-size: 0.85rem; line-height: 1.75; }
+    .modal-body ul, .modal-body ol { padding-left: 1.3rem; margin: 0.4rem 0; }
+    .modal-body li { margin-bottom: 0.3rem; }
+    .modal-body li strong { color: #f0c674; }
+    .modal-body code {
+      background: rgba(48,54,61,0.5); padding: 2px 7px; border-radius: 4px;
+      font-size: 0.8rem; color: #f0c674; font-family: 'JetBrains Mono', 'Consolas', monospace;
+      border: 1px solid rgba(48,54,61,0.3);
+    }
+    .modal-body .flow-arrow { color: #79c0ff; margin: 0 5px; font-weight: 700; }
+    .modal-body .file-list { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.5rem 0; }
+    .modal-body .file-tag {
+      background: rgba(31,41,55,0.7); border: 1px solid rgba(48,54,61,0.5); border-radius: 5px;
+      padding: 3px 9px; font-size: 0.77rem; color: #e6edf3;
+      font-family: 'JetBrains Mono', 'Consolas', monospace;
+    }
+    .modal-body .table {
+      width: 100%; border-collapse: collapse; margin: 0.6rem 0; font-size: 0.8rem;
+    }
+    .modal-body .table th, .modal-body .table td {
+      text-align: left; padding: 0.45rem 0.6rem; border: 1px solid rgba(48,54,61,0.5);
+    }
+    .modal-body .table th { color: #f0c674; background: rgba(31,41,55,0.6); font-size: 0.75rem; }
+    .modal-body .table td code { background: none; border: none; padding: 0; }
+    .modal-body .steps { counter-reset: step; list-style: none; padding-left: 0; }
+    .modal-body .steps li {
+      counter-increment: step; position: relative; padding-left: 2.4rem; margin-bottom: 0.7rem;
+    }
+    .modal-body .steps li::before {
+      content: counter(step); position: absolute; left: 0; top: 1px;
+      width: 1.6rem; height: 1.6rem; border-radius: 50%;
+      background: rgba(240,136,62,0.15); border: 1px solid rgba(240,136,62,0.5);
+      color: #f0883e; font-weight: 700; font-size: 0.75rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+
     @media (max-width: 800px) {
       body { padding: 1.25rem; }
+      h1 { flex-wrap: wrap; }
+      .h1-actions { margin-left: 0; width: 100%; justify-content: flex-start; flex-wrap: wrap; }
       .layout { flex-direction: column; }
       .tree-col { min-width: 0; width: 100%; }
       .detail-col { width: 100%; }
       .detail-panel { max-height: none; }
       .stage-btn { min-width: 120px; }
+      .modal-body { max-height: 82vh; }
     }
   </style>
 </head>
 <body>
 
-<h1>&#128451; sita-platform <small>&mdash; security pipeline architecture &amp; reporting interface</small></h1>
+<h1>&#128451; sita-platform <small>&mdash; security pipeline architecture &amp; reporting interface</small>
+  <span class="h1-actions">
+    <button class="fw-btn" id="backendFwBtn" data-fwbtn="backend" title="Why the backend framework was selected">
+      <span class="fw-ic">&#128736;&#65039;</span>
+      <span class="fw-title"><b>Backend framework</b><span>why FastAPI &amp; Python</span></span>
+    </button>
+    <button class="fw-btn fw-frontend" id="frontendFwBtn" data-fwbtn="frontend" title="Why the frontend stack was selected">
+      <span class="fw-ic">&#128187;</span>
+      <span class="fw-title"><b>Frontend stack</b><span>why React &amp; TypeScript</span></span>
+    </button>
+  </span>
+</h1>
+
+<button class="oem-approach-btn" id="oemApproachBtn"><span class="pulse"></span> Synthetic OEM feed + fixtures &mdash; how we run without live OEM access &amp; how we plug it in</button>
+
+<div class="modal-overlay" id="oemModal" role="dialog" aria-modal="true" aria-labelledby="oemModalTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="oemModalTitle">&#128230; Bridging the gap: Synthetic OEM feed &amp; live cutover <span class="badge">approach &amp; plan</span></h2>
+      <button class="modal-close" id="oemModalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+
+      <h3>&#128308; The problem &mdash; no live OEM data feed yet</h3>
+      <p>The platform must ingest from <strong>four OEM sources</strong> &mdash; HCL AppScan, Imperva DAM/WAF, the API Security platform, and compliance CSV feeds. Live access (API credentials / tenant access) is <strong>not available yet</strong>, which blocks end-to-end ingestion, pipeline verification, and report development if we wait.</p>
+
+      <h3>&#128994; The approach &mdash; a deterministic synthetic OEM feed that mirrors real connector output</h3>
+      <p>Instead of waiting, we built a <strong>synthetic feed generator</strong> that emits payloads shaped <em>exactly like each real OEM connector&rsquo;s <code>poll()</code> output</em>, so every downstream stage &mdash; staging &rarr; normaliser &rarr; warehouse &rarr; alert/risk/compliance engines &rarr; REST API &rarr; dashboards &mdash; runs and is tested <strong>before live access exists</strong>.</p>
+
+      <table class="table">
+        <thead><tr><th>Piece</th><th>Path</th><th>What it provides</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Feed generator</strong></td><td><code>backend\app\synthetic\generator.py</code></td><td><code>SyntheticOEMFeed</code> &mdash; deterministic (seed=42) per-source generators: <code>appscan_finding</code>, <code>imperva_dam_event</code>, <code>imperva_waf_event</code>, <code>apisec_endpoint</code>, <code>compliance_row</code>; <code>batch()</code>/<code>sample()</code></td></tr>
+          <tr><td><strong>Fixture dataset</strong></td><td><code>backend\tests\fixtures\</code></td><td>5 JSON fixtures (3 records each) with a loader (<code>__init__.py</code>) &mdash; OEM-shaped IDs (ASC/DAM/WAF/API-2026), severities, CVSS/CVE, ISO timestamps &mdash; used by the test suite</td></tr>
+          <tr><td><strong>Seed pipeline</strong></td><td><code>backend\app\entrypoints\seed_simulated.py</code></td><td>CLI that generates realistic volumes, writes <code>staging.batch_runs</code>/<code>raw_records</code>, runs the normaliser &rarr; warehouse upsert &rarr; alerts &rarr; risk scores &rarr; connector health, all offline</td></tr>
+          <tr><td><strong>Config-driven mapping</strong></td><td><code>backend\app\processing\field_mapper.yaml</code></td><td>JSONPath field maps + severity maps per source (incl. apisec exposure thresholds) &mdash; the same map the live connectors will use</td></tr>
+          <tr><td><strong>Tests</strong></td><td><code>backend\tests\</code></td><td>28 pytest cases (normaliser / alert engine / risk engine) proving the pipeline from fixtures through to alerts &mdash; CI runs them</td></tr>
+        </tbody>
+      </table>
+
+      <h3>&#128278; Why the synthetic feed is safe to build on</h3>
+      <ul>
+        <li><strong>Field-shape parity</strong> &mdash; the generator&rsquo;s record shapes mirror the connector contracts (see <code>backend\app\connectors\{appscan,imperva,apisec,compliance}.py</code>), so switching to live data is a <em>source swap, not a rewrite</em>.</li>
+        <li><strong>Deterministic &amp; replayable</strong> &mdash; fixed seed means reproducible fixtures and stable test expectations.</li>
+        <li><strong>Downstream untouched</strong> &mdash; everything after <code>staging.raw_records</code> consumes JSONB payloads regardless of producer; reports never read staging directly.</li>
+        <li><strong>Test-gated</strong> &mdash; the same normaliser/config/tests that validate synthetic data validate live data, so regressions surface immediately on cutover.</li>
+      </ul>
+
+      <h3>&#128279; The data flow (synthetic today &mdash; identical topology with live)</h3>
+      <p><code>SyntheticOEMFeed</code> <span class="flow-arrow">&rarr;</span> <code>seed_simulated.py</code> <span class="flow-arrow">&rarr;</span> <code>staging.raw_records</code> <span class="flow-arrow">&rarr;</span> <code>Normaliser</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.findings</code> <span class="flow-arrow">&rarr;</span> <code>Alert / Risk / Compliance Engines</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.*</code> <span class="flow-arrow">&rarr;</span> <code>REST API</code> <span class="flow-arrow">&rarr;</span> <code>Report UI</code></p>
+
+      <h3>&#128267; How we plug in the live feed to replace the synthetic one</h3>
+      <p>Live cutover reuses the exact connectors already built (<code>appscan.py</code>, <code>imperva.py</code>, <code>apisec.py</code>, <code>compliance.py</code>) &mdash; the synthetic feed exists only because those can&rsquo;t authenticate yet. The switch is a <strong>source swap at the ingestion boundary</strong>:</p>
+      <ol class="steps">
+        <li><strong>Provision live access</strong> &mdash; obtain OEM credentials / tenants and store them in <code>backend\.env</code> / connector config (AppScan API-key login, Imperva token, API-Security key, compliance file drop).</li>
+        <li><strong>Run the real connector in test mode</strong> &mdash; execute one <code>authenticate() &rarr; poll()</code> per source and inspect the raw payload. This validates auth, pagination and rate-limit behaviour (the live-OEM-blocked items #1 / #4).</li>
+        <li><strong>Diff against fixtures</strong> &mdash; compare a live <code>raw_payload</code> to the fixture JSON for the same source; confirm the normaliser (<code>field_mapper.yaml</code>) maps it without schema changes.</li>
+        <li><strong>Toggle the producer</strong> &mdash; point <code>entrypoints\ingestion.py</code> at the real connector instead of <code>SyntheticOEMFeed</code>; both write identical shapes to <code>staging.raw_records</code>, so processing/dispatch/reporting need no changes.</li>
+        <li><strong>Watch batch runs</strong> &mdash; confirm a real batch lands in <code>staging.batch_runs</code> and flows to <code>warehouse.findings</code>; verify connector health flips to <code>healthy</code> and DLQ stays empty.</li>
+        <li><strong>Calibrate weights &amp; WAF rules</strong> &mdash; recalibrate risk-engine weights and enable the live WAF block feed (US-APPSEC-04) using real volume, then re-run the test suite.</li>
+        <li><strong>Keep synthetic as sandbox</strong> &mdash; retain <code>SyntheticOEMFeed</code> behind a flag (e.g. <code>SEED_MODE=simulated</code>) for demos, CI and training; live becomes the default once validated.</li>
+      </ol>
+
+      <p><em>Status: synthetic feed &amp; fixtures shipped, 28 tests green, CI running pytest. Blocked on live OEM access for E2E connector auth/pagination, risk-weight calibration, and the WAF block feed.</em></p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="backendFwModal" role="dialog" aria-modal="true" aria-labelledby="backendFwTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="backendFwTitle">&#128736;&#65039; Why the backend was built on FastAPI &amp; Python <span class="badge">backend framework rationale</span></h2>
+      <button class="modal-close" id="backendFwClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+
+      <h3>&#128994; Why FastAPI + Python</h3>
+      <p>The backend (connectors, ingestion, normaliser, alert/risk/compliance engines, dispatch, and the REST API) is one Python service built on <strong>FastAPI</strong> with <strong>SQLAlchemy</strong> ORM and <strong>PostgreSQL</strong>.</p>
+      <ul>
+        <li><strong>Async-native pipeline</strong> &mdash; FastAPI is built on <code>asyncio</code>, so long-running OEM <code>poll()</code> calls, retries, circuit breakers, and rate limiting don&rsquo;t block the event loop while alerts are still being served.</li>
+        <li><strong>Automatic OpenAPI docs</strong> &mdash; every endpoint in <code>backend\app\api\routers\</code> is self-documented at <code>/docs</code> from type hints &mdash; free, accurate API contract for the frontend to consume.</li>
+        <li><strong>Pydantic validation</strong> &mdash; schemas in <code>backend\app\api\schemas\</code> enforce request/response shapes at the boundary, so bad payloads fail fast instead of corrupting the warehouse.</li>
+        <li><strong>One language for the whole pipeline</strong> &mdash; connectors, normaliser, engines and API share types, config (<code>config.py</code>), logging (<code>monitoring\logging.py</code>) and metrics (<code>monitoring\metrics.py</code>), so there is no cross-language impedance between stages.</li>
+        <li><strong>Ecosystem for data work</strong> &mdash; SQLAlchemy async sessions, Alembic migrations, pandas for normalisation (<code>normaliser.py</code>), YAML-driven rules &mdash; all first-class in Python.</li>
+      </ul>
+
+      <h3>&#128200; Advantages that matter here</h3>
+      <table class="table">
+        <thead><tr><th>Advantage</th><th>How it serves this platform</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Concurrent OEM polling</strong></td><td>Async connectors poll HCL AppScan, Imperva, API-Security, compliance in parallel without thread pools or blocking the API.</td></tr>
+          <tr><td><strong>Type-safe contracts</strong></td><td>Pydantic schemas + OpenAPI keep the frontend&rsquo;s typed API clients honest at every release.</td></tr>
+          <tr><td><strong>Declarative config</strong></td><td><code>field_mapper.yaml</code>, <code>alert_rules.yaml</code>, <code>app_catalog.yaml</code> drive mapping/rules/enrichment without code changes.</td></tr>
+          <tr><td><strong>Observability built in</strong></td><td>Prometheus <code>/metrics</code> + structured logs feed the Grafana dashboard with near-zero wiring.</td></tr>
+          <tr><td><strong>Fast startup</strong></td><td>No heavy framework machinery; containers in <code>docker-compose.yml</code> come up in seconds for demos.</td></tr>
+        </tbody>
+      </table>
+      <p><em>Bottom line: FastAPI is the strongest choice for this platform because the entire pipeline is Python &mdash; connectors, normaliser, engines and API share one runtime, one type system, and one toolchain. There is no framework more suited to a security-pipeline service that must poll OEMs asynchronously, transform data with pandas, and serve a typed, documented REST contract.</em></p>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="frontendFwModal" role="dialog" aria-modal="true" aria-labelledby="frontendFwTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="frontendFwTitle">&#128187; Why the frontend was built on React, TypeScript &amp; Vite <span class="badge">frontend stack rationale</span></h2>
+      <button class="modal-close" id="frontendFwClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+
+      <h3>&#128994; Why React + TypeScript + Vite</h3>
+      <p>The reporting UI (<code>frontend\</code>) is a <strong>single-page app</strong>: React 18 + TypeScript + Vite, with axios API clients and six role-gated dashboards. No server-side rendering &mdash; it is served as static files by nginx and talks to the FastAPI backend over <code>/api/v1/*</code>.</p>
+      <ul>
+        <li><strong>Component reuse across six dashboards</strong> &mdash; <code>StatCard</code>, <code>Panel</code>, <code>Gauge</code>, <code>MiniBarChart</code>, <code>BarRow</code>, <code>Chip</code>, <code>OemTag</code> in <code>frontend\src\components\dashboard\</code> are shared by Exec, SOC, AppSec, DbSec, Compliance and SRE views &mdash; one source of truth for each visual.</li>
+        <li><strong>TypeScript end-to-end</strong> &mdash; the typed API modules (<code>src\api\*.ts</code>) mirror the backend&rsquo;s Pydantic/OpenAPI schemas, so a field rename surfaces as a compile error, not a runtime blank chart.</li>
+        <li><strong>Hooks encapsulate data access</strong> &mdash; <code>useExecData</code>, <code>useSocData</code>, &hellip; built on <code>useApi</code>/<code>usePolling</code> keep each page declarative and testable.</li>
+        <li><strong>Vite for speed</strong> &mdash; instant dev-server HMR and fast production builds keep the dashboard iteration loop tight.</li>
+      </ul>
+
+      <h3>&#128200; Advantages that matter here</h3>
+      <table class="table">
+        <thead><tr><th>Advantage</th><th>How it serves this platform</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Six dashboards, one component kit</strong></td><td>Role pages compose the same widgets; new roles reuse them instead of forking markup.</td></tr>
+          <tr><td><strong>Contract-first safety</strong></td><td>TS types in <code>src\types.ts</code> + <code>src\api\</code> make the API boundary explicit and refactor-safe.</td></tr>
+          <tr><td><strong>Live "Explain this dashboard"</strong></td><td><code>explanations.ts</code> + <code>ExplainOverlay.tsx</code> build narratives from <em>live</em> API facts &mdash; no hardcoded figures to drift.</td></tr>
+          <tr><td><strong>Zero sample data in UI</strong></td><td>Every number comes from PostgreSQL via FastAPI; the UI can never disagree with the warehouse.</td></tr>
+          <tr><td><strong>Fast, dependency-light</strong></td><td>Vite bundles only what each page imports; custom CSS charts (no chart lib imported) keep it lean.</td></tr>
+        </tbody>
+      </table>
+      <p><em>Bottom line: React + TypeScript + Vite is the strongest choice for this reporting UI because it delivers a type-safe, componentised, role-gated SPA that mirrors the FastAPI contract exactly &mdash; six dashboards composed from one shared widget kit, with every number proven to come from PostgreSQL.</em></p>
+    </div>
+  </div>
+</div>
 
 <div class="stages">
   <button class="stage-btn" data-stage="ingest"><span class="st-num">Stage 1</span><span class="st-name">OEM Ingestion</span><span class="st-path">connectors/ ingestion/</span></button>
@@ -306,24 +673,30 @@
   <button class="stage-btn" data-stage="reports"><span class="st-num">Stage 6</span><span class="st-name">Reports</span><span class="st-path">pages/ data/ grafana/</span></button>
 </div>
 
+<div class="flow-head">
+  <h2>&#128640; expanded pipeline</h2>
+  <span class="badge">click a stage to highlight its steps</span>
+</div>
 <div class="stage-flow">
-  <span class="flow-node" data-flow="oem"><span class="fn-name">OEM Tools</span><span class="fn-path">External (no repo path)</span></span>
+  <span class="flow-node" data-flow="oem" data-stage="ingest" data-fw="ext"><span class="fn-name">OEM Tools</span><span class="fn-path">External (no repo path)</span><span class="fn-fw ext">external</span><span class="fn-stage">Stage 1</span></span>
   <span class="flow-arrow">&rarr;</span>
-  <span class="flow-node" data-flow="connectors"><span class="fn-name">Connectors</span><span class="fn-path">backend\app\connectors\</span></span>
+  <span class="flow-node" data-flow="connectors" data-stage="ingest" data-fw="bk"><span class="fn-name">Connectors</span><span class="fn-path">backend\app\connectors\</span><span class="fn-fw bk">backend</span><span class="fn-stage">Stage 1</span></span>
   <span class="flow-arrow">&rarr;</span>
-  <span class="flow-node" data-flow="staging"><span class="fn-name">staging.raw_records</span><span class="fn-path">DB: staging schema (init-db.sql)</span></span>
+  <span class="flow-node" data-flow="staging" data-stage="ingest" data-fw="bk"><span class="fn-name">staging.raw_records</span><span class="fn-path">DB: staging schema (init-db.sql)</span><span class="fn-fw bk">backend</span><span class="fn-stage">Stage 1</span></span>
   <span class="flow-arrow">&rarr;</span>
-  <span class="flow-node" data-flow="normaliser"><span class="fn-name">Normaliser</span><span class="fn-path">backend\app\processing\normaliser.py</span></span>
+  <span class="flow-node" data-flow="normaliser" data-stage="process" data-fw="bk"><span class="fn-name">Normaliser</span><span class="fn-path">backend\app\processing\normaliser.py</span><span class="fn-fw bk">backend</span><span class="fn-stage">Stage 2</span></span>
   <span class="flow-arrow">&rarr;</span>
-  <span class="flow-node" data-flow="findings"><span class="fn-name">warehouse.findings</span><span class="fn-path">DB: warehouse schema (init-db.sql)</span></span>
+  <span class="flow-node" data-flow="findings" data-stage="process" data-fw="bk"><span class="fn-name">warehouse.findings</span><span class="fn-path">DB: warehouse schema (init-db.sql)</span><span class="fn-fw bk">backend</span><span class="fn-stage">Stage 2</span></span>
   <span class="flow-arrow">&rarr;</span>
-  <span class="flow-node" data-flow="engines"><span class="fn-name">Alert / Risk / Compliance Engines</span><span class="fn-path">backend\app\processing\</span></span>
+  <span class="flow-node" data-flow="engines" data-stage="process" data-fw="bk"><span class="fn-name">Alert / Risk / Compliance Engines</span><span class="fn-path">backend\app\processing\</span><span class="fn-fw bk">backend</span><span class="fn-stage">Stage 2</span></span>
   <span class="flow-arrow">&rarr;</span>
-  <span class="flow-node" data-flow="warehouse"><span class="fn-name">warehouse.*</span><span class="fn-path">DB: warehouse schema (init-db.sql)</span></span>
+  <span class="flow-node" data-flow="warehouse" data-stage="store" data-fw="bk"><span class="fn-name">warehouse.*</span><span class="fn-path">DB: warehouse schema (init-db.sql)</span><span class="fn-fw bk">backend</span><span class="fn-stage">Stage 3</span></span>
   <span class="flow-arrow">&rarr;</span>
-  <span class="flow-node" data-flow="api"><span class="fn-name">REST API</span><span class="fn-path">backend\app\api\routers\</span></span>
+  <span class="flow-node" data-flow="api" data-stage="api" data-fw="bk"><span class="fn-name">REST API</span><span class="fn-path">backend\app\api\routers\</span><span class="fn-fw bk">backend</span><span class="fn-stage">Stage 4</span></span>
   <span class="flow-arrow">&rarr;</span>
-  <span class="flow-node" data-flow="ui"><span class="fn-name">Reports UI</span><span class="fn-path">frontend\src\pages\</span></span>
+  <span class="flow-node" data-flow="ui" data-stage="ui" data-fw="fe"><span class="fn-name">Reports UI</span><span class="fn-path">frontend\src\pages\</span><span class="fn-fw fe">frontend</span><span class="fn-stage">Stage 5</span></span>
+  <span class="flow-arrow">&rarr;</span>
+  <span class="flow-node" data-flow="reports" data-stage="reports" data-fw="fe"><span class="fn-name">Reports</span><span class="fn-path">pages/ data/ grafana/</span><span class="fn-fw fe">frontend</span><span class="fn-stage">Stage 6</span></span>
 </div>
 
 <div class="layout">
@@ -384,7 +757,8 @@
 <span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\analytics.py</span>
 <span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\dispatch.py</span>
 <span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\ingestion.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\processing.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\processing.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\seed_simulated.py</span>
 <span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\ingestion\</span>
 <span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\__init__.py</span>
 <span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\circuit_breaker.py</span>
@@ -414,17 +788,33 @@
 <span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_engine.py</span>
 <span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_enricher.py</span>
 <span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_rules.yaml</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\app_catalog.yaml</span>
 <span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\compliance.py</span>
 <span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\field_mapper.yaml</span>
 <span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\normaliser.py</span>
 <span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\risk_aggregator.py</span>
-<span class="pipe">â”‚   â”‚       â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\risk_engine.py</span>
+<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\risk_engine.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir" data-key="synthetic">C:\sita-platform\backend\app\synthetic\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\synthetic\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\synthetic\generator.py</span>
 <span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\migrations\</span>
 <span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\migrations\alembic.ini</span>
 <span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\migrations\env.py</span>
 <span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\Dockerfile</span>
 <span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\requirements.txt</span>
-<span class="pipe">â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\.env.example</span>
+<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\.env.example</span>
+<span class="pipe">â”‚   â””â”€â”€</span> <span class="dir" data-key="tests">C:\sita-platform\backend\tests\</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\conftest.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\test_alert_engine.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\test_normaliser.py</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\test_risk_engine.py</span>
+<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="dir">C:\sita-platform\backend\tests\fixtures\</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\__init__.py</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\appscan_findings.json</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\apisec_endpoints.json</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\compliance_rows.json</span>
+<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\imperva_dam_events.json</span>
+<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\imperva_waf_events.json</span>
 <span class="pipe">â”œâ”€â”€</span> <span class="dir" data-key="frontend">C:\sita-platform\frontend\</span>
 <span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\public\</span>
 <span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\</span>
@@ -499,10 +889,12 @@
 <span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\backup.sh</span>
 <span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\deploy.sh</span>
 <span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\init-db.sql</span>
-<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\seed-demo.sql</span>
+<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\seed-demo.sql</span>
+<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\maintenance.sql</span>
 <span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\docker-compose.yml</span>
 <span class="pipe">â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\docker-compose.prod.yml</span>
 <span class="pipe">â””â”€â”€</span> <span class="root" data-key="reporting">C:\sita-platform\  (reporting interface â€” final product)</span>
+  </pre>
   </div>
 </div>
 
@@ -786,6 +1178,44 @@ const details = {
       <p>Connectors only <strong>pull</strong>. Any robustness (retries, rate limiting, circuit breaking, dead-lettering) is layered on by <code>backend\app\ingestion\</code>, not here &mdash; so a connector stays thin and focused purely on translation.</p>
     `
   },
+  synthetic: {
+    title: 'synthetic',
+    badge: 'simulated OEM feed',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Deterministic stand-in for the live OEM connectors while tenant/API access is pending. Emits payloads shaped exactly like each real connector&rsquo;s <code>poll()</code> output so every downstream stage runs and is tested before live access exists.</p>
+      <h3>Files</h3>
+      <div class="file-list"><span class="file-tag">generator.py</span><span class="file-tag">__init__.py</span></div>
+      <ul>
+        <li><code>C:\sita-platform\backend\app\synthetic\generator.py</code> &mdash; <code>SyntheticOEMFeed</code> (deterministic, seed=42) with per-source generators <code>appscan_finding</code>, <code>imperva_dam_event</code>, <code>imperva_waf_event</code>, <code>apisec_endpoint</code>, <code>compliance_row</code>, and <code>batch()</code>/<code>sample()</code>.</li>
+        <li><code>C:\sita-platform\backend\tests\fixtures\</code> &mdash; OEM-shaped JSON fixtures (3 records each) used by the pytest suite and the seed pipeline.</li>
+      </ul>
+      <h3>Why it is safe to build on</h3>
+      <ul>
+        <li><strong>Field-shape parity</strong> &mdash; mirrors the connector contracts in <code>backend\app\connectors\</code>, so switching to live data is a source swap, not a rewrite.</li>
+        <li><strong>Deterministic &amp; replayable</strong> &mdash; fixed seed gives reproducible fixtures and stable test expectations.</li>
+        <li><strong>Downstream untouched</strong> &mdash; everything after <code>staging.raw_records</code> consumes JSONB payloads regardless of producer.</li>
+      </ul>
+      <h3>How the live feed replaces it</h3>
+      <p><code>SyntheticOEMFeed</code> <span class="flow-arrow">&rarr;</span> <code>seed_simulated.py</code> <span class="flow-arrow">&rarr;</span> <code>staging.raw_records</code>. On cutover, <code>entrypoints\ingestion.py</code> points at the real connectors instead &mdash; same shapes, same schema, no downstream change. See the &ldquo;Synthetic OEM feed + fixtures&rdquo; button at the top for the full cutover plan.</p>
+    `
+  },
+  tests: {
+    title: 'tests',
+    badge: 'pytest &middot; 28 cases',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Prove the pipeline from OEM-shaped fixtures through normalisation, alerting, and risk scoring so regressions surface immediately &mdash; and so CI actually runs a real test command.</p>
+      <h3>Files</h3>
+      <div class="file-list"><span class="file-tag">conftest.py</span><span class="file-tag">test_normaliser.py</span><span class="file-tag">test_alert_engine.py</span><span class="file-tag">test_risk_engine.py</span><span class="file-tag">fixtures/</span></div>
+      <ul>
+        <li><code>C:\sita-platform\backend\tests\test_normaliser.py</code> &mdash; config-driven flattening, severity mapping (incl. apisec exposure thresholds), timestamp/type casting, 1h window dedup, in-batch dedup.</li>
+        <li><code>C:\sita-platform\backend\tests\test_alert_engine.py</code> &mdash; rule loading, critical/high firing, per-rule throttling, complete alert fields, enricher owner/priority/links.</li>
+        <li><code>C:\sita-platform\backend\tests\test_risk_engine.py</code> &mdash; bucket thresholds, signal scaling, fused-risk bounds, determinism, custom weights.</li>
+        <li><code>C:\sita-platform\backend\tests\fixtures\</code> &mdash; JSON fixtures for all five sources loaded via <code>load_fixture()</code>.</li>
+      </ul>
+      <h3>CI</h3>
+      <p><code>.github\workflows\ci.yml</code> runs <code>python -m pytest backend/tests</code> (was a no-op before); <code>pytest</code>/<code>pytest-asyncio</code>/<code>httpx</code> are pinned in <code>backend\requirements.txt</code>.</p>
+    `
+  },
   staging: {
     title: 'staging.raw_records',
     badge: 'raw, replayable buffer',
@@ -978,6 +1408,19 @@ const detailEl = document.getElementById('detail');
 
 const STAGES = ['oem', 'connectors', 'staging', 'normaliser', 'findings', 'engines', 'warehouse', 'ingest', 'process', 'store', 'api', 'ui', 'reports'];
 
+const FLOW_STAGE = {
+  oem: 'ingest',
+  connectors: 'ingest',
+  staging: 'ingest',
+  normaliser: 'process',
+  findings: 'process',
+  engines: 'process',
+  warehouse: 'store',
+  api: 'api',
+  ui: 'ui',
+  reports: 'reports'
+};
+
 const STAGE_PATHS = {
   oem: [
     'backend\\app\\connectors\\appscan.py',
@@ -1074,14 +1517,15 @@ function highlightStage(stage) {
     el.classList.toggle('hl', hit);
     el.classList.toggle('dim', !hit);
   });
+  const linkedStage = FLOW_STAGE[stage] || stage;
   document.querySelectorAll('.stage-btn').forEach(b => {
     const s = b.getAttribute('data-stage');
-    b.classList.toggle('hl', s === stage);
+    b.classList.toggle('hl', s === linkedStage);
   });
 }
 
 function clearStageHighlight() {
-  document.querySelectorAll('.tree .hl, .tree .dim, .stage-btn.hl').forEach(el => {
+  document.querySelectorAll('.tree .hl, .tree .dim, .stage-btn.hl, .stage-flow .flow-node.hl, .stage-flow .flow-node.dim').forEach(el => {
     el.classList.remove('hl');
     el.classList.remove('dim');
   });
@@ -1091,12 +1535,14 @@ function render(key) {
   document.querySelectorAll('[data-key]').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.stage-btn').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.flow-node').forEach(x => x.classList.remove('active'));
+  const linkedStage = FLOW_STAGE[key] || key;
   const treeEl = document.querySelector('[data-key="' + key + '"]');
-  const stageEl = document.querySelector('[data-stage="' + key + '"]');
+  const stageEl = document.querySelector('[data-stage="' + linkedStage + '"]');
   const flowEl = document.querySelector('[data-flow="' + key + '"]');
   if (treeEl) treeEl.classList.add('active');
   if (stageEl) stageEl.classList.add('active');
   if (flowEl) flowEl.classList.add('active');
+  highlightFramework(key);
   const data = details[key];
   if (!data) return;
   detailEl.innerHTML = `
@@ -1110,16 +1556,94 @@ function render(key) {
   }
 }
 
+function highlightFramework(key) {
+  const BACKEND_STAGES = ['oem', 'connectors', 'staging', 'normaliser', 'findings', 'engines', 'warehouse', 'ingest', 'process', 'store', 'api'];
+  const FRONTEND_STAGES = ['ui', 'reports'];
+  const backendBtn = document.getElementById('backendFwBtn');
+  const frontendBtn = document.getElementById('frontendFwBtn');
+  const backend = BACKEND_STAGES.indexOf(key) !== -1;
+  const frontend = FRONTEND_STAGES.indexOf(key) !== -1;
+  backendBtn.classList.toggle('active', backend);
+  frontendBtn.classList.toggle('active', frontend);
+  document.querySelectorAll('.stage-flow .flow-node').forEach(n => {
+    const fw = n.getAttribute('data-fw');
+    n.classList.toggle('dim', false);
+    if (key === n.getAttribute('data-flow')) return;
+    if (backend && fw === 'bk') n.classList.add('hl');
+    else if (frontend && fw === 'fe') n.classList.add('hl');
+    else n.classList.remove('hl');
+  });
+}
+
 document.querySelectorAll('[data-key]').forEach(el => {
   el.addEventListener('click', () => render(el.getAttribute('data-key')));
 });
 
-document.querySelectorAll('[data-stage]').forEach(el => {
+document.querySelectorAll('.stage-btn').forEach(el => {
   el.addEventListener('click', () => render(el.getAttribute('data-stage')));
 });
 
 document.querySelectorAll('[data-flow]').forEach(el => {
   el.addEventListener('click', () => render(el.getAttribute('data-flow')));
+});
+
+// ---- OEM data approach modal ----
+const oemModal = document.getElementById('oemModal');
+const oemBtn = document.getElementById('oemApproachBtn');
+const oemClose = document.getElementById('oemModalClose');
+
+// ---- framework rationale modals ----
+const backendFwModal = document.getElementById('backendFwModal');
+const backendFwBtn = document.getElementById('backendFwBtn');
+const backendFwClose = document.getElementById('backendFwClose');
+const frontendFwModal = document.getElementById('frontendFwModal');
+const frontendFwBtn = document.getElementById('frontendFwBtn');
+const frontendFwClose = document.getElementById('frontendFwClose');
+
+function openModal(modal) {
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  const closeBtn = modal.querySelector('.modal-close');
+  if (closeBtn) closeBtn.focus();
+}
+function closeModal(modal) {
+  modal.classList.remove('open');
+  if (!document.querySelector('.modal-overlay.open')) {
+    document.body.style.overflow = '';
+  }
+}
+function closeAllModals() {
+  document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open'));
+  document.body.style.overflow = '';
+}
+
+function openOemModal() {
+  openModal(oemModal);
+}
+function closeOemModal() {
+  closeModal(oemModal);
+}
+
+oemBtn.addEventListener('click', openOemModal);
+oemClose.addEventListener('click', closeOemModal);
+oemModal.addEventListener('click', (e) => {
+  if (e.target === oemModal) closeOemModal();
+});
+
+backendFwBtn.addEventListener('click', () => openModal(backendFwModal));
+backendFwClose.addEventListener('click', () => closeModal(backendFwModal));
+backendFwModal.addEventListener('click', (e) => {
+  if (e.target === backendFwModal) closeModal(backendFwModal);
+});
+
+frontendFwBtn.addEventListener('click', () => openModal(frontendFwModal));
+frontendFwClose.addEventListener('click', () => closeModal(frontendFwModal));
+frontendFwModal.addEventListener('click', (e) => {
+  if (e.target === frontendFwModal) closeModal(frontendFwModal);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAllModals();
 });
 
 </script>

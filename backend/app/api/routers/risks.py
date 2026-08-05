@@ -1,3 +1,6 @@
+from datetime import date
+from math import ceil
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,10 +9,8 @@ from app.api.auth import require_roles
 from app.api.schemas.common import PaginatedResponse
 from app.api.schemas.risk import RiskScore, RiskTrend
 from app.db import get_session
-from app.models.risk_score import RiskScore as RiskScoreModel, RiskBucket
-from typing import Optional
-from datetime import date
-from math import ceil
+from app.models.risk_score import RiskBucket
+from app.models.risk_score import RiskScore as RiskScoreModel
 
 router = APIRouter(tags=["risks"])
 
@@ -22,10 +23,10 @@ def _bucket_value(bucket):
 
 @router.get("/risks", response_model=PaginatedResponse)
 async def get_risks(
-    app: Optional[str] = Query(None),
-    bucket: Optional[str] = Query(None),
-    date_from: Optional[date] = Query(None),
-    date_to: Optional[date] = Query(None),
+    app: str | None = Query(None),
+    bucket: str | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     session: AsyncSession = Depends(get_session),

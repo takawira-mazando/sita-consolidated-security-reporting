@@ -1,6 +1,7 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+
+from pydantic import BaseModel
+
 
 class Finding(BaseModel):
     id: str
@@ -9,8 +10,8 @@ class Finding(BaseModel):
     app_name: str
     severity: str
     title: str
-    description: Optional[str] = None
-    category: Optional[str] = None
+    description: str | None = None
+    category: str | None = None
     first_seen: datetime
     last_seen: datetime
     status: str

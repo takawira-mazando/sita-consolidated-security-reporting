@@ -1,0 +1,32 @@
+[
+  {
+    "event_id": "WAF-2026-0331",
+    "application_name": "legacy-api",
+    "attack_name": "sqli",
+    "request_uri": "/soap/login",
+    "attack_type": "sqli",
+    "block_time": "2026-08-04T01:05:00+00:00",
+    "action": "block",
+    "source_ip": "198.51.100.21"
+  },
+  {
+    "event_id": "WAF-2026-0330",
+    "application_name": "payment-gateway",
+    "attack_name": "xss",
+    "request_uri": "/api/v1/pay",
+    "attack_type": "xss",
+    "block_time": "2026-08-03T22:40:00+00:00",
+    "action": "block",
+    "source_ip": "198.51.100.33"
+  },
+  {
+    "event_id": "WAF-2026-0329",
+    "application_name": "customer-portal",
+    "attack_name": "scanner-probe",
+    "request_uri": "/api/v3/export",
+    "attack_type": "scanner-probe",
+    "block_time": "2026-08-03T14:20:00+00:00",
+    "action": "log",
+    "source_ip": "198.51.100.77"
+  }
+]

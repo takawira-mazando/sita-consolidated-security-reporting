@@ -1,5 +1,7 @@
-from pydantic import BaseModel, Field
 from math import ceil
+
+from pydantic import BaseModel, Field
+
 
 class PaginatedResponse(BaseModel):
     items: list

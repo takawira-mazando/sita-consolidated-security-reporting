@@ -1,8 +1,9 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
+
 from app.dispatch.email_adapter import EmailAdapter
-from app.dispatch.teams_adapter import TeamsAdapter
 from app.dispatch.pagerduty_adapter import PagerDutyAdapter
+from app.dispatch.teams_adapter import TeamsAdapter
 
 
 class DispatchWorker:

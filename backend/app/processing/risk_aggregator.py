@@ -1,16 +1,16 @@
 from datetime import date
 
-from sqlalchemy import select, func
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.finding import Finding, Severity
 from app.models.compliance import ComplianceSnapshot
+from app.models.finding import Finding, Severity
 from app.processing.risk_engine import (
     RiskInputs,
     compute_signal_appscan,
-    compute_signal_imperva,
-    compute_signal_exposure,
     compute_signal_compliance,
+    compute_signal_exposure,
+    compute_signal_imperva,
     fused_risk,
     risk_bucket,
 )

@@ -1,6 +1,8 @@
 import asyncio
 import random
-from typing import Callable, Any
+from collections.abc import Callable
+from typing import Any
+
 
 class RetryHandler:
     def __init__(self, max_attempts: int = 3, backoff_base: float = 2.0,

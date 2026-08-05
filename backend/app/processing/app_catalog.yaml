@@ -1,0 +1,23 @@
+apps:
+  legacy-api:
+    owner: AppSec Engineer
+    team: AppSec
+    tier: P1
+    severity_override: true
+  payment-gateway:
+    owner: Payment Ops
+    team: Payments
+    tier: P1
+    severity_override: true
+  customer-portal:
+    owner: Web Platform
+    team: Digital
+    tier: P2
+  document-svc:
+    owner: Content Platform
+    team: Digital
+    tier: P2
+  internal-hr:
+    owner: HR Systems
+    team: Internal
+    tier: P3

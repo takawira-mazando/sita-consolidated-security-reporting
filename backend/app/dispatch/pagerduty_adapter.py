@@ -1,5 +1,6 @@
 import aiohttp
 
+
 class PagerDutyAdapter:
     def __init__(self, routing_key: str = ""):
         self.routing_key = routing_key or ""
@@ -23,9 +24,8 @@ class PagerDutyAdapter:
                 },
             },
         }
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                "https://events.pagerduty.com/v2/enqueue",
-                json=payload,
-            ) as resp:
-                return resp.status == 202
+        async with aiohttp.ClientSession() as session, session.post(
+            "https://events.pagerduty.com/v2/enqueue",
+            json=payload,
+        ) as resp:
+            return resp.status == 202

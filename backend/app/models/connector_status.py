@@ -1,5 +1,7 @@
-from sqlalchemy import Column, String, Integer, DateTime
+from sqlalchemy import Column, DateTime, Integer, String
+
 from app.models.base import Base
+
 
 class ConnectorHealth(Base):
     __tablename__ = "connector_health"

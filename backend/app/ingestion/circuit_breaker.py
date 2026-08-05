@@ -1,6 +1,6 @@
-from enum import Enum
 import time
-import asyncio
+from enum import Enum
+
 
 class CircuitState(Enum):
     CLOSED = "closed"
@@ -35,7 +35,7 @@ class CircuitBreaker:
             result = await func(*args, **kwargs)
             self._on_success()
             return result
-        except Exception as e:
+        except Exception:
             self._on_failure()
             raise
 

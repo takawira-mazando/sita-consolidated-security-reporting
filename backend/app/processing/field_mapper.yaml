@@ -53,6 +53,13 @@ sources:
       last_seen: "$.block_time"
 
   apisec:
+    severity_map:
+      exposure_based: true
+      thresholds:
+        critical: 80
+        high: 50
+        medium: 20
+        low: 0
     field_mappings:
       external_id: "$.api_id"
       app_name: "$.application"
@@ -61,3 +68,19 @@ sources:
       category: "$.issue_type"
       first_seen: "$.discovered_at"
       last_seen: "$.last_active"
+
+  compliance:
+    severity_map:
+      critical: critical
+      high: high
+      medium: medium
+      low: low
+    field_mappings:
+      external_id: "$.control_id"
+      app_name: "$.framework"
+      title: "$.description"
+      description: "$.description"
+      category: "$.domain"
+      first_seen: "$.due_date"
+      last_seen: "$.due_date"
+      status: "$.status"

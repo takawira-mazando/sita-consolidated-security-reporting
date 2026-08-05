@@ -1,9 +1,11 @@
 import time
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.routers import risks, findings, compliance, alerts, dashboard, admin
+
 from app.api.errors import register_exception_handlers
+from app.api.routers import admin, alerts, compliance, dashboard, findings, risks
 from app.monitoring.metrics import setup_metrics
 
 start_time = time.time()

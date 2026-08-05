@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
+
 import pandas as pd
-from typing import Any
+
 
 class BaseConnector(ABC):
     def __init__(self, name: str, config: dict):

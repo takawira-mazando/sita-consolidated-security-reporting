@@ -1,6 +1,8 @@
 import aiohttp
 import pandas as pd
+
 from app.connectors.base import BaseConnector
+
 
 class ApiSecurityConnector(BaseConnector):
     def __init__(self, config: dict):
@@ -9,12 +11,11 @@ class ApiSecurityConnector(BaseConnector):
         self.api_key = config["api_key"]
 
     async def authenticate(self) -> bool:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{self.base_url}/api/v1/auth",
-                json={"api_key": self.api_key}
-            ) as resp:
-                return resp.status == 200
+        async with aiohttp.ClientSession() as session, session.post(
+            f"{self.base_url}/api/v1/auth",
+            json={"api_key": self.api_key}
+        ) as resp:
+            return resp.status == 200
 
     async def poll(self) -> list[dict]:
         results = []

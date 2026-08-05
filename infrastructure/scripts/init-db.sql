@@ -156,17 +156,17 @@ CREATE TABLE IF NOT EXISTS warehouse.api_endpoints (
 CREATE INDEX IF NOT EXISTS idx_api_endpoints_app ON warehouse.api_endpoints(app_name);
 CREATE INDEX IF NOT EXISTS idx_api_endpoints_shadow ON warehouse.api_endpoints(is_shadow);
 
--- Optional: schedule staging TTL cleanup if pg_cron is available.
--- Guarded so init succeeds on base images without pg_cron.
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'pg_cron') THEN
-        PERFORM cron.schedule('staging-ttl', '0 2 * * *',
-            'DELETE FROM staging.raw_records WHERE ttl_expires_at < now(); DELETE FROM staging.rejected_records WHERE ttl_expires_at < now();'
-        );
-    END IF;
-END
-$$;
+-- Archive copies of hot warehouse tables (rotated by maintenance.sql)
+-- LIKE ... INCLUDING ALL copies columns, defaults, constraints and indexes,
+-- which keeps the UNIQUE/PK keys that maintenance.sql's ON CONFLICT relies on.
+CREATE TABLE IF NOT EXISTS archive.risk_scores (LIKE warehouse.risk_scores INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS archive.alerts (LIKE warehouse.alerts INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS archive.compliance_snapshots (LIKE warehouse.compliance_snapshots INCLUDING ALL);
+CREATE TABLE IF NOT EXISTS archive.findings (LIKE warehouse.findings INCLUDING ALL);
+
+-- pg_cron maintenance jobs (TTL purge, archive rotation, reindex) are defined
+-- in maintenance.sql and require shared_preload_libraries='pg_cron'.
+-- Run separately once pg_cron is enabled; init-db.sql stays dependency-free.
 
 INSERT INTO warehouse.connector_health (name, source, status) VALUES
     ('appscan', 'appscan', 'healthy'),

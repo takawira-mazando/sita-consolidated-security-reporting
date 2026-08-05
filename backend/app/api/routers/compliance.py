@@ -1,21 +1,19 @@
-from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, func
-from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import date, timedelta
+
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import require_roles
 from app.db import get_session
-from app.models.compliance import ComplianceSnapshot, ComplianceGap
-from app.models.connector_status import ConnectorHealth
-from app.models.dlq import RejectedRecord
-from typing import Optional
+from app.models.compliance import ComplianceGap, ComplianceSnapshot
 
 router = APIRouter(tags=["compliance"])
 
 
 @router.get("/compliance")
 async def get_compliance(
-    framework: Optional[str] = Query(None, regex="^(popia|iso_27001)$"),
+    framework: str | None = Query(None, regex="^(popia|iso_27001)$"),
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("compliance")),
 ):
@@ -38,8 +36,8 @@ async def get_compliance(
 
 @router.get("/compliance/gaps")
 async def get_compliance_gaps(
-    framework: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
+    framework: str | None = Query(None),
+    status: str | None = Query(None),
     sort_by: str = Query("due_date"),
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("compliance")),
@@ -70,7 +68,7 @@ async def get_compliance_gaps(
 
 @router.get("/compliance/evidence")
 async def get_evidence(
-    gap_id: Optional[str] = Query(None),
+    gap_id: str | None = Query(None),
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("compliance")),
 ):

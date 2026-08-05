@@ -1,5 +1,7 @@
-import numpy as np
 from dataclasses import dataclass
+
+import numpy as np
+
 
 @dataclass
 class RiskInputs:
@@ -16,7 +18,9 @@ def compute_signal_appscan(counts: dict[str, int], max_score: float = 100.0) -> 
     return min((weighted / max_score) * 100, 100) if max_score > 0 else 0.0
 
 def compute_signal_imperva(count: int) -> float:
-    return min(np.log2(max(count, 1) + 1) * 10, 100)
+    if count <= 0:
+        return 0.0
+    return min(np.log2(count + 1) * 10, 100)
 
 def compute_signal_exposure(scores: list[float]) -> float:
     return float(np.mean(scores)) if scores else 0.0

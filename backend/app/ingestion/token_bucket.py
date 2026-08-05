@@ -1,5 +1,6 @@
-import time
 import asyncio
+import time
+
 
 class TokenBucket:
     def __init__(self, rate: float, capacity: int | None = None, name: str = "default"):

@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     database_url: str = "postgresql+asyncpg://sita:password@localhost:5432/sita"
     redis_url: str = "redis://:password@localhost:6379/0"

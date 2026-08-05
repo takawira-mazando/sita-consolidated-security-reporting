@@ -1,5 +1,7 @@
-from sqlalchemy import Column, String, Integer, DateTime, JSON, Boolean, func
+from sqlalchemy import JSON, Boolean, Column, DateTime, String, func
+
 from app.models.base import Base
+
 
 class RejectedRecord(Base):
     __tablename__ = "rejected_records"

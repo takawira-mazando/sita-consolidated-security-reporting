@@ -1,6 +1,7 @@
-from sqlalchemy.orm import DeclarativeBase
+
 from sqlalchemy import Column, DateTime, func
-from datetime import datetime
+from sqlalchemy.orm import DeclarativeBase
+
 
 class Base(DeclarativeBase):
     pass

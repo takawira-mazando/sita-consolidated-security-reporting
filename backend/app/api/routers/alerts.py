@@ -1,14 +1,15 @@
+from math import ceil
+
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import require_roles
-from app.api.schemas.common import PaginatedResponse
 from app.api.schemas.alert import Alert
+from app.api.schemas.common import PaginatedResponse
 from app.db import get_session
-from app.models.alert import Alert as AlertModel, AlertStatus
-from typing import Optional
-from math import ceil
+from app.models.alert import Alert as AlertModel
+from app.models.alert import AlertStatus
 
 router = APIRouter(tags=["alerts"])
 
@@ -23,10 +24,10 @@ def _status(value):
 
 @router.get("/alerts", response_model=PaginatedResponse)
 async def get_alerts(
-    severity: Optional[str] = Query(None),
-    status: Optional[str] = Query(None),
-    source: Optional[str] = Query(None),
-    since: Optional[str] = Query(None),
+    severity: str | None = Query(None),
+    status: str | None = Query(None),
+    source: str | None = Query(None),
+    since: str | None = Query(None),
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),

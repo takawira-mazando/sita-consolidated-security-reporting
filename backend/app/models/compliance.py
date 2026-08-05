@@ -1,5 +1,7 @@
-from sqlalchemy import Column, String, Integer, DateTime, JSON, Date, Numeric, func
+from sqlalchemy import JSON, Column, Date, DateTime, Integer, Numeric, String, func
+
 from app.models.base import Base
+
 
 class ComplianceSnapshot(Base):
     __tablename__ = "compliance_snapshots"

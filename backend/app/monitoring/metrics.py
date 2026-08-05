@@ -1,4 +1,4 @@
-from prometheus_client import Counter, Histogram, Gauge
+from prometheus_client import Counter, Gauge, Histogram
 
 connector_polls_total = Counter("connector_polls_total", "Total polls per connector", ["connector"])
 connector_poll_duration = Histogram("connector_poll_duration_seconds", "Poll latency per connector", ["connector"], buckets=[1, 5, 10, 30, 60])

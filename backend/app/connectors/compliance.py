@@ -1,6 +1,8 @@
 import aiohttp
 import pandas as pd
+
 from app.connectors.base import BaseConnector
+
 
 class ComplianceConnector(BaseConnector):
     def __init__(self, config: dict):
@@ -12,11 +14,10 @@ class ComplianceConnector(BaseConnector):
     async def authenticate(self) -> bool:
         if self.source_type == "csv":
             return True
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{self.api_url}/health"
-            ) as resp:
-                return resp.status == 200
+        async with aiohttp.ClientSession() as session, session.get(
+            f"{self.api_url}/health"
+        ) as resp:
+            return resp.status == 200
 
     async def poll(self) -> list[dict]:
         if self.source_type == "csv" and self.file_path:
@@ -27,14 +28,13 @@ class ComplianceConnector(BaseConnector):
                 for row in reader:
                     results.append(row)
             return results
-        async with aiohttp.ClientSession() as session:
-            async with session.get(
-                f"{self.api_url}/api/v1/controls"
-            ) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    return data.get("controls", [])
-                return []
+        async with aiohttp.ClientSession() as session, session.get(
+            f"{self.api_url}/api/v1/controls"
+        ) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                return data.get("controls", [])
+            return []
 
     def parse(self, raw: list[dict]) -> pd.DataFrame:
         return pd.DataFrame(raw)

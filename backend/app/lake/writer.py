@@ -5,10 +5,10 @@ import pandas as pd
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.finding import Finding, Severity
 from app.models.alert import Alert, AlertStatus
 from app.models.connector_status import ConnectorHealth
-from app.models.risk_score import RiskScore, RiskBucket
+from app.models.finding import Finding, Severity
+from app.models.risk_score import RiskBucket, RiskScore
 
 
 def _first(record: dict, *keys: str, default=None):

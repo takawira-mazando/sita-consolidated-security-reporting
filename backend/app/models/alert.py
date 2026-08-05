@@ -1,6 +1,9 @@
-from sqlalchemy import Column, String, Integer, DateTime, JSON, func
-from app.models.base import Base
 import enum
+
+from sqlalchemy import JSON, Column, DateTime, Integer, String, func
+
+from app.models.base import Base
+
 
 class AlertStatus(str, enum.Enum):
     NEW = "new"

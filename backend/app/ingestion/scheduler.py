@@ -1,20 +1,20 @@
 import asyncio
 import time
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from app.connectors.appscan import AppScanConnector
-from app.connectors.imperva import ImpervaConnector
-from app.connectors.apisec import ApiSecurityConnector
-from app.connectors.compliance import ComplianceConnector
-from app.ingestion.circuit_breaker import CircuitBreaker
-from app.ingestion.token_bucket import TokenBucket
-from app.ingestion.retry import RetryHandler
-from app.ingestion.dlq import DLQManager
+
 from app.bus.producer import Producer
-from app.bus.streams import STREAM_RAW, STREAM_DLQ
+from app.bus.streams import STREAM_DLQ, STREAM_RAW
+from app.connectors.apisec import ApiSecurityConnector
+from app.connectors.appscan import AppScanConnector
+from app.connectors.compliance import ComplianceConnector
+from app.connectors.imperva import ImpervaConnector
 from app.db import SessionFactory
+from app.ingestion.circuit_breaker import CircuitBreaker
+from app.ingestion.retry import RetryHandler
+from app.ingestion.token_bucket import TokenBucket
 from app.lake.writer import update_connector_health
-from app.config import settings
 
 scheduler = AsyncIOScheduler()
 connectors: dict[str, object] = {}

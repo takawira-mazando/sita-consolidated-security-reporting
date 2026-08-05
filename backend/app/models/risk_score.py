@@ -1,6 +1,9 @@
-from sqlalchemy import Column, String, Integer, DateTime, Numeric, Date, func
-from app.models.base import Base
 import enum
+
+from sqlalchemy import Column, Date, DateTime, Numeric, String, func
+
+from app.models.base import Base
+
 
 class RiskBucket(str, enum.Enum):
     SAFE = "safe"

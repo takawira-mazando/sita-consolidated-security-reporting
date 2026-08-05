@@ -3,7 +3,7 @@ import json
 import logging
 
 from app.bus.consumer import StreamConsumer
-from app.bus.streams import STREAM_ALERTS, GROUP_DISPATCH
+from app.bus.streams import GROUP_DISPATCH, STREAM_ALERTS
 from app.config import settings
 from app.dispatch.worker import DispatchWorker
 

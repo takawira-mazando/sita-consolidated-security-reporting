@@ -1,6 +1,8 @@
 import aiohttp
 import pandas as pd
+
 from app.connectors.base import BaseConnector
+
 
 class AppScanConnector(BaseConnector):
     def __init__(self, config: dict):
@@ -11,16 +13,15 @@ class AppScanConnector(BaseConnector):
         self.token = None
 
     async def authenticate(self) -> bool:
-        async with aiohttp.ClientSession() as session:
-            async with session.post(
-                f"{self.base_url}/api/v4/authenticate",
-                headers={"x-api-key": self.api_key}
-            ) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    self.token = data.get("token")
-                    return True
-                return False
+        async with aiohttp.ClientSession() as session, session.post(
+            f"{self.base_url}/api/v4/authenticate",
+            headers={"x-api-key": self.api_key}
+        ) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                self.token = data.get("token")
+                return True
+            return False
 
     async def poll(self) -> list[dict]:
         if not self.token:

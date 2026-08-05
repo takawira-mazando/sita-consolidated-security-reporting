@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-import json
+
 
 class DLQManager:
     def __init__(self, db_session):
@@ -7,8 +7,9 @@ class DLQManager:
 
     async def write(self, batch_id: str, source: str, raw_payload: dict,
                     rejection_reason: str, rejection_code: str) -> str:
-        from app.models.dlq import RejectedRecord
         import uuid
+
+        from app.models.dlq import RejectedRecord
         record = RejectedRecord(
             id=str(uuid.uuid4()),
             batch_id=batch_id,
@@ -25,6 +26,7 @@ class DLQManager:
 
     async def reprocess(self, record_id: str) -> dict | None:
         from sqlalchemy import select
+
         from app.models.dlq import RejectedRecord
         result = await self.session.execute(
             select(RejectedRecord).where(RejectedRecord.id == record_id)
