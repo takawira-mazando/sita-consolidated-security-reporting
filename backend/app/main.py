@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.errors import register_exception_handlers
-from app.api.routers import admin, alerts, compliance, dashboard, findings, risks
+from app.api.routers import admin, alerts, compliance, dashboard, exports, findings, risks
 from app.monitoring.metrics import setup_metrics
 
 start_time = time.time()
@@ -34,6 +34,7 @@ app.include_router(findings.router, prefix="/api/v1")
 app.include_router(compliance.router, prefix="/api/v1")
 app.include_router(alerts.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
+app.include_router(exports.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/admin")
 
 register_exception_handlers(app)
