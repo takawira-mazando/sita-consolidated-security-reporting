@@ -2,7 +2,9 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import RoleNav from './components/layout/RoleNav';
 import { ALL_ROLES } from './context/AuthContext';
+import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 import ExecDashboard from './pages/ExecDashboard';
 import SocDashboard from './pages/SocDashboard';
 import AppSecDashboard from './pages/AppSecDashboard';
@@ -27,11 +29,18 @@ export default function App() {
   }
 
   if (!user) {
-    return <LoginPage />;
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<HomePage />} />
+      </Routes>
+    );
   }
 
-  const allowedRoles = user.roles?.length ? user.roles : ALL_ROLES;
+  const baseRoles = user.roles?.length ? user.roles : ALL_ROLES;
+  const allowedRoles = baseRoles.includes('admin') ? ALL_ROLES : baseRoles;
   const defaultRole = allowedRoles[0];
+  const canManageUsers = allowedRoles.includes('sre');
 
   return (
     <div className="app-wrapper">
@@ -41,6 +50,7 @@ export default function App() {
         {allowedRoles.map((role) => (
           <Route key={role} path={`/${role}`} element={DASHBOARDS[role]?.element || <Navigate to={`/${defaultRole}`} />} />
         ))}
+        {canManageUsers && <Route path="/users" element={<AdminUsersPage />} />}
         <Route path="/" element={<Navigate to={`/${defaultRole}`} />} />
         <Route path="*" element={<Navigate to={`/${defaultRole}`} />} />
       </Routes>

@@ -1,5 +1,6 @@
 import { useApi } from './useApi';
 import { fetchCompliance, fetchGaps, fetchEvidence } from '../api/compliance';
+import { fetchComplianceTrend, fetchRegulatoryCalendar } from '../api/metrics';
 import {
   toneForSeverity,
   toneForStatus,
@@ -12,9 +13,11 @@ export function useComplianceData() {
   const iso = useApi(() => fetchCompliance('iso_27001'));
   const gaps = useApi(() => fetchGaps({ sort_by: 'due_date' }));
   const evidence = useApi(() => fetchEvidence());
+  const trend = useApi(() => fetchComplianceTrend());
+  const calendar = useApi(() => fetchRegulatoryCalendar());
 
-  const loading = [popia, iso, gaps, evidence].some((h) => h.loading);
-  const error = [popia, iso, gaps, evidence].find((h) => h.error)?.error || null;
+  const loading = [popia, iso, gaps, evidence, trend, calendar].some((h) => h.loading);
+  const error = [popia, iso, gaps, evidence, trend, calendar].find((h) => h.error)?.error || null;
 
   const gapItems = gaps.data?.items || [];
 
@@ -51,6 +54,31 @@ export function useComplianceData() {
     statusTone: toneForStatus(g.status),
   }));
 
+  const trendItems = trend.data?.items || [];
+  const popiaTrend = trendItems.filter((t) => t.framework === 'popia');
+  const isoTrend = trendItems.filter((t) => t.framework === 'iso_27001');
+  const maxScore = 100;
+  const trendBars: { height: string; color: string }[] = [];
+  const trendDates = Array.from(new Set(trendItems.map((t) => t.snapshot_date))).sort();
+  for (const date of trendDates) {
+    const p = popiaTrend.find((t) => t.snapshot_date === date);
+    const i = isoTrend.find((t) => t.snapshot_date === date);
+    if (p) trendBars.push({ height: `${Math.round((p.overall_score / maxScore) * 100)}%`, color: 'var(--green)' });
+    if (i) trendBars.push({ height: `${Math.round((i.overall_score / maxScore) * 100)}%`, color: 'var(--amber)' });
+  }
+
+  const calendarItems = (calendar.data?.items || []).map((c) => ({
+    id: c.id,
+    control: c.control_id,
+    framework: c.framework,
+    description: c.description,
+    owner: c.owner || '—',
+    due: c.due_date || '—',
+    overdue: !!c.due_date && c.due_date < today,
+    severity: c.severity,
+    sevTone: toneForSeverity(c.severity) as Tone,
+  }));
+
   return {
     loading,
     error,
@@ -63,6 +91,8 @@ export function useComplianceData() {
     auditStatus,
     auditFindings,
     evidence: evidence.data,
+    trendBars,
+    calendarItems,
   };
 }
 

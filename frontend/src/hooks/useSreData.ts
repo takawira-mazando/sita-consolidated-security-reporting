@@ -1,16 +1,30 @@
 import { useApi } from './useApi';
 import { fetchConnectors } from '../api/admin';
+import { fetchAgents, fetchSystemMetrics } from '../api/metrics';
 import {
   oemForSource,
   barHeight,
 } from '../data/mappers';
 import type { Tone } from '../data/mappers';
 
+const METRIC_LABELS: Record<string, string> = {
+  cpu: 'CPU',
+  memory: 'Memory',
+  disk_io: 'Disk I/O',
+  queue_depth: 'Queue Depth',
+};
+
+function toneForValue(value: number): string {
+  return value >= 80 ? 'var(--red)' : value >= 60 ? 'var(--amber)' : 'var(--green)';
+}
+
 export function useSreData() {
   const connectors = useApi(() => fetchConnectors());
+  const system = useApi(() => fetchSystemMetrics());
+  const agents = useApi(() => fetchAgents());
 
-  const loading = connectors.loading;
-  const error = connectors.error;
+  const loading = [connectors, system, agents].some((h) => h.loading);
+  const error = [connectors, system, agents].find((h) => h.error)?.error || null;
 
   const items = connectors.data?.items || [];
 
@@ -48,12 +62,32 @@ export function useSreData() {
   const errorTotal = items.reduce((a, c) => a + (c.error_count || 0), 0);
   const errorRate = eventsTotal > 0 ? ((errorTotal / eventsTotal) * 100).toFixed(1) : '—';
 
-  const systemHealth = [
-    { label: 'CPU', width: '—', color: 'var(--green)', value: '—' },
-    { label: 'Memory', width: '—', color: 'var(--blue)', value: '—' },
-    { label: 'Disk I/O', width: '—', color: 'var(--green)', value: '—' },
-    { label: 'Queue Depth', width: '—', color: 'var(--green)', value: '—' },
-  ];
+  const sysMap = new Map((system.data?.items || []).map((m) => [m.metric, m.value]));
+  const systemHealth = (['cpu', 'memory', 'disk_io', 'queue_depth'] as const).map((key) => {
+    const raw = sysMap.get(key);
+    const label = METRIC_LABELS[key] || key;
+    if (raw == null) {
+      return { label, width: '0%', color: 'var(--green)', value: '—' };
+    }
+    return { label, width: `${Math.min(100, raw)}%`, color: toneForValue(raw), value: `${raw}%` };
+  });
+
+  const uptime = system.data?.uptime != null ? `${system.data.uptime}%` : '—';
+
+  const agentItems = agents.data?.items || [];
+  const damRole = agents.data?.by_role.find((r) => r.role === 'dam');
+  const damAgents = damRole?.count ?? null;
+  const agentTotal = agents.data?.total ?? agentItems.length;
+  const agentOnline = agents.data?.online ?? 0;
+  const agentDegraded = agents.data?.degraded ?? 0;
+
+  const maxVersion = Math.max(1, ...(agents.data?.versions || []).map((v) => v.count));
+  const agentVersions = (agents.data?.versions || []).map((v) => ({
+    label: v.version,
+    width: `${Math.round((v.count / maxVersion) * 100)}%`,
+    color: 'var(--blue)',
+    value: String(v.count),
+  }));
 
   return {
     loading,
@@ -67,6 +101,16 @@ export function useSreData() {
     eventBars,
     errorRate,
     systemHealth,
-    refresh: connectors.refresh,
+    uptime,
+    damAgents,
+    agentTotal,
+    agentOnline,
+    agentDegraded,
+    agentVersions,
+    refresh: () => {
+      connectors.refresh();
+      system.refresh();
+      agents.refresh();
+    },
   };
 }

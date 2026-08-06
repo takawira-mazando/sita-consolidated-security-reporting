@@ -2,16 +2,16 @@ export const API_BASE = '/api/v1';
 
 export const SEVERITY_COLORS: Record<string, string> = {
   critical: '#f87171',
-  high: '#f59e0b',
-  medium: '#3b82f6',
-  low: '#22c77e',
-  info: '#6b7a99',
+  high: '#fbbf24',
+  medium: '#1082ff',
+  low: '#00af66',
+  info: '#6f8299',
 };
 
 export const BUCKET_COLORS: Record<string, string> = {
   critical: '#f87171',
-  monitored: '#f59e0b',
-  safe: '#22c77e',
+  monitored: '#fbbf24',
+  safe: '#00af66',
 };
 
 export const ROLE_LABELS: Record<string, string> = {

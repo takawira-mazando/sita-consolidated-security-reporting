@@ -45,8 +45,8 @@ export default function DbSecDashboard() {
       <div className="stats-bar">
         <StatCard ghost={String(d.totalViolations)} accent="var(--amber)" value={String(d.totalViolations)} valueColor="var(--amber)" label={<><span>Total Violations </span><OemTag source="imperva" label="24h" /></>} delta="live" deltaColor="var(--text-muted)" />
         <StatCard ghost={String(d.criticalViolations)} accent="var(--red)" value={String(d.criticalViolations)} valueColor="var(--red)" label={<><span>Critical Violations </span><OemTag source="imperva" label="Sev 4" /></>} delta="live" deltaColor="var(--text-muted)" />
-        <StatCard ghost="—" accent="var(--green)" value="—" valueColor="var(--text-muted)" label={<><span>Databases Monitored </span><OemTag source="imperva" label="not tracked" /></>} delta="backend has no DAM inventory" deltaColor="var(--text-muted)" />
-        <StatCard ghost="—" accent="var(--green)" value="—" valueColor="var(--text-muted)" label={<><span>Coverage </span><OemTag source="imperva" label="DAM agents" /></>} delta="backend has no coverage" deltaColor="var(--text-muted)" />
+        <StatCard ghost={String(d.dbMonitored)} accent="var(--green)" value={String(d.dbMonitored)} valueColor="var(--green)" label={<><span>Databases Monitored </span><OemTag source="imperva" label="DAM inventory" /></>} delta="live" deltaColor="var(--text-muted)" />
+        <StatCard ghost={`${d.dbCoverage}%`} accent="var(--green)" value={`${d.dbCoverage}%`} valueColor={d.dbCoverage >= 80 ? 'var(--green)' : 'var(--amber)'} label={<><span>Coverage </span><OemTag source="imperva" label="DAM agents" /></>} delta="monitored estate" deltaColor="var(--text-muted)" />
       </div>
 
       <div className="dash-grid cols-2">

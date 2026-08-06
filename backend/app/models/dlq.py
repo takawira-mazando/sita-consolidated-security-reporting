@@ -16,3 +16,4 @@ class RejectedRecord(Base):
     rejected_at = Column(DateTime(timezone=True), server_default=func.now())
     reprocessed = Column(Boolean, default=False)
     reprocessed_at = Column(DateTime(timezone=True))
+    ttl_expires_at = Column(DateTime(timezone=True), nullable=False)

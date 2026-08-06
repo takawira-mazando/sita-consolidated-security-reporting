@@ -34,3 +34,8 @@ Thumbs.db
 # Local
 local_data/
 logs/
+
+# Logs / scratch
+*.log
+backend/_create_tables.py
+backend/_db_check.py

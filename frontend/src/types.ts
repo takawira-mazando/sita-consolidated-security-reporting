@@ -8,8 +8,16 @@ export interface User {
 export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  demoAccounts: DemoAccount[];
   login: (email?: string, password?: string) => Promise<{ ok: boolean; error?: string }>;
+  loginDemo: (role: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
+}
+
+export interface DemoAccount {
+  email: string;
+  label: string;
+  role: string;
 }
 
 export interface RiskScore {
@@ -109,4 +117,128 @@ export interface PaginatedResponse<T> {
   page: number;
   size: number;
   pages: number;
+}
+
+export interface WafBlock {
+  id: string;
+  app_name: string;
+  attack_type?: string;
+  request_uri?: string;
+  action?: string;
+  src_ip?: string;
+  block_time?: string;
+}
+
+export interface WafSummary {
+  total: number;
+  window_days: number;
+  by_type: { type: string; count: number }[];
+  items: WafBlock[];
+}
+
+export interface ApiExposure {
+  id: string;
+  app_name: string;
+  endpoint: string;
+  method: string;
+  is_shadow: boolean;
+  exposure_score: number;
+  discovered_at?: string;
+  last_seen?: string;
+}
+
+export interface ApiExposureResponse {
+  total: number;
+  shadow_total: number;
+  items: ApiExposure[];
+}
+
+export interface FixRate {
+  window_days: number;
+  total: number;
+  fixed: number;
+  fix_rate: number;
+}
+
+export interface SloPoint {
+  week: string;
+  value_hours: number;
+}
+
+export interface SloMetrics {
+  mttd: SloPoint[];
+  mttr: SloPoint[];
+  backlog: {
+    total: number;
+    oldest_hours: number;
+    buckets: { bucket: string; count: number }[];
+  };
+}
+
+export interface SystemMetricRow {
+  metric: string;
+  value: number;
+  unit: string;
+  recorded_at?: string;
+}
+
+export interface SystemMetrics {
+  items: SystemMetricRow[];
+  uptime?: number | null;
+}
+
+export interface AgentRow {
+  id: string;
+  name: string;
+  role: string;
+  version: string;
+  status: string;
+  host?: string;
+  last_seen?: string;
+}
+
+export interface AgentInventory {
+  total: number;
+  online: number;
+  degraded: number;
+  items: AgentRow[];
+  by_role: { role: string; count: number }[];
+  versions: { version: string; count: number }[];
+}
+
+export interface DatabaseInventory {
+  id: string;
+  name: string;
+  engine?: string;
+  monitored: boolean;
+  agent_version?: string;
+  last_heartbeat?: string;
+}
+
+export interface DbInventoryResponse {
+  total: number;
+  monitored: number;
+  unmonitored: number;
+  coverage_pct: number;
+  items: DatabaseInventory[];
+}
+
+export interface ComplianceTrendPoint {
+  framework: string;
+  snapshot_date: string;
+  overall_score: number;
+  total_controls: number;
+  passed_controls: number;
+}
+
+export interface ComplianceCalendarItem {
+  id: string;
+  framework: string;
+  control_id: string;
+  domain?: string;
+  description: string;
+  owner?: string;
+  severity: string;
+  due_date?: string;
+  status: string;
 }

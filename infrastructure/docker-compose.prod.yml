@@ -53,6 +53,11 @@ services:
     environment:
       DATABASE_URL: postgresql+asyncpg://sita:${DB_PASSWORD}@postgres:5432/sita
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0
+      ENVIRONMENT: production
+      JWT_SECRET: ${JWT_SECRET:?set a strong JWT_SECRET in .env}
+      SEED_DEMO_USERS_ENABLED: "false"
+      BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?set a strong BOOTSTRAP_ADMIN_PASSWORD in .env}
       AUTH0_DOMAIN: ${AUTH0_DOMAIN}
       AUTH0_AUDIENCE: ${AUTH0_AUDIENCE}
       SMTP_HOST: ${SMTP_HOST}

@@ -22,7 +22,7 @@ ROLES_HIERARCHY = {
 class JWTClaims(BaseModel):
     sub: str = ""
     email: str = ""
-    roles: list[str] = ["soc"]
+    roles: list[str] = []
     exp: int = 0
 
 @lru_cache
@@ -31,15 +31,23 @@ def get_jwks():
 
 async def verify_token(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> JWTClaims:
     if credentials is None:
-        return JWTClaims(sub="anonymous", email="anon@localhost", roles=["soc"])
+        raise HTTPException(status_code=401, detail="Authentication required")
     try:
-        payload = jwt.decode(
-            credentials.credentials,
-            settings.auth0_domain or "local",
-            algorithms=settings.auth0_algorithms,
-            audience=settings.auth0_audience,
-            options={"verify_signature": False},
-        )
+        if settings.auth0_domain:
+            payload = jwt.decode(
+                credentials.credentials,
+                settings.auth0_domain,
+                algorithms=settings.auth0_algorithms,
+                audience=settings.auth0_audience,
+                options={"verify_aud": bool(settings.auth0_audience)},
+            )
+        else:
+            payload = jwt.decode(
+                credentials.credentials,
+                settings.jwt_secret,
+                algorithms=["HS256"],
+                options={"verify_signature": True},
+            )
         return JWTClaims(**payload)
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")

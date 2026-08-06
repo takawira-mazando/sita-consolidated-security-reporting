@@ -3,12 +3,62 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>sita-platform â€” Architecture</title>
+  <title>sita-platform — Architecture</title>
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('sita-tree-theme');
+        if (t !== 'light' && t !== 'dark') {
+          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        }
+        document.documentElement.setAttribute('data-theme', t);
+      } catch (e) {}
+    })();
+  </script>
   <style>
+    /* ---- Theme variables (dark default, light override via html[data-theme=light]) ---- */
+    :root {
+      --bg-a: 11,15,21;          /* #0b0f15 */
+      --bg-b: 17,24,34;          /* #111822 */
+      --bg-c: 13,17,23;          /* #0d1117 */
+      --surface-0: 22,27,34;     /* #161b22 panels (tree, detail) */
+      --surface-1: 22,27,34;     /* #161b22 button fills */
+      --surface-2: 31,41,55;     /* #1f2937 flow-node / file-tag */
+      --border: 48,54,61;        /* #30363d */
+      --modal-bg: 17,22,29;      /* rgb(var(--modal-bg)) */
+      --text: 230,237,243;       /* rgb(var(--text)) */
+      --muted: 139,148,158;      /* rgb(var(--muted)) */
+      --accent: 240,136,62;      /* rgb(var(--accent)) orange */
+      --amber: 240,198,116;      /* rgb(var(--amber)) */
+      --blue: 121,192,255;       /* rgb(var(--blue)) */
+      --green: 126,231,135;      /* rgb(var(--green)) */
+      --shadow: 0,0,0;
+      --overlay: 5,8,12;
+      color-scheme: dark;
+    }
+    html[data-theme="light"] {
+      --bg-a: 250,251,252;       /* #fafbfc */
+      --bg-b: 246,248,250;       /* #f6f8fa */
+      --bg-c: 255,255,255;       /* #ffffff */
+      --surface-0: 255,255,255;  /* white panels */
+      --surface-1: 246,248,250;  /* light button fills */
+      --surface-2: 246,248,250;  /* #f6f8fa flow-node / file-tag */
+      --border: 208,215,222;     /* #d0d7de */
+      --modal-bg: 255,255,255;
+      --text: 31,35,40;          /* #1f2328 */
+      --muted: 110,119,129;      /* #6e7781 */
+      --accent: 207,92,25;       /* #cf5c19 deeper orange for contrast */
+      --amber: 122,93,0;         /* #7a5d00 darker amber for contrast */
+      --blue: 9,105,218;         /* #0969da */
+      --green: 26,127,55;        /* #1a7f37 */
+      --shadow: 27,31,35;
+      --overlay: 27,31,35;
+      color-scheme: light;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
-      background: linear-gradient(135deg, #0b0f15 0%, #111822 50%, #0d1117 100%);
-      color: #e6edf3;
+      background: linear-gradient(135deg, rgb(var(--bg-a)) 0%, rgb(var(--bg-b)) 50%, rgb(var(--bg-c)) 100%);
+      color: rgb(var(--text));
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Consolas', monospace;
       padding: 2.5rem;
       font-size: 14px;
@@ -18,10 +68,10 @@
       min-height: 100vh;
     }
     h1 {
-      color: #f0883e;
+      color: rgb(var(--accent));
       font-size: 1.5rem;
       margin-bottom: 1.5rem;
-      border-bottom: 1px solid rgba(48,54,61,0.6);
+      border-bottom: 1px solid rgba(var(--border),0.6);
       padding-bottom: 0.75rem;
       letter-spacing: -0.01em;
       display: flex;
@@ -29,7 +79,7 @@
       gap: 0.5rem;
     }
     h1 small {
-      color: #8b949e;
+      color: rgb(var(--muted));
       font-weight: 400;
       font-size: 0.85rem;
     }
@@ -43,9 +93,9 @@
       display: inline-flex;
       align-items: center;
       gap: 0.45rem;
-      background: rgba(22,27,34,0.9);
-      border: 1px solid rgba(48,54,61,0.6);
-      color: #e6edf3;
+      background: rgba(var(--surface-1),0.9);
+      border: 1px solid rgba(var(--border),0.6);
+      color: rgb(var(--text));
       border-radius: 10px;
       padding: 0.5rem 0.8rem;
       font-family: inherit;
@@ -56,28 +106,48 @@
       text-align: left;
     }
     .fw-btn:hover {
-      border-color: rgba(240,136,62,0.6);
-      box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+      border-color: rgba(var(--accent),0.6);
+      box-shadow: 0 4px 16px rgba(var(--shadow),0.45);
       transform: translateY(-1px);
     }
     .fw-btn .fw-ic { font-size: 1rem; }
     .fw-btn .fw-title { display: flex; flex-direction: column; line-height: 1.2; gap: 1px; }
-    .fw-btn .fw-title b { font-size: 0.72rem; color: #f0c674; }
-    .fw-btn .fw-title span { font-size: 0.62rem; color: #8b949e; font-weight: 500; }
+    .fw-btn .fw-title b { font-size: 0.72rem; color: rgb(var(--amber)); }
+    .fw-btn .fw-title span { font-size: 0.62rem; color: rgb(var(--muted)); font-weight: 500; }
     .fw-btn.active {
-      border-color: #f0883e;
-      outline: 1px solid rgba(240,136,62,0.35);
-      background: rgba(240,136,62,0.1);
-      box-shadow: 0 0 0 3px rgba(240,136,62,0.12);
+      border-color: rgb(var(--accent));
+      outline: 1px solid rgba(var(--accent),0.35);
+      background: rgba(var(--accent),0.1);
+      box-shadow: 0 0 0 3px rgba(var(--accent),0.12);
     }
-    .fw-btn.active .fw-title b { color: #f0883e; }
+    .fw-btn.active .fw-title b { color: rgb(var(--accent)); }
     .fw-btn.fw-frontend.active {
-      border-color: #7ee787;
-      outline-color: rgba(126,231,135,0.35);
-      background: rgba(126,231,135,0.08);
-      box-shadow: 0 0 0 3px rgba(126,231,135,0.12);
+      border-color: rgb(var(--green));
+      outline-color: rgba(var(--green),0.35);
+      background: rgba(var(--green),0.08);
+      box-shadow: 0 0 0 3px rgba(var(--green),0.12);
     }
-    .fw-btn.fw-frontend.active .fw-title b { color: #7ee787; }
+    .fw-btn.fw-frontend.active .fw-title b { color: rgb(var(--green)); }
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      background: rgba(var(--surface-1),0.9);
+      border: 1px solid rgba(var(--border),0.6);
+      color: rgb(var(--amber));
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 1.1rem;
+      transition: border-color 0.15s, box-shadow 0.15s, transform 0.1s, background 0.15s;
+    }
+    .theme-toggle:hover {
+      border-color: rgba(var(--accent),0.6);
+      box-shadow: 0 4px 16px rgba(var(--shadow),0.45);
+      transform: translateY(-1px);
+    }
+    .theme-toggle .theme-ic { line-height: 1; }
     .layout { display: flex; gap: 2rem; align-items: flex-start; }
     .tree-col { flex: 0 0 auto; min-width: 500px; }
     .detail-col { flex: 1; min-width: 300px; }
@@ -93,9 +163,9 @@
     .stage-btn {
       flex: 1 1 0;
       min-width: 150px;
-      background: rgba(22,27,34,0.85);
-      border: 1px solid rgba(48,54,61,0.6);
-      color: #e6edf3;
+      background: rgba(var(--surface-0),0.85);
+      border: 1px solid rgba(var(--border),0.6);
+      color: rgb(var(--text));
       border-radius: 10px;
       padding: 0.7rem 0.9rem;
       text-align: left;
@@ -107,30 +177,30 @@
       gap: 0.2rem;
     }
     .stage-btn:hover {
-      border-color: rgba(240,136,62,0.6);
-      box-shadow: 0 4px 18px rgba(0,0,0,0.45);
+      border-color: rgba(var(--accent),0.6);
+      box-shadow: 0 4px 18px rgba(var(--shadow),0.45);
       transform: translateY(-1px);
     }
     .stage-btn.active {
-      border-color: #f0883e;
-      outline: 1px solid rgba(240,136,62,0.35);
-      background: rgba(240,136,62,0.08);
+      border-color: rgb(var(--accent));
+      outline: 1px solid rgba(var(--accent),0.35);
+      background: rgba(var(--accent),0.08);
     }
     .stage-btn .st-num {
       font-size: 0.65rem;
       font-weight: 700;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      color: #8b949e;
+      color: rgb(var(--muted));
     }
     .stage-btn .st-name {
       font-size: 0.85rem;
       font-weight: 700;
-      color: #f0c674;
+      color: rgb(var(--amber));
     }
     .stage-btn .st-path {
       font-size: 0.68rem;
-      color: #79c0ff;
+      color: rgb(var(--blue));
       font-family: 'JetBrains Mono', 'Consolas', monospace;
       word-break: break-word;
     }
@@ -141,7 +211,7 @@
       margin: 0.2rem 0 0.6rem;
     }
     .flow-head h2 {
-      color: #f0c674;
+      color: rgb(var(--amber));
       font-size: 0.95rem;
       letter-spacing: -0.01em;
       text-transform: capitalize;
@@ -149,14 +219,14 @@
     }
     .flow-head .badge {
       font-size: 0.6rem;
-      background: rgba(139,148,158,0.15);
-      color: #8b949e;
+      background: rgba(var(--muted),0.15);
+      color: rgb(var(--muted));
       padding: 3px 10px;
       border-radius: 12px;
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      border: 1px solid rgba(48,54,61,0.4);
+      border: 1px solid rgba(var(--border),0.4);
     }
     .stage-flow {
       display: flex;
@@ -165,15 +235,15 @@
       gap: 0.4rem;
       margin-bottom: 1.5rem;
       padding: 0.6rem 1rem;
-      background: rgba(22,27,34,0.6);
-      border: 1px dashed rgba(48,54,61,0.6);
+      background: rgba(var(--surface-0),0.6);
+      border: 1px dashed rgba(var(--border),0.6);
       border-radius: 10px;
     }
 .stage-flow .flow-node {
       font-family: 'JetBrains Mono', 'Consolas', monospace;
-      color: #e6edf3;
-      background: rgba(31,41,55,0.8);
-      border: 1px solid rgba(48,54,61,0.5);
+      color: rgb(var(--text));
+      background: rgba(var(--surface-2),0.8);
+      border: 1px solid rgba(var(--border),0.5);
       padding: 5px 9px;
       border-radius: 6px;
       cursor: pointer;
@@ -185,42 +255,42 @@
       align-items: flex-start;
     }
     .stage-flow .flow-node:hover {
-      border-color: rgba(240,136,62,0.6);
-      background: rgba(31,41,55,1);
-      box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+      border-color: rgba(var(--accent),0.6);
+      background: rgba(var(--surface-2),1);
+      box-shadow: 0 2px 10px rgba(var(--shadow),0.4);
       transform: translateY(-1px);
     }
     .stage-flow .flow-node.active {
-      border-color: #f0883e;
-      outline: 1px solid rgba(240,136,62,0.35);
-      background: rgba(240,136,62,0.1);
+      border-color: rgb(var(--accent));
+      outline: 1px solid rgba(var(--accent),0.35);
+      background: rgba(var(--accent),0.1);
     }
     .stage-flow .flow-node.hl {
-      border-color: rgba(126,231,135,0.7);
-      outline: 1px solid rgba(126,231,135,0.3);
-      background: rgba(126,231,135,0.08);
-      box-shadow: 0 0 10px rgba(126,231,135,0.15);
+      border-color: rgba(var(--green),0.7);
+      outline: 1px solid rgba(var(--green),0.3);
+      background: rgba(var(--green),0.08);
+      box-shadow: 0 0 10px rgba(var(--green),0.15);
     }
     .stage-flow .flow-node.dim { opacity: 0.35; }
     .stage-flow .flow-node .fn-name {
       font-size: 0.72rem;
       font-weight: 700;
-      color: #f0c674;
+      color: rgb(var(--amber));
       white-space: nowrap;
     }
     .stage-flow .flow-node.active .fn-name {
-      color: #f0883e;
+      color: rgb(var(--accent));
     }
     .stage-flow .flow-node .fn-path {
       font-size: 0.6rem;
-      color: #79c0ff;
+      color: rgb(var(--blue));
       white-space: nowrap;
       max-width: 320px;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .stage-flow .flow-arrow {
-      color: #79c0ff;
+      color: rgb(var(--blue));
       font-weight: 700;
       align-self: center;
     }
@@ -234,9 +304,9 @@
       border-radius: 8px;
       line-height: 1.3;
     }
-    .fn-fw.bk { color: #79c0ff; background: rgba(121,192,255,0.1); border: 1px solid rgba(121,192,255,0.28); }
-    .fn-fw.fe { color: #7ee787; background: rgba(126,231,135,0.1); border: 1px solid rgba(126,231,135,0.28); }
-    .fn-fw.ext { color: #8b949e; background: rgba(139,148,158,0.08); border: 1px solid rgba(48,54,61,0.4); }
+    .fn-fw.bk { color: rgb(var(--blue)); background: rgba(var(--blue),0.1); border: 1px solid rgba(var(--blue),0.28); }
+    .fn-fw.fe { color: rgb(var(--green)); background: rgba(var(--green),0.1); border: 1px solid rgba(var(--green),0.28); }
+    .fn-fw.ext { color: rgb(var(--muted)); background: rgba(var(--muted),0.08); border: 1px solid rgba(var(--border),0.4); }
     .stage-flow .flow-node .fn-stage {
       margin-top: 2px;
       font-size: 0.54rem;
@@ -246,72 +316,72 @@
       padding: 1px 6px;
       border-radius: 8px;
       line-height: 1.3;
-      color: #f0c674;
-      background: rgba(240,136,62,0.08);
-      border: 1px solid rgba(240,136,62,0.3);
+      color: rgb(var(--amber));
+      background: rgba(var(--accent),0.08);
+      border: 1px solid rgba(var(--accent),0.3);
     }
     .stage-flow .flow-node.active .fn-stage,
     .stage-flow .flow-node.hl .fn-stage {
-      color: #f0883e;
-      border-color: rgba(240,136,62,0.6);
-      background: rgba(240,136,62,0.15);
+      color: rgb(var(--accent));
+      border-color: rgba(var(--accent),0.6);
+      background: rgba(var(--accent),0.15);
     }
 
     .tree {
-      background: rgba(22,27,34,0.85);
+      background: rgba(var(--surface-0),0.85);
       backdrop-filter: blur(4px);
-      border: 1px solid rgba(48,54,61,0.6);
+      border: 1px solid rgba(var(--border),0.6);
       border-radius: 12px;
       padding: 1.25rem 1.5rem;
       overflow-x: auto;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 24px rgba(var(--shadow),0.4);
       transition: box-shadow 0.3s;
     }
     .tree:hover {
-      box-shadow: 0 6px 32px rgba(0,0,0,0.55);
+      box-shadow: 0 6px 32px rgba(var(--shadow),0.55);
     }
     .tree pre { margin: 0; white-space: pre; font-family: 'JetBrains Mono', 'Consolas', monospace; font-size: 12px; }
-    .dir  { color: #79c0ff; cursor: pointer; transition: color 0.15s; }
-    .file { color: #e6edf3; }
-    .pipe { color: rgba(48,54,61,0.8); }
-    .root { color: #f0883e; font-weight: 700; cursor: pointer; transition: color 0.15s; }
+    .dir  { color: rgb(var(--blue)); cursor: pointer; transition: color 0.15s; }
+    .file { color: rgb(var(--text)); }
+    .pipe { color: rgba(var(--border),0.8); }
+    .root { color: rgb(var(--accent)); font-weight: 700; cursor: pointer; transition: color 0.15s; }
     .dir:hover, .root:hover {
       text-decoration: underline;
       text-underline-offset: 3px;
-      text-decoration-color: rgba(240,136,62,0.5);
+      text-decoration-color: rgba(var(--accent),0.5);
       text-decoration-thickness: 2px;
     }
     .dir.active, .root.active {
-      background: rgba(240,136,62,0.12);
+      background: rgba(var(--accent),0.12);
       border-radius: 4px;
-      outline: 1px solid rgba(240,136,62,0.3);
+      outline: 1px solid rgba(var(--accent),0.3);
       padding: 0 2px;
     }
     .tree .hl {
-      background: rgba(240,136,62,0.18);
-      outline: 1px solid rgba(240,136,62,0.5);
+      background: rgba(var(--accent),0.18);
+      outline: 1px solid rgba(var(--accent),0.5);
       border-radius: 4px;
-      box-shadow: 0 0 12px rgba(240,136,62,0.2);
+      box-shadow: 0 0 12px rgba(var(--accent),0.2);
       padding: 0 2px;
     }
     .tree .dim { opacity: 0.28; transition: opacity 0.2s; }
     .tree .hl.dim { opacity: 1; }
-    .stage-btn .st-num.hl { color: #f0883e; }
+    .stage-btn .st-num.hl { color: rgb(var(--accent)); }
 
     .detail-panel {
-      background: rgba(22,27,34,0.85);
+      background: rgba(var(--surface-0),0.85);
       backdrop-filter: blur(4px);
-      border: 1px solid rgba(48,54,61,0.6);
+      border: 1px solid rgba(var(--border),0.6);
       border-radius: 12px;
       padding: 1.75rem;
       min-height: 350px;
-      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+      box-shadow: 0 4px 24px rgba(var(--shadow),0.4);
       transition: box-shadow 0.3s, opacity 0.25s ease;
       overflow-y: auto;
       max-height: 85vh;
     }
     .detail-panel h2 {
-      color: #f0883e;
+      color: rgb(var(--accent));
       font-size: 1.3rem;
       margin-bottom: 1rem;
       display: flex;
@@ -319,50 +389,50 @@
       gap: 0.6rem;
       letter-spacing: -0.01em;
       padding-bottom: 0.6rem;
-      border-bottom: 1px solid rgba(48,54,61,0.4);
+      border-bottom: 1px solid rgba(var(--border),0.4);
     }
     .detail-panel h2 .badge {
       font-size: 0.6rem;
-      background: rgba(139,148,158,0.15);
-      color: #8b949e;
+      background: rgba(var(--muted),0.15);
+      color: rgb(var(--muted));
       padding: 3px 10px;
       border-radius: 12px;
       font-weight: 500;
       text-transform: uppercase;
       letter-spacing: 0.04em;
-      border: 1px solid rgba(48,54,61,0.4);
+      border: 1px solid rgba(var(--border),0.4);
     }
     .detail-panel h3 {
-      color: #7ee787;
+      color: rgb(var(--green));
       font-size: 0.95rem;
       margin: 1.4rem 0 0.5rem;
       letter-spacing: -0.01em;
     }
     .detail-panel p, .detail-panel li {
-      color: #e6edf3;
+      color: rgb(var(--text));
       font-size: 0.85rem;
       line-height: 1.75;
     }
     .detail-panel ul, .detail-panel ol { padding-left: 1.3rem; margin: 0.4rem 0; }
     .detail-panel li { margin-bottom: 0.3rem; }
     .detail-panel ol li { list-style-type: decimal; }
-    .detail-panel li strong { color: #f0c674; }
+    .detail-panel li strong { color: rgb(var(--amber)); }
     .detail-panel code {
-      background: rgba(48,54,61,0.5);
+      background: rgba(var(--border),0.5);
       padding: 2px 7px;
       border-radius: 4px;
       font-size: 0.8rem;
-      color: #f0c674;
+      color: rgb(var(--amber));
       font-family: 'JetBrains Mono', 'Consolas', monospace;
-      border: 1px solid rgba(48,54,61,0.3);
+      border: 1px solid rgba(var(--border),0.3);
     }
     .detail-panel .flow-arrow {
-      color: #79c0ff;
+      color: rgb(var(--blue));
       margin: 0 5px;
       font-weight: 700;
     }
     .detail-panel .empty-state {
-      color: #8b949e;
+      color: rgb(var(--muted));
       text-align: center;
       padding: 4rem 0;
       font-style: italic;
@@ -374,31 +444,124 @@
       margin: 0.5rem 0;
     }
     .detail-panel .file-tag {
-      background: rgba(31,41,55,0.7);
-      border: 1px solid rgba(48,54,61,0.5);
+      background: rgba(var(--surface-2),0.7);
+      border: 1px solid rgba(var(--border),0.5);
       border-radius: 5px;
       padding: 3px 9px;
       font-size: 0.77rem;
-      color: #e6edf3;
+      color: rgb(var(--text));
       font-family: 'JetBrains Mono', 'Consolas', monospace;
     }
     .detail-panel em {
-      color: #8b949e;
+      color: rgb(var(--muted));
       font-size: 0.8rem;
     }
     .detail-panel::-webkit-scrollbar { width: 6px; }
     .detail-panel::-webkit-scrollbar-track { background: transparent; }
-    .detail-panel::-webkit-scrollbar-thumb { background: rgba(48,54,61,0.6); border-radius: 3px; }
-    .detail-panel::-webkit-scrollbar-thumb:hover { background: rgba(48,54,61,0.9); }
+    .detail-panel::-webkit-scrollbar-thumb { background: rgba(var(--border),0.6); border-radius: 3px; }
+    .detail-panel::-webkit-scrollbar-thumb:hover { background: rgba(var(--border),0.9); }
+
+    /* ---- Stage 3 database ER diagram ---- */
+    .schema-erd {
+      margin: 1rem 0 0.5rem;
+      overflow: auto;
+      border: 1px solid rgba(var(--border),0.5);
+      border-radius: 10px;
+      background: rgba(var(--bg-c),0.45);
+      padding: 0.5rem;
+      max-height: 75vh;
+    }
+    .schema-erd svg { display: block; }
+    .schema-erd::-webkit-scrollbar { width: 8px; height: 8px; }
+    .schema-erd::-webkit-scrollbar-track { background: transparent; }
+    .schema-erd::-webkit-scrollbar-thumb { background: rgba(var(--border),0.6); border-radius: 4px; }
+    .erd-caption {
+      font-size: 0.72rem;
+      color: rgb(var(--muted));
+      line-height: 1.8;
+      margin-top: 0.4rem;
+    }
+    .erd-caption strong { color: rgb(var(--amber)); }
+
+    .schema-erd { font-family: ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; }
+    .erd-boxbg { fill: rgba(var(--bg-c),0.8); stroke: rgba(var(--border),0.7); stroke-width: 1; }
+    .erd-head { fill: rgba(var(--accent),0.16); stroke: none; }
+    .erd-head-name { fill: rgb(var(--text)); font: 700 11px ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; }
+    .erd-head-schema { fill: rgb(var(--muted)); font: 500 8px ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; }
+    .erd-schema-label { fill: rgb(var(--accent)); font: 700 12px ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; letter-spacing: 2px; }
+    .erd-line { stroke: rgba(var(--border),0.35); stroke-width: 1; }
+    .erd-line-dashed { stroke: rgba(var(--border),0.4); stroke-width: 1; stroke-dasharray: 3 3; }
+    .erd-col-name { font: 400 8.5px ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; }
+    .erd-col-name.nn { fill: rgb(var(--text)); }
+    .erd-col-name.null { fill: rgb(var(--muted)); }
+    .erd-col-type { font: 400 8px ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; fill: rgb(var(--muted)); }
+    .erd-uq { fill: rgb(var(--muted)); font: italic 8px ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; }
+    .erd-badge-pk { fill: rgb(var(--amber)); }
+    .erd-badge-pk-t { fill: rgb(var(--bg-c)); font: 600 7px ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; }
+    .erd-badge-uq { fill: none; stroke: rgb(var(--amber)); }
+    .erd-badge-uq-t { fill: rgb(var(--amber)); font: 600 7px ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; }
+    .erd-badge-fk { fill: none; stroke: rgb(var(--accent)); }
+    .erd-badge-fk-t { fill: rgb(var(--accent)); font: 600 7px ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; }
+    .erd-arrow { fill: none; stroke: rgb(var(--accent)); stroke-width: 1.3; }
+    .erd-arrow-h { fill: rgb(var(--accent)); }
+    .erd-arrow-rot { fill: none; stroke: rgb(var(--amber)); stroke-width: 1.1; stroke-dasharray: 5 4; }
+    .erd-arrow-h-rot { fill: rgb(var(--amber)); }
+    .erd-link-label { fill: rgb(var(--muted)); font: 600 8px ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace; }
+
+    /* ---- ER diagram zoom modal ---- */
+    .schema-erd.erd-clickable { position: relative; }
+    .schema-erd.erd-clickable svg { cursor: zoom-in; }
+    .erd-expand-hint {
+      position: absolute; right: 0.5rem; bottom: 0.5rem; z-index: 2;
+      font-size: 0.66rem; letter-spacing: 0.06em; text-transform: uppercase;
+      color: rgb(var(--amber)); background: rgba(var(--bg-c),0.88);
+      border: 1px solid rgba(var(--accent),0.5); border-radius: 8px;
+      padding: 4px 10px; pointer-events: none; opacity: 0; transition: opacity 0.15s;
+    }
+    .schema-erd.erd-clickable:hover .erd-expand-hint { opacity: 1; }
+    .modal-overlay.erd-overlay { padding: 0; align-items: center; }
+    .modal.erd-modal {
+      max-width: 96vw; width: 96vw; height: 92vh;
+      display: flex; flex-direction: column;
+    }
+    .erd-modal-tools { display: flex; align-items: center; gap: 0.5rem; }
+    .erd-zoom-bar { display: flex; align-items: center; gap: 0.35rem; }
+    .erd-zoom-btn {
+      background: rgba(var(--bg-c),0.6); color: rgb(var(--text));
+      border: 1px solid rgba(var(--border),0.7); border-radius: 8px;
+      min-width: 30px; height: 30px; padding: 0 9px; cursor: pointer;
+      font: 600 0.78rem ui-monospace, "Cascadia Mono", "IBM Plex Mono", Consolas, monospace;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    .erd-zoom-btn:hover { border-color: rgba(var(--accent),0.6); color: rgb(var(--amber)); }
+    .erd-modal .modal-body.erd-modal-body {
+      flex: 1; max-height: none; padding: 0; overflow: hidden;
+      display: flex; flex-direction: column;
+    }
+    .erd-zoom-viewport {
+      flex: 1; overflow: auto; position: relative; cursor: grab;
+      user-select: none; touch-action: none;
+      background-image: radial-gradient(rgba(var(--border),0.16) 1px, transparent 1px);
+      background-size: 22px 22px;
+    }
+    .erd-zoom-viewport.panning { cursor: grabbing; }
+    .erd-zoom-viewport svg { display: block; user-select: none; -webkit-user-drag: none; }
+    .erd-zoom-stage { transform-origin: 0 0; }
+    .erd-zoom-msg {
+      position: absolute; left: 0.75rem; bottom: 0.6rem; z-index: 3;
+      font-size: 0.68rem; color: rgb(var(--muted)); pointer-events: none;
+      background: rgba(var(--bg-c),0.75); padding: 3px 9px; border-radius: 6px;
+      border: 1px solid rgba(var(--border),0.4);
+    }
 
     /* ---- OEM data approach modal ---- */
     .oem-approach-btn {
       display: inline-flex;
       align-items: center;
       gap: 0.5rem;
-      background: linear-gradient(135deg, rgba(240,136,62,0.15), rgba(126,231,135,0.08));
-      border: 1px solid rgba(240,136,62,0.55);
-      color: #f0c674;
+      background: linear-gradient(135deg, rgba(var(--accent),0.15), rgba(var(--green),0.08));
+      border: 1px solid rgba(var(--accent),0.55);
+      color: rgb(var(--amber));
       font-family: inherit;
       font-size: 0.8rem;
       font-weight: 700;
@@ -410,24 +573,24 @@
       letter-spacing: 0.01em;
     }
     .oem-approach-btn:hover {
-      box-shadow: 0 4px 18px rgba(240,136,62,0.35);
+      box-shadow: 0 4px 18px rgba(var(--accent),0.35);
       transform: translateY(-1px);
-      background: linear-gradient(135deg, rgba(240,136,62,0.25), rgba(126,231,135,0.12));
+      background: linear-gradient(135deg, rgba(var(--accent),0.25), rgba(var(--green),0.12));
     }
     .oem-approach-btn .pulse {
       width: 8px; height: 8px; border-radius: 50%;
-      background: #7ee787;
-      box-shadow: 0 0 0 0 rgba(126,231,135,0.7);
+      background: rgb(var(--green));
+      box-shadow: 0 0 0 0 rgba(var(--green),0.7);
       animation: pulse 2s infinite;
     }
     @keyframes pulse {
-      0%   { box-shadow: 0 0 0 0 rgba(126,231,135,0.7); }
-      70%  { box-shadow: 0 0 0 8px rgba(126,231,135,0); }
-      100% { box-shadow: 0 0 0 0 rgba(126,231,135,0); }
+      0%   { box-shadow: 0 0 0 0 rgba(var(--green),0.7); }
+      70%  { box-shadow: 0 0 0 8px rgba(var(--green),0); }
+      100% { box-shadow: 0 0 0 0 rgba(var(--green),0); }
     }
     .modal-overlay {
       position: fixed; inset: 0; z-index: 100;
-      background: rgba(5,8,12,0.72);
+      background: rgba(var(--overlay),0.72);
       backdrop-filter: blur(4px);
       display: none;
       align-items: flex-start; justify-content: center;
@@ -436,12 +599,12 @@
     }
     .modal-overlay.open { display: flex; }
     .modal {
-      background: #11161d;
-      border: 1px solid rgba(240,136,62,0.35);
+      background: rgb(var(--modal-bg));
+      border: 1px solid rgba(var(--accent),0.35);
       border-radius: 14px;
       max-width: 980px;
       width: 100%;
-      box-shadow: 0 24px 64px rgba(0,0,0,0.65);
+      box-shadow: 0 24px 64px rgba(var(--shadow),0.65);
       overflow: hidden;
       animation: modal-in 0.18s ease;
     }
@@ -452,55 +615,55 @@
     .modal-head {
       display: flex; align-items: center; justify-content: space-between; gap: 1rem;
       padding: 1.1rem 1.5rem;
-      border-bottom: 1px solid rgba(48,54,61,0.6);
-      background: linear-gradient(135deg, rgba(240,136,62,0.1), rgba(126,231,135,0.05));
+      border-bottom: 1px solid rgba(var(--border),0.6);
+      background: linear-gradient(135deg, rgba(var(--accent),0.1), rgba(var(--green),0.05));
     }
     .modal-head h2 {
-      color: #f0883e; font-size: 1.15rem; margin: 0;
+      color: rgb(var(--accent)); font-size: 1.15rem; margin: 0;
       display: flex; align-items: center; gap: 0.6rem;
     }
     .modal-head .badge {
-      font-size: 0.6rem; background: rgba(139,148,158,0.15); color: #8b949e;
+      font-size: 0.6rem; background: rgba(var(--muted),0.15); color: rgb(var(--muted));
       padding: 3px 10px; border-radius: 12px; font-weight: 500; text-transform: uppercase;
-      letter-spacing: 0.04em; border: 1px solid rgba(48,54,61,0.4);
+      letter-spacing: 0.04em; border: 1px solid rgba(var(--border),0.4);
     }
     .modal-close {
-      background: none; border: 1px solid rgba(48,54,61,0.6); color: #8b949e;
+      background: none; border: 1px solid rgba(var(--border),0.6); color: rgb(var(--muted));
       width: 32px; height: 32px; border-radius: 8px; cursor: pointer;
       font-size: 1.1rem; line-height: 1; transition: border-color 0.15s, color 0.15s;
     }
-    .modal-close:hover { border-color: rgba(240,136,62,0.6); color: #f0c674; }
+    .modal-close:hover { border-color: rgba(var(--accent),0.6); color: rgb(var(--amber)); }
     .modal-body { padding: 1.5rem; max-height: 75vh; overflow-y: auto; }
     .modal-body::-webkit-scrollbar { width: 6px; }
     .modal-body::-webkit-scrollbar-track { background: transparent; }
-    .modal-body::-webkit-scrollbar-thumb { background: rgba(48,54,61,0.6); border-radius: 3px; }
+    .modal-body::-webkit-scrollbar-thumb { background: rgba(var(--border),0.6); border-radius: 3px; }
     .modal-body h3 {
-      color: #7ee787; font-size: 0.95rem; margin: 1.4rem 0 0.5rem; letter-spacing: -0.01em;
+      color: rgb(var(--green)); font-size: 0.95rem; margin: 1.4rem 0 0.5rem; letter-spacing: -0.01em;
     }
     .modal-body h3:first-child { margin-top: 0; }
-    .modal-body p, .modal-body li { color: #e6edf3; font-size: 0.85rem; line-height: 1.75; }
+    .modal-body p, .modal-body li { color: rgb(var(--text)); font-size: 0.85rem; line-height: 1.75; }
     .modal-body ul, .modal-body ol { padding-left: 1.3rem; margin: 0.4rem 0; }
     .modal-body li { margin-bottom: 0.3rem; }
-    .modal-body li strong { color: #f0c674; }
+    .modal-body li strong { color: rgb(var(--amber)); }
     .modal-body code {
-      background: rgba(48,54,61,0.5); padding: 2px 7px; border-radius: 4px;
-      font-size: 0.8rem; color: #f0c674; font-family: 'JetBrains Mono', 'Consolas', monospace;
-      border: 1px solid rgba(48,54,61,0.3);
+      background: rgba(var(--border),0.5); padding: 2px 7px; border-radius: 4px;
+      font-size: 0.8rem; color: rgb(var(--amber)); font-family: 'JetBrains Mono', 'Consolas', monospace;
+      border: 1px solid rgba(var(--border),0.3);
     }
-    .modal-body .flow-arrow { color: #79c0ff; margin: 0 5px; font-weight: 700; }
+    .modal-body .flow-arrow { color: rgb(var(--blue)); margin: 0 5px; font-weight: 700; }
     .modal-body .file-list { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0.5rem 0; }
     .modal-body .file-tag {
-      background: rgba(31,41,55,0.7); border: 1px solid rgba(48,54,61,0.5); border-radius: 5px;
-      padding: 3px 9px; font-size: 0.77rem; color: #e6edf3;
+      background: rgba(var(--surface-2),0.7); border: 1px solid rgba(var(--border),0.5); border-radius: 5px;
+      padding: 3px 9px; font-size: 0.77rem; color: rgb(var(--text));
       font-family: 'JetBrains Mono', 'Consolas', monospace;
     }
     .modal-body .table {
       width: 100%; border-collapse: collapse; margin: 0.6rem 0; font-size: 0.8rem;
     }
     .modal-body .table th, .modal-body .table td {
-      text-align: left; padding: 0.45rem 0.6rem; border: 1px solid rgba(48,54,61,0.5);
+      text-align: left; padding: 0.45rem 0.6rem; border: 1px solid rgba(var(--border),0.5);
     }
-    .modal-body .table th { color: #f0c674; background: rgba(31,41,55,0.6); font-size: 0.75rem; }
+    .modal-body .table th { color: rgb(var(--amber)); background: rgba(var(--surface-2),0.6); font-size: 0.75rem; }
     .modal-body .table td code { background: none; border: none; padding: 0; }
     .modal-body .steps { counter-reset: step; list-style: none; padding-left: 0; }
     .modal-body .steps li {
@@ -509,8 +672,8 @@
     .modal-body .steps li::before {
       content: counter(step); position: absolute; left: 0; top: 1px;
       width: 1.6rem; height: 1.6rem; border-radius: 50%;
-      background: rgba(240,136,62,0.15); border: 1px solid rgba(240,136,62,0.5);
-      color: #f0883e; font-weight: 700; font-size: 0.75rem;
+      background: rgba(var(--accent),0.15); border: 1px solid rgba(var(--accent),0.5);
+      color: rgb(var(--accent)); font-weight: 700; font-size: 0.75rem;
       display: flex; align-items: center; justify-content: center;
     }
 
@@ -531,6 +694,9 @@
 
 <h1>&#128451; sita-platform <small>&mdash; security pipeline architecture &amp; reporting interface</small>
   <span class="h1-actions">
+    <button class="theme-toggle" id="themeToggle" title="Toggle dark / light mode" aria-label="Toggle dark / light mode">
+      <span class="theme-ic" id="themeIcon">&#127769;</span>
+    </button>
     <button class="fw-btn" id="backendFwBtn" data-fwbtn="backend" title="Why the backend framework was selected">
       <span class="fw-ic">&#128736;&#65039;</span>
       <span class="fw-title"><b>Backend framework</b><span>why FastAPI &amp; Python</span></span>
@@ -664,6 +830,29 @@
   </div>
 </div>
 
+<div class="modal-overlay erd-overlay" id="erdModal" role="dialog" aria-modal="true" aria-labelledby="erdModalTitle">
+  <div class="modal erd-modal">
+    <div class="modal-head">
+      <h2 id="erdModalTitle">&#128202; PostgreSQL Warehouse ER Diagram <span class="badge">zoomable</span></h2>
+      <div class="erd-modal-tools">
+        <div class="erd-zoom-bar">
+          <button class="erd-zoom-btn" id="erdZoomOut" title="Zoom out">&minus;</button>
+          <button class="erd-zoom-btn" id="erdZoomIn" title="Zoom in">+</button>
+          <button class="erd-zoom-btn" id="erdZoomReset" title="Reset to 100%">100%</button>
+          <button class="erd-zoom-btn" id="erdZoomFit" title="Fit diagram to window">fit</button>
+        </div>
+        <button class="modal-close" id="erdModalClose" aria-label="Close">&times;</button>
+      </div>
+    </div>
+    <div class="modal-body erd-modal-body">
+      <div class="erd-zoom-viewport" id="erdViewport">
+        <div class="erd-zoom-stage" id="erdZoomHost"></div>
+        <span class="erd-zoom-msg">scroll = pan &middot; Ctrl+scroll = zoom &middot; drag = pan &middot; or use the buttons</span>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="stages">
   <button class="stage-btn" data-stage="ingest"><span class="st-num">Stage 1</span><span class="st-name">OEM Ingestion</span><span class="st-path">connectors/ ingestion/</span></button>
   <button class="stage-btn" data-stage="process"><span class="st-num">Stage 2</span><span class="st-name">Pipeline Processing</span><span class="st-path">processing/ dispatch/</span></button>
@@ -704,196 +893,196 @@
 <div class="tree-col">
   <div class="tree">
 <pre><span class="root" data-key="root">C:\sita-platform\</span>
-<span class="pipe">â”œâ”€â”€</span> <span class="dir" data-key="github">C:\sita-platform\.github\</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\.github\CODEOWNERS</span>
-<span class="pipe">â”‚   â””â”€â”€</span> <span class="dir">C:\sita-platform\.github\workflows\</span>
-<span class="pipe">â”‚       â””â”€â”€</span> <span class="file">C:\sita-platform\.github\workflows\ci.yml</span>
-<span class="pipe">â”œâ”€â”€</span> <span class="dir" data-key="backend">C:\sita-platform\backend\</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\main.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\config.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\db.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\api\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\auth.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\deps.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\errors.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\api\routers\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\admin.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\alerts.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\compliance.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\dashboard.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\findings.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\routers\risks.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="dir">C:\sita-platform\backend\app\api\schemas\</span>
-<span class="pipe">â”‚   â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\alert.py</span>
-<span class="pipe">â”‚   â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\common.py</span>
-<span class="pipe">â”‚   â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\compliance.py</span>
-<span class="pipe">â”‚   â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\finding.py</span>
-<span class="pipe">â”‚   â”‚   â”‚       â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\api\schemas\risk.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\bus\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\bus\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\bus\consumer.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\bus\producer.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\bus\streams.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\connectors\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\apisec.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\appscan.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\base.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\compliance.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\connectors\imperva.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\dispatch\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\dispatch\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\dispatch\email_adapter.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\dispatch\pagerduty_adapter.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\dispatch\teams_adapter.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\dispatch\worker.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\entrypoints\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\analytics.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\dispatch.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\ingestion.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\processing.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\entrypoints\seed_simulated.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\ingestion\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\circuit_breaker.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\dlq.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\retry.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\scheduler.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\ingestion\token_bucket.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\lake\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\lake\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\lake\writer.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\models\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\alert.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\base.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\compliance.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\connector_status.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\dlq.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\finding.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\models\risk_score.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\app\monitoring\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\monitoring\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\monitoring\logging.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\monitoring\metrics.py</span>
-<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="dir">C:\sita-platform\backend\app\processing\</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\__init__.py</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_dedup.py</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_engine.py</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_enricher.py</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\alert_rules.yaml</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\app_catalog.yaml</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\compliance.py</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\field_mapper.yaml</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\normaliser.py</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\risk_aggregator.py</span>
-<span class="pipe">â”‚   â”‚       â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\processing\risk_engine.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir" data-key="synthetic">C:\sita-platform\backend\app\synthetic\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\app\synthetic\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\app\synthetic\generator.py</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\backend\migrations\</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\migrations\alembic.ini</span>
-<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\migrations\env.py</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\Dockerfile</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\requirements.txt</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\.env.example</span>
-<span class="pipe">â”‚   â””â”€â”€</span> <span class="dir" data-key="tests">C:\sita-platform\backend\tests\</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\conftest.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\test_alert_engine.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\test_normaliser.py</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\test_risk_engine.py</span>
-<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="dir">C:\sita-platform\backend\tests\fixtures\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\__init__.py</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\appscan_findings.json</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\apisec_endpoints.json</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\compliance_rows.json</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\imperva_dam_events.json</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\backend\tests\fixtures\imperva_waf_events.json</span>
-<span class="pipe">â”œâ”€â”€</span> <span class="dir" data-key="frontend">C:\sita-platform\frontend\</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\public\</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\api\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\admin.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\alerts.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\client.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\compliance.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\dashboard.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\findings.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\api\risks.ts</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\components\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\components\dashboard\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\BarRow.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\Chip.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\DashHeader.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\ExplainOverlay.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\Gauge.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\MiniBarChart.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\OemTag.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\Panel.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\StatCard.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\components\layout\</span>
-<span class="pipe">â”‚   â”‚   â”‚       â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\components\layout\RoleNav.tsx</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\context\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\context\AuthContext.tsx</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\data\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\data\explanations.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\data\mappers.ts</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\hooks\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useApi.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useAppSecData.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useAuth.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useComplianceData.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useDbSecData.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useExecData.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\usePolling.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useSocData.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\hooks\useSreData.ts</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\pages\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\AppSecDashboard.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\ComplianceDashboard.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\DbSecDashboard.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\ExecDashboard.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\LoginPage.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\SocDashboard.tsx</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\pages\SreDashboard.tsx</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\styles\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\styles\global.css</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\styles\theme.ts</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\frontend\src\utils\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\utils\constants.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\utils\formatters.ts</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\utils\jwt.ts</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\App.tsx</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\src\main.tsx</span>
-<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\src\types.ts</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\Dockerfile</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\index.html</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\nginx.conf</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\package.json</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\frontend\tsconfig.json</span>
-<span class="pipe">â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\frontend\vite.config.ts</span>
-<span class="pipe">â”œâ”€â”€</span> <span class="dir" data-key="infrastructure">C:\sita-platform\infrastructure\</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\infrastructure\monitoring\</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\infrastructure\monitoring\grafana-dashboards\</span>
-<span class="pipe">â”‚   â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\monitoring\grafana-dashboards\sita-pipeline.json</span>
-<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\monitoring\prometheus.yml</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\infrastructure\nginx\</span>
-<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\nginx\sita.conf</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="dir">C:\sita-platform\infrastructure\scripts\</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\backup.sh</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\deploy.sh</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\init-db.sql</span>
-<span class="pipe">â”‚   â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\seed-demo.sql</span>
-<span class="pipe">â”‚   â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\scripts\maintenance.sql</span>
-<span class="pipe">â”‚   â”œâ”€â”€</span> <span class="file">C:\sita-platform\infrastructure\docker-compose.yml</span>
-<span class="pipe">â”‚   â””â”€â”€</span> <span class="file">C:\sita-platform\infrastructure\docker-compose.prod.yml</span>
-<span class="pipe">â””â”€â”€</span> <span class="root" data-key="reporting">C:\sita-platform\  (reporting interface â€” final product)</span>
+<span class="pipe">├──</span> <span class="dir" data-key="github">C:\sita-platform\.github\</span>
+<span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\.github\CODEOWNERS</span>
+<span class="pipe">│   └──</span> <span class="dir">C:\sita-platform\.github\workflows\</span>
+<span class="pipe">│       └──</span> <span class="file">C:\sita-platform\.github\workflows\ci.yml</span>
+<span class="pipe">├──</span> <span class="dir" data-key="backend">C:\sita-platform\backend\</span>
+<span class="pipe">│   ├──</span> <span class="dir">C:\sita-platform\backend\app\</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\app\__init__.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\app\main.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\app\config.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\app\db.py</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\api\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\__init__.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\auth.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\deps.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\errors.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\api\routers\</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\routers\__init__.py</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\routers\admin.py</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\routers\alerts.py</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\routers\compliance.py</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\routers\dashboard.py</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\routers\findings.py</span>
+<span class="pipe">│   │   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\api\routers\risks.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="dir">C:\sita-platform\backend\app\api\schemas\</span>
+<span class="pipe">│   │   │       ├──</span> <span class="file">C:\sita-platform\backend\app\api\schemas\__init__.py</span>
+<span class="pipe">│   │   │       ├──</span> <span class="file">C:\sita-platform\backend\app\api\schemas\alert.py</span>
+<span class="pipe">│   │   │       ├──</span> <span class="file">C:\sita-platform\backend\app\api\schemas\common.py</span>
+<span class="pipe">│   │   │       ├──</span> <span class="file">C:\sita-platform\backend\app\api\schemas\compliance.py</span>
+<span class="pipe">│   │   │       ├──</span> <span class="file">C:\sita-platform\backend\app\api\schemas\finding.py</span>
+<span class="pipe">│   │   │       └──</span> <span class="file">C:\sita-platform\backend\app\api\schemas\risk.py</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\bus\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\bus\__init__.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\bus\consumer.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\bus\producer.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\bus\streams.py</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\connectors\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\connectors\__init__.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\connectors\apisec.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\connectors\appscan.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\connectors\base.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\connectors\compliance.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\connectors\imperva.py</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\dispatch\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\dispatch\__init__.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\dispatch\email_adapter.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\dispatch\pagerduty_adapter.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\dispatch\teams_adapter.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\dispatch\worker.py</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\entrypoints\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\entrypoints\__init__.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\entrypoints\analytics.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\entrypoints\dispatch.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\entrypoints\ingestion.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\entrypoints\processing.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\entrypoints\seed_simulated.py</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\ingestion\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\ingestion\__init__.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\ingestion\circuit_breaker.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\ingestion\dlq.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\ingestion\retry.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\ingestion\scheduler.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\ingestion\token_bucket.py</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\lake\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\lake\__init__.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\lake\writer.py</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\models\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\__init__.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\alert.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\base.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\compliance.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\connector_status.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\dlq.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\finding.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\models\risk_score.py</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\monitoring\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\monitoring\__init__.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\monitoring\logging.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\monitoring\metrics.py</span>
+<span class="pipe">│   │   └──</span> <span class="dir">C:\sita-platform\backend\app\processing\</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\__init__.py</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\alert_dedup.py</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\alert_engine.py</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\alert_enricher.py</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\alert_rules.yaml</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\app_catalog.yaml</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\compliance.py</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\field_mapper.yaml</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\normaliser.py</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\risk_aggregator.py</span>
+<span class="pipe">│   │       ├──</span> <span class="file">C:\sita-platform\backend\app\processing\risk_engine.py</span>
+<span class="pipe">│   │   ├──</span> <span class="dir" data-key="synthetic">C:\sita-platform\backend\app\synthetic\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\synthetic\__init__.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\synthetic\generator.py</span>
+<span class="pipe">│   ├──</span> <span class="dir">C:\sita-platform\backend\migrations\</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\migrations\alembic.ini</span>
+<span class="pipe">│   │   └──</span> <span class="file">C:\sita-platform\backend\migrations\env.py</span>
+<span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\backend\Dockerfile</span>
+<span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\backend\requirements.txt</span>
+<span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\backend\.env.example</span>
+<span class="pipe">│   └──</span> <span class="dir" data-key="tests">C:\sita-platform\backend\tests\</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\conftest.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\test_alert_engine.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\test_normaliser.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\test_risk_engine.py</span>
+<span class="pipe">│   │   └──</span> <span class="dir">C:\sita-platform\backend\tests\fixtures\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\fixtures\__init__.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\fixtures\appscan_findings.json</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\fixtures\apisec_endpoints.json</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\fixtures\compliance_rows.json</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\fixtures\imperva_dam_events.json</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\tests\fixtures\imperva_waf_events.json</span>
+<span class="pipe">├──</span> <span class="dir" data-key="frontend">C:\sita-platform\frontend\</span>
+<span class="pipe">│   ├──</span> <span class="dir">C:\sita-platform\frontend\public\</span>
+<span class="pipe">│   ├──</span> <span class="dir">C:\sita-platform\frontend\src\</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\frontend\src\api\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\api\admin.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\api\alerts.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\api\client.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\api\compliance.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\api\dashboard.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\api\findings.ts</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\frontend\src\api\risks.ts</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\frontend\src\components\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="dir">C:\sita-platform\frontend\src\components\dashboard\</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\BarRow.tsx</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\Chip.tsx</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\DashHeader.tsx</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\ExplainOverlay.tsx</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\Gauge.tsx</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\MiniBarChart.tsx</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\OemTag.tsx</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\Panel.tsx</span>
+<span class="pipe">│   │   │   │   └──</span> <span class="file">C:\sita-platform\frontend\src\components\dashboard\StatCard.tsx</span>
+<span class="pipe">│   │   │   └──</span> <span class="dir">C:\sita-platform\frontend\src\components\layout\</span>
+<span class="pipe">│   │   │       └──</span> <span class="file">C:\sita-platform\frontend\src\components\layout\RoleNav.tsx</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\frontend\src\context\</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\frontend\src\context\AuthContext.tsx</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\frontend\src\data\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\data\explanations.ts</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\frontend\src\data\mappers.ts</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\frontend\src\hooks\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\hooks\useApi.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\hooks\useAppSecData.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\hooks\useAuth.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\hooks\useComplianceData.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\hooks\useDbSecData.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\hooks\useExecData.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\hooks\usePolling.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\hooks\useSocData.ts</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\frontend\src\hooks\useSreData.ts</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\frontend\src\pages\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\pages\AppSecDashboard.tsx</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\pages\ComplianceDashboard.tsx</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\pages\DbSecDashboard.tsx</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\pages\ExecDashboard.tsx</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\pages\LoginPage.tsx</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\pages\SocDashboard.tsx</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\frontend\src\pages\SreDashboard.tsx</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\frontend\src\styles\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\styles\global.css</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\frontend\src\styles\theme.ts</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\frontend\src\utils\</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\utils\constants.ts</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\utils\formatters.ts</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\frontend\src\utils\jwt.ts</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\App.tsx</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\frontend\src\main.tsx</span>
+<span class="pipe">│   │   └──</span> <span class="file">C:\sita-platform\frontend\src\types.ts</span>
+<span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\frontend\Dockerfile</span>
+<span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\frontend\index.html</span>
+<span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\frontend\nginx.conf</span>
+<span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\frontend\package.json</span>
+<span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\frontend\tsconfig.json</span>
+<span class="pipe">│   └──</span> <span class="file">C:\sita-platform\frontend\vite.config.ts</span>
+<span class="pipe">├──</span> <span class="dir" data-key="infrastructure">C:\sita-platform\infrastructure\</span>
+<span class="pipe">│   ├──</span> <span class="dir">C:\sita-platform\infrastructure\monitoring\</span>
+<span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\infrastructure\monitoring\grafana-dashboards\</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\infrastructure\monitoring\grafana-dashboards\sita-pipeline.json</span>
+<span class="pipe">│   │   └──</span> <span class="file">C:\sita-platform\infrastructure\monitoring\prometheus.yml</span>
+<span class="pipe">│   ├──</span> <span class="dir">C:\sita-platform\infrastructure\nginx\</span>
+<span class="pipe">│   │   └──</span> <span class="file">C:\sita-platform\infrastructure\nginx\sita.conf</span>
+<span class="pipe">│   ├──</span> <span class="dir">C:\sita-platform\infrastructure\scripts\</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\infrastructure\scripts\backup.sh</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\infrastructure\scripts\deploy.sh</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\infrastructure\scripts\init-db.sql</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\infrastructure\scripts\seed-demo.sql</span>
+<span class="pipe">│   │   └──</span> <span class="file">C:\sita-platform\infrastructure\scripts\maintenance.sql</span>
+<span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\infrastructure\docker-compose.yml</span>
+<span class="pipe">│   └──</span> <span class="file">C:\sita-platform\infrastructure\docker-compose.prod.yml</span>
+<span class="pipe">└──</span> <span class="root" data-key="reporting">C:\sita-platform\  (reporting interface — final product)</span>
   </pre>
   </div>
 </div>
@@ -969,7 +1158,7 @@ const details = {
     title: 'frontend',
     badge: 'React &middot; TypeScript &middot; Vite',
     body: String.raw`
-      <p>A single-page application built with React, TypeScript, and Vite. Authenticated users log in with a role, and the app renders that role's dashboard. <strong>All dashboard numbers come from the backend REST API, which reads PostgreSQL</strong> â€” there is no hardcoded sample data in the UI.</p>
+      <p>A single-page application built with React, TypeScript, and Vite. Authenticated users log in with a role, and the app renders that role's dashboard. <strong>All dashboard numbers come from the backend REST API, which reads PostgreSQL</strong> — there is no hardcoded sample data in the UI.</p>
       <h3>Structure</h3>
       <ul>
         <li><code>C:\sita-platform\frontend\src\api\</code> &mdash; Typed API client modules: <code>client.ts</code> (axios, JWT from localStorage, 401 redirect), plus domain files for <code>alerts</code>, <code>findings</code>, <code>risks</code>, <code>compliance</code>, <code>dashboard</code>, <code>admin</code>.</li>
@@ -1057,7 +1246,7 @@ const details = {
 
       <h3>Page-by-page breakdown</h3>
 
-      <h3 style="color:#f0c674">&#128202; ExecDashboard (/exec)</h3>
+      <h3 style="color:rgb(var(--amber))">&#128202; ExecDashboard (/exec)</h3>
       <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\ExecDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /api/v1/dashboard/summary</code>, <code>/api/v1/risks</code>, <code>/api/v1/findings</code>, <code>/api/v1/compliance</code>, <code>/api/v1/alerts</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.risk_scores</code>, <code>warehouse.alerts</code>, <code>warehouse.findings</code></p>
       <p>The executive landing dashboard. Displays KPI cards, a 30-day fused-risk trend, compliance gauges, severity donut, application heatmap, top-5 risk table, and a live alert summary &mdash; all computed from warehouse queries:</p>
       <ul>
@@ -1067,20 +1256,20 @@ const details = {
         <li><strong>Active Alerts</strong> &mdash; unacknowledged alert count from <code>warehouse.alerts</code></li>
       </ul>
 
-      <h3 style="color:#f0c674">&#128680; SocDashboard (/soc)</h3>
+      <h3 style="color:rgb(var(--amber))">&#128680; SocDashboard (/soc)</h3>
       <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\SocDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /api/v1/alerts</code>, <code>PATCH /api/v1/alerts/{id}/acknowledge</code>, <code>PATCH /api/v1/alerts/{id}/resolve</code>, <code>GET /api/v1/findings</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.alerts</code>, <code>warehouse.findings</code></p>
       <p>The SOC incident view reads from <code>warehouse.alerts</code>: a chronological timeline, an alert queue with acknowledge/resolve actions (PATCH writes status back to the DB), and a findings table.</p>
       <p>Alerts are generated by <code>AlertRuleEngine</code> (<code>C:\sita-platform\backend\app\processing\alert_engine.py</code>), deduplicated by <code>AlertDeduplicator</code> (<code>alert_dedup.py</code>), enriched by <code>AlertEnricher</code> (<code>alert_enricher.py</code>), and dispatched to Email/PagerDuty/Teams via <code>DispatchWorker</code> (<code>C:\sita-platform\backend\app\dispatch\worker.py</code>).</p>
 
-      <h3 style="color:#f0c674">&#128269; AppSecDashboard (/appsec)</h3>
+      <h3 style="color:rgb(var(--amber))">&#128269; AppSecDashboard (/appsec)</h3>
       <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\AppSecDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /api/v1/findings</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.findings</code></p>
       <p>Raw vulnerability findings from all connected OEMs, grouped by application and by OWASP category, plus a critical-findings list. Columns from <code>warehouse.findings</code> (<code>id</code>, <code>source</code>, <code>external_id</code>, <code>app_name</code>, <code>severity</code>, <code>title</code>, <code>category</code>, <code>raw_data</code>, <code>first_seen</code>, <code>last_seen</code>, <code>status</code>). Data arrives via OEM connectors into <code>staging.raw_records</code>, normalised by <code>Normaliser</code> (<code>C:\sita-platform\backend\app\processing\normaliser.py</code>) via <code>field_mapper.yaml</code>, and lands in <code>warehouse.findings</code>.</p>
 
-      <h3 style="color:#f0c674">&#128737;&#65039; DbSecDashboard (/dbsec)</h3>
+      <h3 style="color:rgb(var(--amber))">&#128737;&#65039; DbSecDashboard (/dbsec)</h3>
       <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\DbSecDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /api/v1/findings</code> (source=imperva), <code>GET /api/v1/alerts</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.findings</code>, <code>warehouse.alerts</code></p>
       <p>Imperva DAM database violations per DB server (DB-CUST-01, DB-PAY-01, DB-DOC-01, DB-HR-01), violation categories, alert activity, and the active database alert table.</p>
 
-      <h3 style="color:#f0c674">&#128203; ComplianceDashboard (/compliance)</h3>
+      <h3 style="color:rgb(var(--amber))">&#128203; ComplianceDashboard (/compliance)</h3>
       <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\ComplianceDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /api/v1/compliance</code>, <code>GET /api/v1/compliance/gaps</code>, <code>GET /api/v1/compliance/evidence</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.compliance_snapshots</code>, <code>warehouse.compliance_gaps</code></p>
       <p>Dual-framework compliance dashboard reading from <code>warehouse.compliance_snapshots</code> and <code>warehouse.compliance_gaps</code>:</p>
       <ul>
@@ -1091,7 +1280,7 @@ const details = {
       </ul>
       <p>Computed by <code>C:\sita-platform\backend\app\processing\compliance.py</code> and upserted into the warehouse.</p>
 
-      <h3 style="color:#f0c674">&#9881;&#65039; SreDashboard (/sre)</h3>
+      <h3 style="color:rgb(var(--amber))">&#9881;&#65039; SreDashboard (/sre)</h3>
       <p><strong>File:</strong> <code>C:\sita-platform\frontend\src\pages\SreDashboard.tsx</code> &nbsp;|&nbsp; <strong>API:</strong> <code>GET /admin/connectors</code>, <code>GET /admin/dead-letter</code>, <code>POST /admin/connectors/{name}/reset</code>, <code>POST /admin/dead-letter/reprocess/{id}</code> &nbsp;|&nbsp; <strong>DB:</strong> <code>warehouse.connector_health</code>, <code>staging.rejected_records</code></p>
       <p>Operational views for SRE:</p>
       <ul>
@@ -1127,16 +1316,16 @@ const details = {
     `
   },
   ingest: {
-    title: 'Stage 1 â€” OEM Ingestion',
+    title: 'Stage 1 — OEM Ingestion',
     badge: 'pull & persist raw',
     body: String.raw`
       <p><strong>Purpose:</strong> Pull raw security data from each OEM tool and persist it, untouched, into <code>staging.raw_records</code> so nothing is lost and the pipeline can be replayed.</p>
       <h3>How it works</h3>
       <ol>
-        <li><strong>Connector</strong> (<code>C:\sita-platform\backend\app\connectors\</code>) â€” one adapter per OEM: <code>appscan.py</code> (HCL AppScan), <code>imperva.py</code> (DAM/WAF), <code>apisec.py</code> (API security), <code>compliance.py</code> (CSV/API). Each extends <code>base.py</code>.</li>
-        <li><strong>Ingestion hardening</strong> (<code>C:\sita-platform\backend\app\ingestion\</code>) â€” <code>circuit_breaker.py</code> stops hammering a failing OEM, <code>retry.py</code> back-off, <code>token_bucket.py</code> rate limiting, <code>scheduler.py</code> cadence.</li>
-        <li><strong>Dead-letter queue</strong> (<code>dlq.py</code>) â€” records that fail validation go to <code>staging.rejected_records</code> instead of being dropped.</li>
-        <li><strong>Persist</strong> â€” the <code>lake/writer.py</code> writes each raw payload (JSONB) plus a <code>batch_run</code> record into the <code>staging</code> schema (7-day TTL).</li>
+        <li><strong>Connector</strong> (<code>C:\sita-platform\backend\app\connectors\</code>) — one adapter per OEM: <code>appscan.py</code> (HCL AppScan), <code>imperva.py</code> (DAM/WAF), <code>apisec.py</code> (API security), <code>compliance.py</code> (CSV/API). Each extends <code>base.py</code>.</li>
+        <li><strong>Ingestion hardening</strong> (<code>C:\sita-platform\backend\app\ingestion\</code>) — <code>circuit_breaker.py</code> stops hammering a failing OEM, <code>retry.py</code> back-off, <code>token_bucket.py</code> rate limiting, <code>scheduler.py</code> cadence.</li>
+        <li><strong>Dead-letter queue</strong> (<code>dlq.py</code>) — records that fail validation go to <code>staging.rejected_records</code> instead of being dropped.</li>
+        <li><strong>Persist</strong> — the <code>lake/writer.py</code> writes each raw payload (JSONB) plus a <code>batch_run</code> record into the <code>staging</code> schema (7-day TTL).</li>
       </ol>
       <h3>Tables touched</h3>
       <div class="file-list"><span class="file-tag">staging.batch_runs</span><span class="file-tag">staging.raw_records</span><span class="file-tag">staging.rejected_records</span></div>
@@ -1306,18 +1495,18 @@ const details = {
     `
   },
   process: {
-    title: 'Stage 2 â€” Pipeline Processing',
+    title: 'Stage 2 — Pipeline Processing',
     badge: 'normalise &amp; enrich',
     body: String.raw`
       <p><strong>Purpose:</strong> Transform raw OEM records into canonical, deduplicated, enriched data and run the rule engines that produce alerts, risk scores, and compliance results.</p>
       <h3>How it works</h3>
       <ol>
-        <li><strong>Normaliser</strong> (<code>C:\sita-platform\backend\app\processing\normaliser.py</code>) â€” maps each OEM's fields onto the canonical schema using <code>field_mapper.yaml</code>; writes to <code>warehouse.findings</code>.</li>
-        <li><strong>Alert dedup / enrich</strong> (<code>alert_dedup.py</code>, <code>alert_enricher.py</code>) â€” collapse duplicates via <code>dedup_key</code>/<code>dedup_count</code>, attach context.</li>
-        <li><strong>Alert engine</strong> (<code>alert_engine.py</code>) â€” evaluates rules from <code>alert_rules.yaml</code> (e.g. <code>risk_critical</code>, <code>new_critical_cve</code>, <code>shadow_api_detected</code>) and writes to <code>warehouse.alerts</code>.</li>
-        <li><strong>Risk engine</strong> (<code>risk_engine.py</code> + <code>risk_aggregator.py</code>) â€” computes the fused risk score (appscan 35% / imperva 25% / exposure 20% / compliance 20%) and persists to <code>warehouse.risk_scores</code>.</li>
-        <li><strong>Compliance engine</strong> (<code>processing/compliance.py</code>) â€” scores POPIA / ISO 27001 domains and writes snapshots + gaps.</li>
-        <li><strong>Dispatch</strong> (<code>C:\sita-platform\backend\app\dispatch\</code>) â€” <code>worker.py</code> sends critical/high alerts via Email, PagerDuty, and Teams.</li>
+        <li><strong>Normaliser</strong> (<code>C:\sita-platform\backend\app\processing\normaliser.py</code>) — maps each OEM's fields onto the canonical schema using <code>field_mapper.yaml</code>; writes to <code>warehouse.findings</code>.</li>
+        <li><strong>Alert dedup / enrich</strong> (<code>alert_dedup.py</code>, <code>alert_enricher.py</code>) — collapse duplicates via <code>dedup_key</code>/<code>dedup_count</code>, attach context.</li>
+        <li><strong>Alert engine</strong> (<code>alert_engine.py</code>) — evaluates rules from <code>alert_rules.yaml</code> (e.g. <code>risk_critical</code>, <code>new_critical_cve</code>, <code>shadow_api_detected</code>) and writes to <code>warehouse.alerts</code>.</li>
+        <li><strong>Risk engine</strong> (<code>risk_engine.py</code> + <code>risk_aggregator.py</code>) — computes the fused risk score (appscan 35% / imperva 25% / exposure 20% / compliance 20%) and persists to <code>warehouse.risk_scores</code>.</li>
+        <li><strong>Compliance engine</strong> (<code>processing/compliance.py</code>) — scores POPIA / ISO 27001 domains and writes snapshots + gaps.</li>
+        <li><strong>Dispatch</strong> (<code>C:\sita-platform\backend\app\dispatch\</code>) — <code>worker.py</code> sends critical/high alerts via Email, PagerDuty, and Teams.</li>
       </ol>
       <h3>Tables written</h3>
       <div class="file-list"><span class="file-tag">warehouse.findings</span><span class="file-tag">warehouse.alerts</span><span class="file-tag">warehouse.risk_scores</span><span class="file-tag">warehouse.compliance_snapshots</span><span class="file-tag">warehouse.compliance_gaps</span></div>
@@ -1325,27 +1514,73 @@ const details = {
     `
   },
   store: {
-    title: 'Stage 3 â€” PostgreSQL Warehouse',
+    title: 'Stage 3 — PostgreSQL Warehouse',
     badge: 'single source of truth',
     body: String.raw`
       <p><strong>Purpose:</strong> Store normalised, report-ready data in PostgreSQL. The warehouse schema is the <em>only</em> source the reporting layer reads from.</p>
+
+      <div class="schema-erd" id="erdStore"></div>
+      <p class="erd-caption"><strong>PK</strong> primary key &middot; <strong>UQ</strong> unique &middot; <strong>FK</strong> foreign key (solid <strong>accent</strong> arrows) &middot; dashed <strong>amber</strong> arrows = maintenance rotation into <code>archive</code> (LIKE copies, <code>ON CONFLICT DO NOTHING</code>) &middot; bright column name = <strong>NOT NULL</strong>, dim = nullable &middot; <code>DF</code> = server default &middot; hover any box for its purpose. Rendered from the same DDL as <code>infrastructure\scripts\init-db.sql</code> &mdash; 5 schemas, 20 tables (16 canonical + 4 archive LIKE copies). <strong>Click the diagram to open it full-screen and zoom.</strong></p>
+
+      <h3>The database is built by the pipeline, not just loaded</h3>
+      <p>PostgreSQL is the <strong>terminal materialisation of a streaming log pipeline</strong>. Every row in the warehouse is a normalised, deduplicated, alerted, and risk-scored descendant of an OEM security log, written idempotently into <code>staging</code> (provenance) then <code>warehouse</code> (canonical model), with <code>archive</code> + <code>maintenance.sql</code> managing its lifecycle.</p>
+
+      <p><code>OEM sources</code> <span class="flow-arrow">&rarr;</span> <code>scheduler/connectors</code> <span class="flow-arrow">&rarr;</span> <code>Redis stream (raw)</code> <span class="flow-arrow">&rarr;</span> <code>normaliser + alert engine</code> <span class="flow-arrow">&rarr;</span> <code>lake writer (1 txn)</code> <span class="flow-arrow">&rarr;</span> <code>staging.*</code> <span class="flow-arrow">&rarr;</span> <code>warehouse.*</code> <span class="flow-arrow">&rarr;</span> <code>analytics scheduler &rarr; risk_scores</code> <span class="flow-arrow">&rarr;</span> <code>FastAPI / React reports</code></p>
+
+      <h3>Stage 1 &mdash; Ingestion: OEM logs &rarr; Redis (no DB yet)</h3>
+      <p>Five connectors (<code>appscan</code>, <code>imperva_dam</code>, <code>imperva_waf</code>, <code>apisec</code>, <code>compliance</code>) poll on APScheduler intervals. Each poll is guarded by a <strong>TokenBucket</strong> rate limiter, a <strong>CircuitBreaker</strong> (CLOSED &rarr; OPEN &rarr; HALF_OPEN &rarr; PERM_OPEN) and a 3-attempt <strong>RetryHandler</strong> before anything reaches PostgreSQL. Records are published to the Redis stream <code>STREAM_RAW = sita:ingestion:raw</code>; the only DB write here is the <code>warehouse.connector_health</code> heartbeat.</p>
+
+      <h3>Stage 2 &mdash; Streaming consumption &amp; normalisation</h3>
+      <p><code>C:\sita-platform\backend\app\entrypoints\processing.py</code> consumes the stream as a Redis consumer group and runs each batch through <code>C:\sita-platform\backend\app\processing\normaliser.py</code>, offloaded to threads per source:</p>
+      <ul>
+        <li><code>_flatten_fields</code> &mdash; <code>field_mapper.yaml</code> maps OEM JSON paths (<code>$.a.b[0].c</code>) to canonical columns.</li>
+        <li><code>_normalise_severity</code> &mdash; OEM enums &rarr; <code>{info, low, medium, high, critical}</code>; API Security derives severity from <code>exposure_score</code> thresholds.</li>
+        <li><code>_normalise_timestamps</code> &mdash; ISO 8601 / Unix ms / OEM formats coerced to <strong>UTC</strong>; <code>first_seen</code> / <code>last_seen</code> derived.</li>
+        <li><code>_cast_types</code> &mdash; per-source type hints (float / int / bool).</li>
+        <li><code>_dedup</code> &mdash; in-batch dedup plus a <strong>1-hour window DB lookup</strong>: same status &rarr; suppress insert (touch <code>last_seen</code> only), changed &rarr; upsert.</li>
+      </ul>
+      <p>Per-row alert rules (<code>alert_rules.yaml</code>) fire, throttled by the Redis <code>AlertDeduplicator</code> and enriched from <code>app_catalog.yaml</code>.</p>
+
+      <h3>Stage 3 &mdash; The lake writer develops the database</h3>
+      <p><code>C:\sita-platform\backend\app\lake\writer.py</code> is where streaming meets the relational database, in <strong>one transaction</strong> (<code>upsert_lake_batch</code>):</p>
+      <ul>
+        <li><code>record_to_finding()</code> maps a canonical row &rarr; <code>warehouse.findings</code>, generating a UUID <code>id</code> and stashing the <strong>entire original payload</strong> in <code>raw_data JSONB</code>.</li>
+        <li><code>INSERT ... ON CONFLICT DO UPDATE</code> keyed on <strong>UNIQUE (source, external_id)</strong>: a re-polled finding is <em>not duplicated</em> &mdash; it is refreshed and <code>version = version + 1</code>.</li>
+        <li>Alerts upsert into <code>warehouse.alerts</code> on alert <code>id</code> (idempotent).</li>
+        <li>Risk scores upsert on <strong>UNIQUE (app_name, score_date)</strong> &mdash; per-app daily snapshot.</li>
+      </ul>
+
       <h3>Schema</h3>
       <ul>
-        <li><code>staging</code> â€” raw ingestion (<code>batch_runs</code>, <code>raw_records</code>, <code>rejected_records</code>). TTL: 7 / 30 days via <code>pg_cron</code>.</li>
-        <li><code>warehouse</code> â€” canonical reporting tables: <code>connector_health</code>, <code>findings</code>, <code>alerts</code>, <code>risk_scores</code>, <code>compliance_snapshots</code>, <code>compliance_gaps</code>, <code>api_endpoints</code>.</li>
-        <li><code>archive</code> â€” historical retention; <code>audit</code> â€” governance trail.</li>
+        <li><code>staging</code> &mdash; raw ingestion (<code>batch_runs</code> run traceability, <code>raw_records</code> verbatim JSONB, <code>rejected_records</code> DLQ). TTL: 7 / 30 days via <code>pg_cron</code>.</li>
+        <li><code>warehouse</code> &mdash; canonical reporting tables: <code>connector_health</code>, <code>findings</code>, <code>alerts</code>, <code>risk_scores</code>, <code>compliance_snapshots</code>, <code>compliance_gaps</code>, <code>api_endpoints</code>.</li>
+        <li><code>archive</code> &mdash; historical retention (created <code>LIKE warehouse.* INCLUDING ALL</code> so rotation keeps the UNIQUE/PK keys for <code>ON CONFLICT DO NOTHING</code>); <code>audit</code> &mdash; governance trail.</li>
       </ul>
+      <p>Lifecycle is automated by <code>C:\sita-platform\infrastructure\scripts\maintenance.sql</code> (pg_cron): staging TTL purge, archive rotation of risk_scores / alerts / compliance, weekly <code>REINDEX ... CONCURRENTLY</code>, and a 15-minute connector-staleness sweep.</p>
+
+      <h3>Risk scores are a pipeline product too</h3>
+      <p>The analytics scheduler (<code>entrypoints\analytics.py</code>) reads <code>warehouse.findings</code> per app and fuses four signals &mdash; <code>Sa</code> appscan severity-weighted, <code>Si = log2(count+1)&times;10</code> imperva, <code>E</code> mean exposure, <code>C = 100 &minus; compliance%</code> &mdash; into <code>R = (0.35&middot;Sa + 0.25&middot;Si + 0.20&middot;E + 0.20&middot;C) / &Sigma;w</code>, clipped to [0,100], bucketed safe(&le;30) / monitored(&le;70) / critical(&gt;70).</p>
+
+      <h3>Why the database is developed, not just loaded</h3>
+      <ul>
+        <li><strong>Idempotent</strong> &mdash; unique constraints + <code>ON CONFLICT DO UPDATE</code> evolve rows; <code>version++</code> and <code>last_seen</code> semantics encode "newest observation wins".</li>
+        <li><strong>Provenance</strong> &mdash; <code>staging.batch_runs</code> + <code>raw_records</code> + <code>raw_data JSONB</code> keep every original OEM payload beside its canonical form.</li>
+        <li><strong>Transient vs durable</strong> &mdash; Redis streams (transient) &rarr; staging (short TTL audit) &rarr; warehouse (canonical) &rarr; archive (long retention).</li>
+        <li><strong>Schema driven by pipeline output</strong> &mdash; <code>field_mapper.yaml</code> dictates canonical columns, <code>alert_rules.yaml</code> what becomes an alert, <code>risk_engine.py</code> what becomes a score. Change a YAML rule and the DB content changes without migration churn.</li>
+      </ul>
+
       <h3>Seed / demo data</h3>
       <p><code>C:\sita-platform\infrastructure\scripts\init-db.sql</code> creates the schema; <code>seed-demo.sql</code> fills it with realistic demo rows (idempotent <code>ON CONFLICT</code> upserts):</p>
       <div class="file-list"><span class="file-tag">150 risk_scores</span><span class="file-tag">36 findings</span><span class="file-tag">36 alerts</span><span class="file-tag">2 compliance snapshots</span><span class="file-tag">12 gaps</span><span class="file-tag">5 connector_health</span><span class="file-tag">6 api_endpoints</span><span class="file-tag">4 DLQ records</span></div>
-      <p><em>Load with:</em> <code>docker exec -i infrastructure-postgres-1 psql -U sita -d sita &lt; infrastructure\\scripts\\seed-demo.sql</code></p>
+      <p><em>Load with:</em> <code>docker exec -i infrastructure-postgres-1 psql -U sita -d sita &lt; infrastructure\scripts\seed-demo.sql</code></p>
+
     `
   },
   api: {
-    title: 'Stage 4 â€” REST API',
+    title: 'Stage 4 — REST API',
     badge: 'read-only reporting + actions',
     body: String.raw`
-      <p><strong>Purpose:</strong> Serve warehouse data to the frontend. Every endpoint queries PostgreSQL via SQLAlchemy â€” there is no hardcoded report data.</p>
+      <p><strong>Purpose:</strong> Serve warehouse data to the frontend. Every endpoint queries PostgreSQL via SQLAlchemy — there is no hardcoded report data.</p>
       <h3>Routers (<code>C:\sita-platform\backend\app\api\routers\</code>)</h3>
       <ul>
         <li><code>risks.py</code> &mdash; <code>GET /api/v1/risks</code>, <code>GET /api/v1/risks/{app}/trend</code> &rarr; <code>warehouse.risk_scores</code></li>
@@ -1361,7 +1596,7 @@ const details = {
     `
   },
   ui: {
-    title: 'Stage 5 â€” Reports UI',
+    title: 'Stage 5 — Reports UI',
     badge: 'role-gated React SPA',
     body: String.raw`
       <p><strong>Purpose:</strong> Render the processed data as six role-gated dashboards. The UI contains <em>no</em> hardcoded sample numbers &mdash; every figure comes from the API (which reads PostgreSQL).</p>
@@ -1369,12 +1604,12 @@ const details = {
       <p><code>LoginPage</code> <span class="flow-arrow">&rarr;</span> <code>AuthContext</code> mints role JWT via <code>src/utils/jwt.ts</code> <span class="flow-arrow">&rarr;</span> <code>RoleNav</code> gates routes <span class="flow-arrow">&rarr;</span> role dashboard <span class="flow-arrow">&rarr;</span> <code>useXData</code> hook <span class="flow-arrow">&rarr;</span> <code>src/api/*.ts</code> <span class="flow-arrow">&rarr;</span> <code>/api/v1/*</code> or <code>/admin/*</code></p>
       <h3>Dashboards (<code>C:\sita-platform\frontend\src\pages\</code>)</h3>
       <ul>
-        <li><strong>Exec</strong> (<code>exec</code>) â€” fused risk trend, compliance gauges, heatmap, top-5 apps, alert summary</li>
-        <li><strong>SOC</strong> (<code>soc</code>) â€” unified timeline, alert queue with acknowledge/resolve, findings</li>
-        <li><strong>AppSec</strong> (<code>appsec</code>) â€” findings by app, OWASP categories, critical CVEs</li>
-        <li><strong>DB Security</strong> (<code>dbsec</code>) â€” violations by DB, categories, active alerts</li>
-        <li><strong>Compliance</strong> (<code>compliance</code>) â€” POPIA/ISO gauges, audit gaps, evidence</li>
-        <li><strong>SRE</strong> (<code>sre</code>) â€” connector health, throughput, error rate, DLQ</li>
+        <li><strong>Exec</strong> (<code>exec</code>) — fused risk trend, compliance gauges, heatmap, top-5 apps, alert summary</li>
+        <li><strong>SOC</strong> (<code>soc</code>) — unified timeline, alert queue with acknowledge/resolve, findings</li>
+        <li><strong>AppSec</strong> (<code>appsec</code>) — findings by app, OWASP categories, critical CVEs</li>
+        <li><strong>DB Security</strong> (<code>dbsec</code>) — violations by DB, categories, active alerts</li>
+        <li><strong>Compliance</strong> (<code>compliance</code>) — POPIA/ISO gauges, audit gaps, evidence</li>
+        <li><strong>SRE</strong> (<code>sre</code>) — connector health, throughput, error rate, DLQ</li>
       </ul>
       <h3>"Explain this dashboard"</h3>
       <p>Each header has Explain / Layman's Guide buttons rendered by <code>src/components/dashboard/ExplainOverlay.tsx</code>. The narrative is built by <code>src/data/explanations.ts</code> (<code>buildExplain</code>/<code>buildLayman</code>) from the <em>live</em> facts of the page &mdash; no hardcoded figures.</p>
@@ -1531,6 +1766,410 @@ function clearStageHighlight() {
   });
 }
 
+// ---- Stage 3: PostgreSQL ER diagram (built from the same DDL as init-db.sql) ----
+const ERD_SCHEMAS = ['identity', 'staging', 'warehouse', 'archive'];
+const ERD_BOX_W = 300, ERD_ROW_H = 15, ERD_HEAD_H = 30, ERD_PAD = 8, ERD_GAP_X = 26, ERD_GAP_Y = 48, ERD_SCHEMA_H = 30, ERD_MAX_W = 990;
+const ERD_TABLES = [
+  { schema: 'identity', name: 'users', note: 'RBAC users / JWT auth identities', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['email', 'VARCHAR(255)', 'UQ NN'],
+    ['password_hash', 'VARCHAR(255)', 'NN'],
+    ['display_name', 'VARCHAR(100)', ''],
+    ['roles', 'JSONB', 'DF NN'],
+    ['is_active', 'BOOLEAN', 'DF NN'],
+    ['created_at', 'TIMESTAMPTZ', 'DF NN'],
+    ['updated_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'staging', name: 'batch_runs', note: 'Poll-run traceability (provenance)', uq: [], cols: [
+    ['id', 'UUID', 'PK DF'],
+    ['connector', 'VARCHAR(50)', 'NN'],
+    ['source', 'VARCHAR(100)', 'NN'],
+    ['started_at', 'TIMESTAMPTZ', 'DF NN'],
+    ['finished_at', 'TIMESTAMPTZ', ''],
+    ['records_fetched', 'INTEGER', 'DF NN'],
+    ['records_valid', 'INTEGER', 'DF NN'],
+    ['records_rejected', 'INTEGER', 'DF NN'],
+    ['status', 'VARCHAR(20)', 'DF NN'],
+    ['error_message', 'TEXT', '']
+  ]},
+  { schema: 'staging', name: 'raw_records', note: 'Verbatim OEM payloads (7-day TTL)', uq: [], cols: [
+    ['id', 'UUID', 'PK DF'],
+    ['batch_id', 'UUID', 'FK NN'],
+    ['source', 'VARCHAR(100)', 'NN'],
+    ['external_id', 'VARCHAR(255)', ''],
+    ['raw_payload', 'JSONB', 'NN'],
+    ['received_at', 'TIMESTAMPTZ', 'DF NN'],
+    ['ttl_expires_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'staging', name: 'rejected_records', note: 'Dead-letter queue for reprocessing (30-day TTL)', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['batch_id', 'UUID', 'FK NN'],
+    ['source', 'VARCHAR(100)', 'NN'],
+    ['raw_payload', 'JSONB', 'NN'],
+    ['rejection_reason', 'TEXT', 'NN'],
+    ['rejection_code', 'VARCHAR(20)', 'NN'],
+    ['rejected_at', 'TIMESTAMPTZ', 'DF NN'],
+    ['reprocessed', 'BOOLEAN', 'DF NN'],
+    ['reprocessed_at', 'TIMESTAMPTZ', ''],
+    ['ttl_expires_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'connector_health', note: 'SRE: connector heartbeat / circuit-breaker state', uq: [], cols: [
+    ['name', 'VARCHAR(50)', 'PK'],
+    ['source', 'VARCHAR(100)', 'NN'],
+    ['status', 'VARCHAR(20)', 'DF NN'],
+    ['last_poll_at', 'TIMESTAMPTZ', ''],
+    ['last_success_at', 'TIMESTAMPTZ', ''],
+    ['latency_ms', 'INTEGER', ''],
+    ['events_per_hour', 'INTEGER', ''],
+    ['error_count', 'INTEGER', 'DF NN'],
+    ['circuit_state', 'VARCHAR(20)', 'DF'],
+    ['updated_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'findings', note: 'Canonical OEM findings, deduplicated per (source, external_id)', uq: ['UNIQUE (source, external_id)'], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['source', 'VARCHAR(100)', 'NN'],
+    ['external_id', 'VARCHAR(255)', 'NN'],
+    ['app_name', 'VARCHAR(255)', 'DF NN'],
+    ['severity', 'VARCHAR(20)', 'NN'],
+    ['title', 'VARCHAR(500)', 'NN'],
+    ['description', 'TEXT', ''],
+    ['category', 'VARCHAR(200)', ''],
+    ['raw_data', 'JSONB', ''],
+    ['first_seen', 'TIMESTAMPTZ', 'NN'],
+    ['last_seen', 'TIMESTAMPTZ', 'NN'],
+    ['status', 'VARCHAR(50)', 'DF NN'],
+    ['version', 'INTEGER', 'DF NN'],
+    ['ingested_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'risk_scores', note: 'Daily fused risk score per application', uq: ['UNIQUE (app_name, score_date)'], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['app_name', 'VARCHAR(255)', 'NN'],
+    ['score_date', 'DATE', 'NN'],
+    ['fused_score', 'NUMERIC(5,1)', 'NN'],
+    ['signal_appscan', 'NUMERIC(5,1)', ''],
+    ['signal_imperva', 'NUMERIC(5,1)', ''],
+    ['signal_api_exposure', 'NUMERIC(5,1)', ''],
+    ['signal_compliance_penalty', 'NUMERIC(5,1)', ''],
+    ['bucket', 'VARCHAR(20)', ''],
+    ['computed_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'alerts', note: 'Unified alert feed with dedup counters (SOC)', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['rule_id', 'VARCHAR(50)', 'NN'],
+    ['title', 'VARCHAR(500)', 'NN'],
+    ['description', 'TEXT', ''],
+    ['severity', 'VARCHAR(20)', 'NN'],
+    ['source', 'VARCHAR(100)', ''],
+    ['target_id', 'VARCHAR(255)', ''],
+    ['status', 'VARCHAR(20)', 'DF NN'],
+    ['acknowledged_by', 'VARCHAR(100)', ''],
+    ['acknowledged_at', 'TIMESTAMPTZ', ''],
+    ['enriched_data', 'JSONB', ''],
+    ['dedup_key', 'VARCHAR(64)', ''],
+    ['dedup_count', 'INTEGER', 'DF NN'],
+    ['first_triggered', 'TIMESTAMPTZ', 'NN'],
+    ['last_triggered', 'TIMESTAMPTZ', 'NN'],
+    ['resolved_at', 'TIMESTAMPTZ', ''],
+    ['created_at', 'TIMESTAMPTZ', 'DF NN'],
+    ['updated_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'compliance_snapshots', note: 'Compliance framework snapshots (12-week trend)', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['framework', 'VARCHAR(50)', 'NN'],
+    ['snapshot_date', 'DATE', 'NN'],
+    ['overall_score', 'NUMERIC(5,1)', 'NN'],
+    ['details', 'JSONB', ''],
+    ['total_controls', 'INTEGER', 'NN'],
+    ['passed_controls', 'INTEGER', 'NN'],
+    ['computed_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'compliance_gaps', note: 'POPIA / ISO 27001 gaps & evidence tracking', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['framework', 'VARCHAR(50)', 'NN'],
+    ['control_id', 'VARCHAR(50)', 'NN'],
+    ['domain', 'VARCHAR(100)', ''],
+    ['description', 'TEXT', 'NN'],
+    ['owner', 'VARCHAR(100)', ''],
+    ['severity', 'VARCHAR(20)', ''],
+    ['due_date', 'DATE', ''],
+    ['status', 'VARCHAR(30)', 'DF NN'],
+    ['evidence_count', 'INTEGER', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'api_endpoints', note: 'API exposure inventory (AppSec)', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['app_name', 'VARCHAR(255)', 'NN'],
+    ['endpoint', 'TEXT', 'NN'],
+    ['method', 'VARCHAR(10)', 'DF NN'],
+    ['is_shadow', 'BOOLEAN', 'DF NN'],
+    ['exposure_score', 'NUMERIC(5,1)', 'DF NN'],
+    ['discovered_at', 'TIMESTAMPTZ', 'DF NN'],
+    ['last_seen', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'waf_blocks', note: 'Imperva WAF block telemetry (AppSec)', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['app_name', 'VARCHAR(255)', 'NN'],
+    ['attack_type', 'VARCHAR(100)', ''],
+    ['request_uri', 'TEXT', ''],
+    ['action', 'VARCHAR(20)', 'DF NN'],
+    ['src_ip', 'VARCHAR(45)', ''],
+    ['block_time', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'system_metrics', note: 'SRE: CPU / memory / disk I/O / queue depth / uptime', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['metric', 'VARCHAR(50)', 'NN'],
+    ['value', 'NUMERIC(8,2)', 'NN'],
+    ['unit', 'VARCHAR(20)', 'DF NN'],
+    ['recorded_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'agents', note: 'DAM / WAF agents and ingestion workers (SRE)', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['name', 'VARCHAR(100)', 'NN'],
+    ['role', 'VARCHAR(50)', 'NN'],
+    ['version', 'VARCHAR(30)', 'NN'],
+    ['status', 'VARCHAR(20)', 'DF NN'],
+    ['host', 'VARCHAR(100)', ''],
+    ['last_seen', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'slo_metrics', note: 'SOC weekly MTTD / MTTR (SLO)', uq: ['UNIQUE (metric, week_start)'], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['metric', 'VARCHAR(20)', 'NN'],
+    ['week_start', 'DATE', 'NN'],
+    ['value_hours', 'NUMERIC(6,2)', 'NN']
+  ]},
+  { schema: 'warehouse', name: 'database_inventory', note: 'DBSec monitored databases & coverage', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['name', 'VARCHAR(100)', 'NN'],
+    ['engine', 'VARCHAR(50)', ''],
+    ['monitored', 'BOOLEAN', 'DF NN'],
+    ['agent_version', 'VARCHAR(30)', ''],
+    ['last_heartbeat', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'archive', name: 'risk_scores', note: 'Historical retention: LIKE copy of warehouse.risk_scores', uq: ['LIKE warehouse.risk_scores INCLUDING ALL'], cols: [
+    ['*all columns*', 'inherited from warehouse', '']
+  ]},
+  { schema: 'archive', name: 'alerts', note: 'Historical retention: LIKE copy of warehouse.alerts', uq: ['LIKE warehouse.alerts INCLUDING ALL'], cols: [
+    ['*all columns*', 'inherited from warehouse', '']
+  ]},
+  { schema: 'archive', name: 'compliance_snapshots', note: 'Historical retention: LIKE copy of warehouse.compliance_snapshots', uq: ['LIKE warehouse.compliance_snapshots INCLUDING ALL'], cols: [
+    ['*all columns*', 'inherited from warehouse', '']
+  ]},
+  { schema: 'archive', name: 'findings', note: 'Historical retention: LIKE copy of warehouse.findings', uq: ['LIKE warehouse.findings INCLUDING ALL'], cols: [
+    ['*all columns*', 'inherited from warehouse', '']
+  ]}
+];
+
+const ERD_LINKS = [
+  ['staging::raw_records', 'batch_id', 'staging::batch_runs', 'id'],
+  ['staging::rejected_records', 'batch_id', 'staging::batch_runs', 'id']
+];
+const ERD_ROTATE = [
+  ['warehouse::risk_scores', 'archive::risk_scores'],
+  ['warehouse::alerts', 'archive::alerts'],
+  ['warehouse::compliance_snapshots', 'archive::compliance_snapshots'],
+  ['warehouse::findings', 'archive::findings']
+];
+
+function erdFlags(f) { return (f || '').split(' ').filter(Boolean); }
+function erdTableH(t) { return ERD_HEAD_H + t.cols.length * ERD_ROW_H + (t.uq ? t.uq.length * ERD_ROW_H : 0) + ERD_PAD; }
+
+function buildErd() {
+  const host = document.getElementById('erdStore');
+  if (!host) return;
+  const pos = {};
+  const schemaTop = {};
+  let cursorY = 24, svgW = 0;
+  ERD_SCHEMAS.forEach(schema => {
+    const tables = ERD_TABLES.filter(t => t.schema === schema);
+    if (!tables.length) return;
+    schemaTop[schema] = cursorY + 8;
+    cursorY += ERD_SCHEMA_H;
+    let x = 30, rowY = cursorY, rowH = 0, rowCount = 0, rowMaxW = 0;
+    tables.forEach(t => {
+      const h = erdTableH(t);
+      if (rowCount > 0 && x + ERD_BOX_W > ERD_MAX_W) {
+        cursorY = rowY + rowH + ERD_GAP_Y;
+        x = 30; rowY = cursorY; rowH = 0; rowCount = 0; rowMaxW = 0;
+      }
+      t.x = x; t.y = rowY; t.h = h; t.w = ERD_BOX_W;
+      pos[schema + '::' + t.name] = t;
+      rowH = Math.max(rowH, h);
+      rowMaxW = Math.max(rowMaxW, x + ERD_BOX_W);
+      rowCount++;
+      x += ERD_BOX_W + ERD_GAP_X;
+    });
+    cursorY = rowY + rowH + ERD_GAP_Y;
+    svgW = Math.max(svgW, rowMaxW + 24);
+  });
+  const svgH = cursorY + 8;
+
+  function colY(t, colName) {
+    const idx = t.cols.findIndex(c => c[0] === colName);
+    const baseIdx = idx === -1 ? 0 : idx;
+    return t.y + ERD_HEAD_H + baseIdx * ERD_ROW_H + ERD_ROW_H / 2;
+  }
+
+  const parts = [];
+  parts.push('<svg viewBox="0 0 ' + svgW + ' ' + svgH + '" width="100%" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="PostgreSQL warehouse ER diagram">');
+  parts.push('<defs>'
+    + '<marker id="erdArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="erd-arrow-h"/></marker>'
+    + '<marker id="erdArrowRot" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="erd-arrow-h-rot"/></marker>'
+    + '</defs>');
+
+  ERD_SCHEMAS.forEach(schema => {
+    const tables = ERD_TABLES.filter(t => t.schema === schema);
+    if (!tables.length) return;
+    const y = schemaTop[schema];
+    const xEnd = Math.max.apply(null, tables.map(t => t.x + t.w));
+    parts.push('<text class="erd-schema-label" x="30" y="' + (y + 11) + '">' + schema.toUpperCase() + '</text>');
+    parts.push('<line class="erd-line" x1="30" y1="' + (y + 15) + '" x2="' + xEnd + '" y2="' + (y + 15) + '" />');
+  });
+
+  ERD_TABLES.forEach(t => {
+    const bx = t.x, by = t.y, bw = t.w, bh = t.h;
+    parts.push('<g class="erd-box">');
+    parts.push('<title>' + t.note + '</title>');
+    parts.push('<rect x="' + bx + '" y="' + by + '" width="' + bw + '" height="' + bh + '" rx="9" class="erd-boxbg" />');
+    parts.push('<path d="M' + bx + ',' + (by + 9) + ' Q' + bx + ',' + by + ' ' + (bx + 9) + ',' + by + ' L' + (bx + bw - 9) + ',' + by + ' Q' + (bx + bw) + ',' + by + ' ' + (bx + bw) + ',' + (by + 9) + ' L' + (bx + bw) + ',' + (by + ERD_HEAD_H) + ' L' + bx + ',' + (by + ERD_HEAD_H) + ' Z" class="erd-head" />');
+    parts.push('<text class="erd-head-name" x="' + (bx + 12) + '" y="' + (by + ERD_HEAD_H - 9) + '">' + t.name + '</text>');
+    parts.push('<text class="erd-head-schema" x="' + (bx + bw - 10) + '" y="' + (by + ERD_HEAD_H - 9) + '" text-anchor="end">' + t.schema + '.*</text>');
+    t.cols.forEach((c, i) => {
+      const ry = by + ERD_HEAD_H + i * ERD_ROW_H;
+      const f = erdFlags(c[2]);
+      parts.push('<line class="erd-line" x1="' + (bx + 8) + '" y1="' + ry + '" x2="' + (bx + bw - 8) + '" y2="' + ry + '" />');
+      ['PK', 'UQ', 'FK'].forEach((b, bi) => {
+        if (f.indexOf(b) === -1) return;
+        const bxp = bx + 10 + bi * 28;
+        parts.push('<rect x="' + bxp + '" y="' + (ry + 2.5) + '" width="24" height="10" rx="2" class="erd-badge-' + b.toLowerCase() + '" />');
+        parts.push('<text class="erd-badge-' + b.toLowerCase() + '-t" x="' + (bxp + 12) + '" y="' + (ry + 10.5) + '" text-anchor="middle">' + b + '</text>');
+      });
+      const nn = f.indexOf('NN') !== -1;
+      parts.push('<text class="' + (nn ? 'erd-col-name nn' : 'erd-col-name null') + '" x="' + (bx + 70) + '" y="' + (ry + 11) + '">' + c[0] + '</text>');
+      parts.push('<text class="erd-col-type" x="' + (bx + bw - 10) + '" y="' + (ry + 11) + '" text-anchor="end">' + c[1] + '</text>');
+    });
+    (t.uq || []).forEach((u, i) => {
+      const ry = by + ERD_HEAD_H + (t.cols.length + i) * ERD_ROW_H;
+      parts.push('<line class="erd-line-dashed" x1="' + (bx + 8) + '" y1="' + ry + '" x2="' + (bx + bw - 8) + '" y2="' + ry + '" />');
+      parts.push('<text class="erd-uq" x="' + (bx + 12) + '" y="' + (ry + 11) + '">' + u + '</text>');
+    });
+    parts.push('</g>');
+  });
+
+  ERD_LINKS.forEach(lk => {
+    const s = pos[lk[0]], tt = pos[lk[2]];
+    if (!s || !tt) return;
+    const sy = colY(s, lk[1]), ty = colY(tt, lk[3]);
+    const sx = s.x, tx = tt.x + tt.w, mid = (sx + tx) / 2;
+    parts.push('<path class="erd-arrow" d="M' + sx + ',' + sy + ' C' + mid + ',' + sy + ' ' + mid + ',' + ty + ' ' + tx + ',' + ty + '" marker-end="url(#erdArrow)" />');
+    parts.push('<text class="erd-link-label" x="' + mid + '" y="' + ((sy + ty) / 2 - 3) + '" text-anchor="middle">FK</text>');
+  });
+
+  ERD_ROTATE.forEach(lk => {
+    const s = pos[lk[0]], tt = pos[lk[1]];
+    if (!s || !tt) return;
+    const sy = s.y + s.h / 2, ty = tt.y + tt.h / 2;
+    const sx = s.x + s.w, tx = tt.x, mid = (sx + tx) / 2;
+    parts.push('<path class="erd-arrow-rot" d="M' + sx + ',' + sy + ' C' + mid + ',' + sy + ' ' + mid + ',' + ty + ' ' + tx + ',' + ty + '" marker-end="url(#erdArrowRot)" />');
+    parts.push('<text class="erd-link-label" x="' + mid + '" y="' + ((sy + ty) / 2 - 3) + '" text-anchor="middle">rotation</text>');
+  });
+
+  parts.push('</svg>');
+  ERD_SVG_HTML = parts.join('');
+  host.innerHTML = ERD_SVG_HTML;
+  host.classList.add('erd-clickable');
+  host.insertAdjacentHTML('beforeend', '<span class="erd-expand-hint">click to expand</span>');
+  host.onclick = openErdModal;
+}
+
+// ---- ER diagram zoom modal (full-page overlay) ----
+let ERD_SVG_HTML = '';
+let ERD_SCALE = 1;
+let erdDrag = null;
+
+function erdViewBox() {
+  const host = document.getElementById('erdZoomHost');
+  const svg = host.querySelector('svg');
+  if (!svg) return [0, 0, 1006, 1890];
+  return (svg.getAttribute('viewBox') || '0 0 1006 1890').split(/\s+/).map(Number);
+}
+
+function erdApplyZoom(center) {
+  const host = document.getElementById('erdZoomHost');
+  const svg = host.querySelector('svg');
+  const vp = document.getElementById('erdViewport');
+  if (!svg || !vp) return;
+  const vb = erdViewBox();
+  const w = Math.round(vb[2] * ERD_SCALE), h = Math.round(vb[3] * ERD_SCALE);
+  host.style.width = w + 'px';
+  host.style.height = h + 'px';
+  svg.setAttribute('width', w + 'px');
+  svg.setAttribute('height', h + 'px');
+  svg.style.width = w + 'px';
+  svg.style.height = h + 'px';
+  if (center) {
+    vp.scrollLeft = Math.max(0, (w - vp.clientWidth) / 2);
+    vp.scrollTop = Math.max(0, (h - vp.clientHeight) / 2);
+  }
+}
+
+function erdSetZoom(k, center) {
+  ERD_SCALE = Math.min(8, Math.max(0.2, k));
+  erdApplyZoom(!!center);
+}
+
+function erdZoomFit() {
+  const vb = erdViewBox();
+  const pad = 40;
+  const availW = window.innerWidth * 0.96 - pad;
+  const availH = window.innerHeight * 0.92 - 64 - pad;
+  ERD_SCALE = Math.min(availW / vb[2], availH / vb[3]);
+  ERD_SCALE = Math.min(2.5, Math.max(0.15, ERD_SCALE));
+  erdApplyZoom(true);
+}
+
+function openErdModal() {
+  if (!ERD_SVG_HTML) return;
+  const host = document.getElementById('erdZoomHost');
+  host.innerHTML = ERD_SVG_HTML;
+  ERD_SCALE = 1;
+  erdApplyZoom(false);
+  openModal(erdModal);
+  erdZoomFit();
+}
+
+const erdModal = document.getElementById('erdModal');
+const erdModalClose = document.getElementById('erdModalClose');
+const erdViewport = document.getElementById('erdViewport');
+
+if (erdModalClose) erdModalClose.addEventListener('click', () => closeModal(erdModal));
+if (erdModal) erdModal.addEventListener('click', (e) => { if (e.target === erdModal) closeModal(erdModal); });
+document.getElementById('erdZoomIn').addEventListener('click', () => erdSetZoom(ERD_SCALE * 1.25, true));
+document.getElementById('erdZoomOut').addEventListener('click', () => erdSetZoom(ERD_SCALE / 1.25, true));
+document.getElementById('erdZoomReset').addEventListener('click', () => erdSetZoom(1, true));
+document.getElementById('erdZoomFit').addEventListener('click', erdZoomFit);
+
+if (erdViewport) {
+  erdViewport.addEventListener('wheel', (e) => {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+    erdSetZoom(ERD_SCALE * (e.deltaY < 0 ? 1.15 : 1 / 1.15));
+  }, { passive: false });
+
+  erdViewport.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('button')) return;
+    erdDrag = { x: e.clientX, y: e.clientY, sl: erdViewport.scrollLeft, st: erdViewport.scrollTop };
+    erdViewport.classList.add('panning');
+    try { erdViewport.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  erdViewport.addEventListener('pointermove', (e) => {
+    if (!erdDrag) return;
+    erdViewport.scrollLeft = erdDrag.sl - (e.clientX - erdDrag.x);
+    erdViewport.scrollTop = erdDrag.st - (e.clientY - erdDrag.y);
+  });
+  const endErdDrag = () => { erdDrag = null; erdViewport.classList.remove('panning'); };
+  erdViewport.addEventListener('pointerup', endErdDrag);
+  erdViewport.addEventListener('pointercancel', endErdDrag);
+}
+
 function render(key) {
   document.querySelectorAll('[data-key]').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.stage-btn').forEach(x => x.classList.remove('active'));
@@ -1549,6 +2188,7 @@ function render(key) {
     <h2>&#128194; ${data.title} <span class="badge">${data.badge}</span></h2>
     ${data.body}
   `;
+  if (key === 'store' && typeof buildErd === 'function') buildErd();
   if (STAGES.indexOf(key) !== -1) {
     highlightStage(key);
   } else {
@@ -1645,6 +2285,26 @@ frontendFwModal.addEventListener('click', (e) => {
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeAllModals();
 });
+
+// ---- theme toggle ----
+const themeToggleBtn = document.getElementById('themeToggle');
+const themeIcon = document.getElementById('themeIcon');
+function setThemeIcon(theme) {
+  if (!themeIcon) return;
+  themeIcon.innerHTML = theme === 'dark' ? '&#127769;' : '&#9728;&#65039;';
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  try { localStorage.setItem('sita-tree-theme', theme); } catch (e) {}
+  setThemeIcon(theme);
+}
+if (themeToggleBtn) {
+  themeToggleBtn.addEventListener('click', () => {
+    const current = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  });
+}
+setThemeIcon(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
 
 </script>
 

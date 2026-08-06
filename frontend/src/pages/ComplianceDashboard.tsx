@@ -2,6 +2,7 @@ import { useState } from 'react';
 import DashHeader from '../components/dashboard/DashHeader';
 import Panel from '../components/dashboard/Panel';
 import StatCard from '../components/dashboard/StatCard';
+import MiniBarChart from '../components/dashboard/MiniBarChart';
 import BarRow from '../components/dashboard/BarRow';
 import OemTag from '../components/dashboard/OemTag';
 import Chip from '../components/dashboard/Chip';
@@ -97,10 +98,25 @@ export default function ComplianceDashboard() {
           ) : <div className="panel-empty">No evidence stats yet.</div>}
         </Panel>
         <Panel title="Regulatory Calendar" hint="upcoming">
-          <div className="panel-empty">Not tracked by the backend yet.</div>
+          {d.calendarItems.length ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {d.calendarItems.map((c) => (
+                <div key={c.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '4px 0', borderBottom: '1px solid var(--border-dim)', fontSize: 13 }}>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontFamily: 'var(--mono)', color: 'var(--text-muted)' }}>{c.due}</span>
+                    &nbsp;<strong>{c.control}</strong>
+                    <span style={{ color: 'var(--text-muted)' }}> · {c.owner}</span>
+                  </span>
+                  <Chip tone={c.sevTone}>{c.severity}</Chip>
+                </div>
+              ))}
+            </div>
+          ) : <div className="panel-empty">No upcoming regulatory dates yet.</div>}
         </Panel>
-        <Panel title="Compliance Trend" hint="weekly">
-          <div className="panel-empty">Backend stores latest snapshot only — no history yet.</div>
+        <Panel title="Compliance Trend" hint="weekly · %">
+          {d.trendBars.length ? (
+            <MiniBarChart bars={d.trendBars} axis={['POPIA', 'ISO 27001']} paired height={120} />
+          ) : <div className="panel-empty">No compliance history recorded yet.</div>}
         </Panel>
       </div>
 

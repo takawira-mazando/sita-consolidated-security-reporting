@@ -1,50 +1,39 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '../types';
-import { mintDemoToken } from '../utils/jwt';
+import { loginRequest, demoLoginRequest, fetchDemoAccounts, DemoAccount } from '../api/auth';
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
   isLoading: true,
+  demoAccounts: [],
   login: async () => ({ ok: true }),
+  loginDemo: async () => ({ ok: true }),
   logout: () => {},
 });
 
-export const DEMO_ACCOUNTS: {
-  email: string;
-  label: string;
-  role: string;
-  password: string;
-}[] = [
-  { email: 'exec@example.com', label: 'Executive', role: 'exec', password: 'pass123' },
-  { email: 'soc@example.com', label: 'SOC Analyst', role: 'soc', password: 'pass123' },
-  { email: 'appsec@example.com', label: 'AppSec', role: 'appsec', password: 'pass123' },
-  { email: 'dbsec@example.com', label: 'DB Security', role: 'dbsec', password: 'pass123' },
-  { email: 'compliance@example.com', label: 'Compliance', role: 'compliance', password: 'pass123' },
-  { email: 'sre@example.com', label: 'Service Ops', role: 'sre', password: 'pass123' },
+export const FALLBACK_DEMO_ACCOUNTS: DemoAccount[] = [
+  { email: 'exec@example.com', label: 'Executive', role: 'exec' },
+  { email: 'soc@example.com', label: 'SOC Analyst', role: 'soc' },
+  { email: 'appsec@example.com', label: 'AppSec', role: 'appsec' },
+  { email: 'dbsec@example.com', label: 'DB Security', role: 'dbsec' },
+  { email: 'compliance@example.com', label: 'Compliance', role: 'compliance' },
+  { email: 'sre@example.com', label: 'Service Ops', role: 'sre' },
+  { email: 'admin@example.com', label: 'Admin', role: 'admin' },
 ];
 
 export const ADMIN_EMAIL = 'admin@example.com';
-export const ADMIN_PASSWORD = 'admin123';
-export const USER_PASSWORD = 'pass123';
-
 export const ALL_ROLES = ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre'];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [demoAccounts, setDemoAccounts] = useState<DemoAccount[]>(FALLBACK_DEMO_ACCOUNTS);
 
   useEffect(() => {
     const stored = localStorage.getItem('sita_user');
     if (stored) {
       try {
-        const restored = JSON.parse(stored) as User;
-        setUser(restored);
-        if (!localStorage.getItem('sita_token')) {
-          localStorage.setItem(
-            'sita_token',
-            mintDemoToken({ sub: restored.sub, email: restored.email, roles: restored.roles })
-          );
-        }
+        setUser(JSON.parse(stored) as User);
       } catch {
         localStorage.removeItem('sita_user');
       }
@@ -52,47 +41,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const storeSession = (u: User) => {
-    const token = mintDemoToken({ sub: u.sub, email: u.email, roles: u.roles });
+  useEffect(() => {
+    let cancelled = false;
+    fetchDemoAccounts()
+      .then((accounts) => {
+        if (!cancelled && accounts.length) setDemoAccounts(accounts);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const storeSession = (u: User, token: string) => {
     localStorage.setItem('sita_token', token);
     localStorage.setItem('sita_user', JSON.stringify(u));
   };
 
   const login = async (email?: string, password?: string): Promise<{ ok: boolean; error?: string }> => {
-    const normalized = (email || '').trim().toLowerCase();
-    const pass = password || '';
-
-    if (normalized === ADMIN_EMAIL) {
-      if (pass !== ADMIN_PASSWORD) {
-        return { ok: false, error: 'Wrong admin password.' };
-      }
-      const adminUser: User = {
-        sub: 'admin',
-        email: normalized,
-        roles: ALL_ROLES,
-        name: 'Admin',
-      };
-      storeSession(adminUser);
-      setUser(adminUser);
+    try {
+      const { token, user: u } = await loginRequest((email || '').trim().toLowerCase(), password || '');
+      storeSession(u, token);
+      setUser(u);
       return { ok: true };
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Login failed';
+      return { ok: false, error: message };
     }
+  };
 
-    const account = DEMO_ACCOUNTS.find((a) => a.email === normalized);
-    if (!account) {
-      return { ok: false, error: 'Unknown email. Use one of the demo addresses below.' };
+  const loginDemo = async (role: string): Promise<{ ok: boolean; error?: string }> => {
+    try {
+      const { token, user: u } = await demoLoginRequest(role);
+      storeSession(u, token);
+      setUser(u);
+      return { ok: true };
+    } catch (err: unknown) {
+      const message =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Demo login failed';
+      return { ok: false, error: message };
     }
-    if (pass !== USER_PASSWORD) {
-      return { ok: false, error: 'Wrong password (hint: pass123).' };
-    }
-    const demoUser: User = {
-      sub: `user_${account.role}`,
-      email: normalized,
-      roles: [account.role],
-      name: account.label,
-    };
-    storeSession(demoUser);
-    setUser(demoUser);
-    return { ok: true };
   };
 
   const logout = () => {
@@ -102,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout }}>
+    <AuthContext.Provider value={{ user, isLoading, demoAccounts, login, loginDemo, logout }}>
       {children}
     </AuthContext.Provider>
   );

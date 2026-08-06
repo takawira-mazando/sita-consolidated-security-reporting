@@ -69,15 +69,20 @@ def app():
     return application
 
 
-def _client_with(app, session):
+def _client_with(app, session, claims=None):
     app.dependency_overrides[exports.get_session] = lambda: session
+    if claims is not None:
+        async def _claims():
+            return claims
+
+        app.dependency_overrides[verify_token] = _claims
     return TestClient(app)
 
 
 def test_export_findings_csv():
     app = FastAPI()
     app.include_router(exports.router, prefix="/api/v1")
-    client = _client_with(app, _FakeSession([_make_finding(1)]))
+    client = _client_with(app, _FakeSession([_make_finding(1)]), JWTClaims(sub="soc", email="soc@localhost", roles=["soc"]))
     resp = client.get("/api/v1/exports/findings.csv")
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("text/csv")
@@ -85,6 +90,14 @@ def test_export_findings_csv():
     lines = resp.text.splitlines()
     assert lines[0].startswith("id,source,external_id")
     assert "ASC-1" in lines[1]
+
+
+def test_export_findings_csv_requires_auth():
+    app = FastAPI()
+    app.include_router(exports.router, prefix="/api/v1")
+    client = _client_with(app, _FakeSession([_make_finding(1)]))
+    resp = client.get("/api/v1/exports/findings.csv")
+    assert resp.status_code == 401
 
 
 def test_export_risk_scores_csv():
@@ -105,7 +118,7 @@ def test_export_risk_scores_csv():
 def test_export_alerts_csv():
     app = FastAPI()
     app.include_router(exports.router, prefix="/api/v1")
-    client = _client_with(app, _FakeSession([_make_alert(1)]))
+    client = _client_with(app, _FakeSession([_make_alert(1)]), JWTClaims(sub="soc", email="soc@localhost", roles=["soc"]))
     resp = client.get("/api/v1/exports/alerts.csv")
     assert resp.status_code == 200
     assert resp.text.splitlines()[0].startswith("id,rule_id,title")

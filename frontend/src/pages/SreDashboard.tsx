@@ -47,8 +47,8 @@ export default function SreDashboard() {
 
       <div className="stats-bar">
         <StatCard ghost={`${d.healthy} / ${d.total}`} accent="var(--green)" value={`${d.healthy} / ${d.total}`} valueColor={d.degraded > 0 ? 'var(--amber)' : 'var(--green)'} label="Connectors Online" delta={d.degraded > 0 ? `${d.degraded} degraded` : 'all nominal'} deltaColor={d.degraded > 0 ? 'var(--red)' : 'var(--green)'} />
-        <StatCard ghost="DAM" accent="var(--green)" value="—" valueColor="var(--text-muted)" label="DAM Agents" delta="not tracked" deltaColor="var(--text-muted)" />
-        <StatCard ghost="Uptime" accent="var(--green)" value="—" valueColor="var(--text-muted)" label="Pipeline Uptime" delta="not tracked" deltaColor="var(--text-muted)" />
+        <StatCard ghost="DAM" accent="var(--green)" value={d.damAgents != null ? String(d.damAgents) : '—'} valueColor={d.damAgents != null ? 'var(--green)' : 'var(--text-muted)'} label="DAM Agents" delta={d.agentDegraded > 0 ? `${d.agentDegraded} degraded` : 'all nominal'} deltaColor={d.agentDegraded > 0 ? 'var(--red)' : 'var(--green)'} />
+        <StatCard ghost="Uptime" accent="var(--green)" value={d.uptime} valueColor={d.uptime === '—' ? 'var(--text-muted)' : 'var(--green)'} label="Pipeline Uptime" delta="24h" deltaColor="var(--text-muted)" />
         <StatCard ghost={String(d.eventsTotal)} accent="var(--blue)" value={d.eventsTotal.toLocaleString()} valueColor="var(--blue)" label="Events / h" delta="live from connectors" deltaColor="var(--green)" />
       </div>
 
@@ -72,9 +72,9 @@ export default function SreDashboard() {
         </Panel>
         <Panel title="System Health" hint="last 24h" bodyStyle={{ paddingTop: 10 }}>
           {d.systemHealth.map((s) => (
-            <BarRow key={s.label} label={s.label} width="0%" color={s.color} value={s.value} />
+            <BarRow key={s.label} label={s.label} width={s.width} color={s.color} value={s.value} />
           ))}
-          <div className="panel-empty" style={{ marginTop: 8 }}>System metrics not exposed by backend yet.</div>
+          {d.systemHealth.every((s) => s.value === '—') && <div className="panel-empty" style={{ marginTop: 8 }}>System metrics not exposed by backend yet.</div>}
         </Panel>
       </div>
 
@@ -89,7 +89,9 @@ export default function SreDashboard() {
           </div>
         </Panel>
         <Panel title="Agent Versions">
-          <div className="panel-empty">Agent inventory not tracked by backend yet.</div>
+          {d.agentVersions.length ? d.agentVersions.map((v) => (
+            <BarRow key={v.label} label={v.label} width={v.width} color={v.color} value={v.value} />
+          )) : <div className="panel-empty">No agent inventory yet.</div>}
         </Panel>
       </div>
 

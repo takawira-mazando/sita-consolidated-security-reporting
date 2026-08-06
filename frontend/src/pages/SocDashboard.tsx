@@ -2,6 +2,8 @@ import { useState } from 'react';
 import DashHeader from '../components/dashboard/DashHeader';
 import Panel from '../components/dashboard/Panel';
 import StatCard from '../components/dashboard/StatCard';
+import MiniBarChart from '../components/dashboard/MiniBarChart';
+import BarRow from '../components/dashboard/BarRow';
 import OemTag from '../components/dashboard/OemTag';
 import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
@@ -45,8 +47,8 @@ export default function SocDashboard() {
 
       <div className="stats-bar">
         <StatCard ghost={String(d.activeIncidents)} accent="var(--red)" value={String(d.activeIncidents)} valueColor="var(--red)" label={<><span>Active Incidents </span><OemTag source="imperva" label="aggregated" /></>} delta="live" deltaColor="var(--text-muted)" />
-        <StatCard ghost="MTTD" accent="var(--amber)" value="—" valueColor="var(--text-muted)" label={<><span>MTTD </span><OemTag source="appscan" label="not tracked" /></>} delta="backend has no MTTD" deltaColor="var(--text-muted)" />
-        <StatCard ghost="MTTR" accent="var(--amber)" value="—" valueColor="var(--text-muted)" label={<><span>MTTR </span><OemTag source="imperva" label="not tracked" /></>} delta="backend has no MTTR" deltaColor="var(--text-muted)" />
+        <StatCard ghost="MTTD" accent="var(--amber)" value={d.mttd != null ? `${d.mttd}h` : '—'} valueColor={d.mttd != null ? 'var(--amber)' : 'var(--text-muted)'} label={<><span>MTTD </span><OemTag source="appscan" label="7w" /></>} delta="trending" deltaColor="var(--text-muted)" />
+        <StatCard ghost="MTTR" accent="var(--amber)" value={d.mttr != null ? `${d.mttr}h` : '—'} valueColor={d.mttr != null ? 'var(--amber)' : 'var(--text-muted)'} label={<><span>MTTR </span><OemTag source="imperva" label="7w" /></>} delta="trending" deltaColor="var(--text-muted)" />
         <StatCard ghost={String(d.alertTotal)} accent="var(--red)" value={String(d.alertTotal)} valueColor="var(--red)" label={<><span>Alert Backlog </span><OemTag source="api-sec" label="unified" /></>} delta="live" deltaColor="var(--text-muted)" />
       </div>
 
@@ -76,7 +78,16 @@ export default function SocDashboard() {
             )) : <div className="panel-empty">No alert rules yet.</div>}
           </Panel>
           <Panel title="Backlog Age">
-            <div className="panel-empty">Not tracked by the backend yet.</div>
+            {d.backlogBars.length ? (
+              <div>
+                {d.backlogBars.map((b) => (
+                  <BarRow key={b.label} label={b.label} width={b.width} color={b.color} value={b.value} />
+                ))}
+                <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 8 }}>
+                  {d.backlogTotal} open · oldest {d.oldestHours}h
+                </div>
+              </div>
+            ) : <div className="panel-empty">No open alerts in backlog.</div>}
           </Panel>
         </div>
       </div>
@@ -100,7 +111,9 @@ export default function SocDashboard() {
           </table>
         </Panel>
         <Panel title="MTTD / MTTR Trend" hint="7 weeks · hours">
-          <div className="panel-empty">Not tracked by the backend yet. Connect an MTTD/MTTR source to populate.</div>
+          {d.trendBars.length ? (
+            <MiniBarChart bars={d.trendBars} axis={['MTTD', 'MTTR']} paired height={120} />
+          ) : <div className="panel-empty">No SLO history recorded yet.</div>}
         </Panel>
       </div>
 

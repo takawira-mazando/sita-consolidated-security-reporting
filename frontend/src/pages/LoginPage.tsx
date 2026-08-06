@@ -1,28 +1,50 @@
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { ADMIN_EMAIL } from '../context/AuthContext';
 
-export default function LoginPage() {
-  const { login } = useAuth();
+interface LoginPageProps {
+  onClose?: () => void;
+}
+
+export default function LoginPage({ onClose }: LoginPageProps) {
+  const { login, loginDemo, demoAccounts } = useAuth();
   const [email, setEmail] = useState('exec@example.com');
-  const [password, setPassword] = useState('pass123');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     const result = await login(email, password);
-    if (!result.ok) {
+    if (result.ok) {
+      document.body.style.overflow = '';
+    } else {
+      setError(result.error || 'Login failed');
+    }
+  };
+
+  const loginAs = async (role: string) => {
+    setError('');
+    const result = await loginDemo(role);
+    if (result.ok) {
+      document.body.style.overflow = '';
+    } else {
       setError(result.error || 'Login failed');
     }
   };
 
   return (
-    <div className="login-overlay">
+    <div
+      className={`login-overlay${onClose ? ' as-modal' : ''}`}
+      onClick={(e) => {
+        if (onClose && e.target === e.currentTarget) onClose();
+      }}
+    >
       <div className="login-card">
+        {onClose && (
+          <button type="button" className="overlay-close" onClick={onClose} aria-label="Close">&times;</button>
+        )}
         <div className="login-header">
           <div className="login-logo-mark">
-            <div className="login-diamond"><span>S</span></div>
-            <span className="login-org">SITA · Security</span>
+            <img className="login-logo-img" src="/sita-logo.gif" alt="SITA" />
           </div>
           <div className="login-title">Unified Intelligence Platform</div>
           <div className="login-sub">Consolidated RBAC security reporting — sign in to continue</div>
@@ -55,9 +77,23 @@ export default function LoginPage() {
           <button type="submit" className="login-btn">Sign In to Dashboard</button>
           <div className="login-error" id="loginError">{error}</div>
           <div className="login-hint">
-            <strong style={{ color: 'var(--text-secondary)' }}>Demo accounts — all passwords:</strong> <span className="pw">pass123</span><br />
-            <code>exec@</code> · <code>soc@</code> · <code>appsec@</code> · <code>dbsec@</code> · <code>compliance@</code> · <code>sre@example.com</code><br />
-            Admin: <code>{ADMIN_EMAIL}</code> / <code>admin123</code> <span style={{ color: 'var(--blue)' }}>— unlocks all dashboards</span>
+            <strong style={{ color: 'var(--text-secondary)' }}>Demo accounts — one-click:</strong>
+            <span className="login-demo-chips">
+              {demoAccounts.map((account) => (
+                <button
+                  key={account.role}
+                  type="button"
+                  className="login-demo-chip"
+                  title={`Sign in as ${account.label}`}
+                  onClick={() => loginAs(account.role)}
+                >
+                  {account.email.split('@')[0]}@
+                </button>
+              ))}
+            </span>
+            <span className="login-demo-line">
+              <code>admin@example.com / admin123</code> unlocks all dashboards
+            </span>
           </div>
         </form>
       </div>

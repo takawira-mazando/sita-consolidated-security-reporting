@@ -1,6 +1,7 @@
 import { useApi } from './useApi';
 import { fetchFindings } from '../api/findings';
 import { fetchAlerts } from '../api/alerts';
+import { fetchDbInventory } from '../api/metrics';
 import {
   severityCounts,
   toneForSeverity,
@@ -15,17 +16,22 @@ import type { Tone } from '../data/mappers';
 export function useDbSecData() {
   const findings = useApi(() => fetchFindings({ size: 200 }));
   const alerts = useApi(() => fetchAlerts({ size: 50 }));
+  const inventory = useApi(() => fetchDbInventory());
 
-  const loading = findings.loading || alerts.loading;
-  const error = findings.error || alerts.error;
+  const loading = findings.loading || alerts.loading || inventory.loading;
+  const error = findings.error || alerts.error || inventory.error;
 
   const findingsItems = findings.data?.items || [];
   const alertItems = alerts.data?.items || [];
 
+  const engineByDb = new Map(
+    (inventory.data?.items || []).map((d) => [d.name, d.engine || '—'])
+  );
+
   const violationsByDb = new Map<string, { db: string; engine: string; crit: number; high: number; med: number; low: number }>();
   for (const f of findingsItems) {
     if (!violationsByDb.has(f.app_name)) {
-      violationsByDb.set(f.app_name, { db: f.app_name, engine: '—', crit: 0, high: 0, med: 0, low: 0 });
+      violationsByDb.set(f.app_name, { db: f.app_name, engine: engineByDb.get(f.app_name) || '—', crit: 0, high: 0, med: 0, low: 0 });
     }
     const row = violationsByDb.get(f.app_name)!;
     const sev = f.severity.toLowerCase();
@@ -37,6 +43,8 @@ export function useDbSecData() {
   const dbRows = [...violationsByDb.values()].sort((a, b) => b.crit + b.high - (a.crit + a.high));
 
   const counts = severityCounts(findingsItems);
+  const monitored = inventory.data?.monitored ?? 0;
+  const coverage = inventory.data?.coverage_pct ?? 0;
 
   const byCategory = new Map<string, number>();
   for (const f of findingsItems) {
@@ -84,6 +92,8 @@ export function useDbSecData() {
     categories,
     timelineBars,
     activeAlerts,
+    dbMonitored: monitored,
+    dbCoverage: coverage,
     formatIsoDate,
   };
 }

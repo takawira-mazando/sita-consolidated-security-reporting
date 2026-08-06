@@ -1,5 +1,6 @@
 import { useApi } from './useApi';
 import { fetchFindings } from '../api/findings';
+import { fetchFixRate, fetchWafSummary, fetchApiExposure } from '../api/metrics';
 import {
   severityCounts,
   findingsByAppSeverity,
@@ -12,9 +13,12 @@ import type { Tone } from '../data/mappers';
 
 export function useAppSecData() {
   const findings = useApi(() => fetchFindings({ size: 200 }));
+  const fix = useApi(() => fetchFixRate());
+  const waf = useApi(() => fetchWafSummary());
+  const apiExp = useApi(() => fetchApiExposure());
 
-  const loading = findings.loading;
-  const error = findings.error;
+  const loading = [findings, fix, waf, apiExp].some((h) => h.loading);
+  const error = [findings, fix, waf, apiExp].find((h) => h.error)?.error || null;
 
   const findingsItems = findings.data?.items || [];
   const counts = severityCounts(findingsItems);
@@ -61,6 +65,24 @@ export function useAppSecData() {
   const catColor = (sev: string) =>
     sev === 'critical' ? 'var(--red)' : sev === 'high' ? 'var(--amber)' : 'var(--blue)';
 
+  const fixRate = fix.data?.fix_rate ?? null;
+  const wafTotal = waf.data?.total ?? 0;
+  const wafByType = (waf.data?.by_type || []).map((b, _, all) => ({
+    label: b.type.replace(/_/g, ' '),
+    width: barHeight(b.count / Math.max(1, all.reduce((a, x) => Math.max(a, x.count), 0))),
+    color: b.count >= 20 ? 'var(--red)' : b.count >= 10 ? 'var(--amber)' : 'var(--blue)',
+    value: String(b.count),
+  }));
+
+  const apiExposure = (apiExp.data?.items || []).slice(0, 12).map((e) => ({
+    endpoint: e.endpoint,
+    app: e.app_name,
+    method: e.method,
+    risk: String(e.exposure_score),
+    shadow: e.is_shadow ? 'yes' : 'no',
+  }));
+  const shadowTotal = apiExp.data?.shadow_total ?? 0;
+
   return {
     loading,
     error,
@@ -73,5 +95,11 @@ export function useAppSecData() {
     catColor,
     toneForSeverity,
     oemForSource,
+    fixRate,
+    wafTotal,
+    wafByType,
+    apiExposure,
+    shadowTotal,
+    apiExposureTotal: apiExp.data?.total ?? 0,
   };
 }

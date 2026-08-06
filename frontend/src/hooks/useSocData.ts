@@ -2,6 +2,7 @@ import { useApi } from './useApi';
 import { fetchAlerts, acknowledgeAlert, resolveAlert } from '../api/alerts';
 import { fetchFindings } from '../api/findings';
 import { fetchDashboardSummary } from '../api/dashboard';
+import { fetchSloMetrics } from '../api/metrics';
 import {
   toneForSeverity,
   toneForStatus,
@@ -17,9 +18,10 @@ export function useSocData() {
   const summary = useApi(() => fetchDashboardSummary());
   const alerts = useApi(() => fetchAlerts({ size: 50 }));
   const findings = useApi(() => fetchFindings({ size: 200 }));
+  const slo = useApi(() => fetchSloMetrics());
 
-  const loading = [summary, alerts, findings].some((h) => h.loading);
-  const error = [summary, alerts, findings].find((h) => h.error)?.error || null;
+  const loading = [summary, alerts, findings, slo].some((h) => h.loading);
+  const error = [summary, alerts, findings, slo].find((h) => h.error)?.error || null;
 
   const alertItems = alerts.data?.items || [];
   const findingsItems = findings.data?.items || [];
@@ -84,6 +86,31 @@ export function useSocData() {
     .sort((a, b) => b.count - a.count)
     .slice(0, 6);
 
+  const mttdSeries = slo.data?.mttd || [];
+  const mttrSeries = slo.data?.mttr || [];
+  const mttd = mttdSeries.length ? mttdSeries[mttdSeries.length - 1].value_hours : null;
+  const mttr = mttrSeries.length ? mttrSeries[mttrSeries.length - 1].value_hours : null;
+
+  const maxH = Math.max(1, ...mttdSeries.map((p) => p.value_hours), ...mttrSeries.map((p) => p.value_hours));
+  const trendBars: { height: string; color: string }[] = [];
+  mttdSeries.forEach((p, i) => {
+    trendBars.push({ height: `${Math.round((p.value_hours / maxH) * 100)}%`, color: 'var(--blue)' });
+    if (mttrSeries[i]) {
+      trendBars.push({ height: `${Math.round((mttrSeries[i].value_hours / maxH) * 100)}%`, color: 'var(--amber)' });
+    }
+  });
+
+  const backlogBuckets = slo.data?.backlog.buckets || [];
+  const maxBacklog = Math.max(1, ...backlogBuckets.map((b) => b.count));
+  const backlogBars = backlogBuckets.map((b) => ({
+    label: b.bucket,
+    width: `${Math.round((b.count / maxBacklog) * 100)}%`,
+    color: b.bucket === '3d+' ? 'var(--red)' : b.bucket === '1-3d' ? 'var(--amber)' : 'var(--blue)',
+    value: String(b.count),
+  }));
+  const backlogTotal = slo.data?.backlog.total ?? 0;
+  const oldestHours = slo.data?.backlog.oldest_hours ?? 0;
+
   return {
     loading,
     error,
@@ -95,10 +122,17 @@ export function useSocData() {
     queue,
     findings: findingsRows,
     topRules,
+    mttd,
+    mttr,
+    trendBars,
+    backlogBars,
+    backlogTotal,
+    oldestHours,
     refresh: () => {
       summary.refresh();
       alerts.refresh();
       findings.refresh();
+      slo.refresh();
     },
     acknowledge: async (id: string) => {
       await acknowledgeAlert(id);

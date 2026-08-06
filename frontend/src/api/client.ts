@@ -29,8 +29,8 @@ adminApi.interceptors.request.use((config) => {
 function handle401() {
   localStorage.removeItem('sita_token');
   localStorage.removeItem('sita_user');
-  if (window.location.pathname !== '/login') {
-    window.location.href = '/login';
+  if (window.location.pathname !== '/') {
+    window.location.href = '/';
   }
 }
 

@@ -1,5 +1,6 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
+import { ALL_ROLES } from '../../context/AuthContext';
 
 interface RoleTab {
   role: string;
@@ -22,7 +23,9 @@ export default function RoleNav() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const allowedRoles = user?.roles || [];
+  const baseRoles = user?.roles || [];
+  const allowedRoles = baseRoles.includes('admin') ? ALL_ROLES : baseRoles;
+  const canManageUsers = allowedRoles.includes('sre');
   const activeRole = location.pathname.replace('/', '') || allowedRoles[0] || '';
   const isDark = document.body.dataset.theme !== 'light';
 
@@ -34,7 +37,7 @@ export default function RoleNav() {
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate('/');
   };
 
   const userName = user?.email?.split('@')[0] || 'user';
@@ -42,11 +45,7 @@ export default function RoleNav() {
   return (
     <nav className="role-nav">
       <div className="nav-brand">
-        <div className="nav-diamond" />
-        <div className="nav-brand-text">
-          SITA
-          <small>Consolidated RBAC</small>
-        </div>
+        <img className="nav-logo-img" src="/sita-logo.gif" alt="SITA" />
       </div>
       <div className="nav-div" />
       {ROLE_TABS.filter((t) => allowedRoles.includes(t.role)).map((t) => (
@@ -59,6 +58,15 @@ export default function RoleNav() {
           {t.label}
         </button>
       ))}
+      {canManageUsers && (
+        <button
+          className={`role-tab ${activeRole === 'users' ? 'active' : ''}`}
+          onClick={() => navigate('/users')}
+        >
+          <span className="tab-orb" style={{ background: 'var(--violet)' }} />
+          Users
+        </button>
+      )}
       <div className="nav-right">
         <button className="theme-toggle" onClick={toggleTheme}>
           {isDark ? '☀ Light' : '🌙 Dark'}
