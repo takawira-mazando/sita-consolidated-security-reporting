@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import require_roles
+from app.api.auth import require_roles, tenant_filter
 from app.db import get_session
 from app.models.alert import Alert
 from app.models.finding import Finding
@@ -39,7 +39,11 @@ async def export_findings(
     session: AsyncSession = Depends(get_session),
     claims=Depends(require_roles("findings")),
 ):
-    rows = (await session.execute(select(Finding).order_by(Finding.last_seen.desc()))).scalars().all()
+    q = select(Finding).order_by(Finding.last_seen.desc())
+    scope = tenant_filter(claims, Finding)
+    if scope is not None:
+        q = q.where(scope)
+    rows = (await session.execute(q)).scalars().all()
     return _csv_response(
         ["id", "source", "external_id", "app_name", "severity", "title", "category", "status", "first_seen", "last_seen"],
         [
@@ -58,7 +62,11 @@ async def export_risk_scores(
     session: AsyncSession = Depends(get_session),
     claims=Depends(require_roles("risks")),
 ):
-    rows = (await session.execute(select(RiskScore).order_by(RiskScore.score_date.desc()))).scalars().all()
+    q = select(RiskScore).order_by(RiskScore.score_date.desc())
+    scope = tenant_filter(claims, RiskScore)
+    if scope is not None:
+        q = q.where(scope)
+    rows = (await session.execute(q)).scalars().all()
     return _csv_response(
         ["id", "app_name", "score_date", "fused_score", "signal_appscan", "signal_imperva", "signal_api_exposure", "signal_compliance_penalty", "bucket"],
         [
@@ -77,7 +85,11 @@ async def export_alerts(
     session: AsyncSession = Depends(get_session),
     claims=Depends(require_roles("alerts_read")),
 ):
-    rows = (await session.execute(select(Alert).order_by(Alert.last_triggered.desc()))).scalars().all()
+    q = select(Alert).order_by(Alert.last_triggered.desc())
+    scope = tenant_filter(claims, Alert)
+    if scope is not None:
+        q = q.where(scope)
+    rows = (await session.execute(q)).scalars().all()
     return _csv_response(
         ["id", "rule_id", "title", "severity", "source", "target_id", "status", "first_triggered", "last_triggered"],
         [

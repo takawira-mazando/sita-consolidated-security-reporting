@@ -4,20 +4,30 @@ apps:
     team: AppSec
     tier: P1
     severity_override: true
+    department: health-legacy
+    branch: doh-hospitals
   payment-gateway:
     owner: Payment Ops
     team: Payments
     tier: P1
     severity_override: true
+    department: treasury
+    branch: treasury-ict
   customer-portal:
     owner: Web Platform
     team: Digital
     tier: P2
+    department: home-affairs-digital
+    branch: dha-digital
   document-svc:
     owner: Content Platform
     team: Digital
     tier: P2
+    department: justice-document
+    branch: doj-ict
   internal-hr:
     owner: HR Systems
     team: Internal
     tier: P3
+    department: dpsa-hr
+    branch: dpsa-hr-ops

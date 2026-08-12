@@ -119,7 +119,7 @@ export default function SocDashboard() {
 
       <Panel title="Alert Queue" hint="all OEMs · live" bodyClassName="scroll-x" bodyStyle={{ padding: 0 }}>
         <table>
-          <thead><tr><th>Alert ID</th><th>Rule</th><th>Source</th><th>Severity</th><th>Fired At</th><th>Status</th></tr></thead>
+          <thead><tr><th>Alert ID</th><th>Rule</th><th>Source</th><th>Severity</th><th>Owner / Team</th><th>Fired At</th><th>Status</th></tr></thead>
           <tbody>
             {d.queue.length ? d.queue.map((q) => (
               <tr key={q.id}>
@@ -127,10 +127,11 @@ export default function SocDashboard() {
                 <td>{q.rule}</td>
                 <td><OemTag source={q.src} label={q.srcLabel} /></td>
                 <td><Chip tone={q.sevTone}>{q.sev}</Chip></td>
+                <td style={{ color: 'var(--text-secondary)' }}>{q.owner || '—'}{q.team ? ` · ${q.team}` : ''}</td>
                 <td style={{ fontFamily: 'var(--mono)' }}>{q.fired}</td>
                 <td><Chip tone={q.statusTone}>{q.status}</Chip></td>
               </tr>
-            )) : <tr><td colSpan={6}><div className="panel-empty">No alerts in queue.</div></td></tr>}
+            )) : <tr><td colSpan={7}><div className="panel-empty">No alerts in queue.</div></td></tr>}
           </tbody>
         </table>
       </Panel>

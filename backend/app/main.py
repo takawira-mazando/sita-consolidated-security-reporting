@@ -6,7 +6,19 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.errors import register_exception_handlers
-from app.api.routers import admin, alerts, auth, compliance, dashboard, exports, findings, metrics, risks
+from app.api.routers import (
+    admin,
+    alerts,
+    auth,
+    benchmark,
+    compliance,
+    dashboard,
+    exports,
+    exports_ag,
+    findings,
+    metrics,
+    risks,
+)
 from app.config import settings
 from app.db import SessionFactory
 from app.monitoring.metrics import setup_metrics
@@ -60,6 +72,8 @@ app.include_router(alerts.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
 app.include_router(metrics.router, prefix="/api/v1")
 app.include_router(exports.router, prefix="/api/v1")
+app.include_router(exports_ag.router, prefix="/api/v1")
+app.include_router(benchmark.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/admin")
 
 register_exception_handlers(app)

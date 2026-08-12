@@ -53,6 +53,8 @@ export function useSocData() {
         status: a.status,
         statusTone: toneForStatus(a.status),
         acknowledged: a.status === 'acknowledged',
+        owner: a.enriched_data?.owner,
+        team: a.enriched_data?.team,
       };
     });
 

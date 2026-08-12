@@ -128,6 +128,38 @@
       box-shadow: 0 0 0 3px rgba(var(--green),0.12);
     }
     .fw-btn.fw-frontend.active .fw-title b { color: rgb(var(--green)); }
+    /* Tenancy gets special treatment: a distinct blue treatment with a soft
+       gradient + halo ring so it stands out from the framework buttons. */
+    .fw-btn.fw-tenancy {
+      background: linear-gradient(135deg, rgba(var(--blue),0.16), rgba(var(--surface-1),0.9) 60%);
+      border-color: rgba(var(--blue),0.55);
+      box-shadow: inset 0 0 0 1px rgba(var(--blue),0.12);
+    }
+    .fw-btn.fw-tenancy:hover {
+      border-color: rgba(var(--blue),0.9);
+      box-shadow: 0 4px 20px rgba(var(--blue),0.3), inset 0 0 0 1px rgba(var(--blue),0.2);
+    }
+    .fw-btn.fw-tenancy .fw-ic { color: rgb(var(--blue)); }
+    .fw-btn.fw-tenancy .fw-title b { color: rgb(var(--blue)); }
+    .fw-btn.fw-tenancy .fw-title span { color: rgb(var(--muted)); }
+    .fw-btn.fw-tenancy::after {
+      content: 'TENANT';
+      font-size: 0.52rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      color: rgb(var(--blue));
+      border: 1px solid rgba(var(--blue),0.45);
+      border-radius: 6px;
+      padding: 1px 5px;
+      background: rgba(var(--blue),0.1);
+    }
+    .fw-btn.fw-tenancy.active {
+      border-color: rgb(var(--blue));
+      outline: 1px solid rgba(var(--blue),0.4);
+      background: linear-gradient(135deg, rgba(var(--blue),0.28), rgba(var(--surface-1),0.9));
+      box-shadow: 0 0 0 4px rgba(var(--blue),0.16);
+    }
+    .fw-btn.fw-tenancy.active .fw-title b { color: rgb(var(--blue)); }
     .theme-toggle {
       display: inline-flex;
       align-items: center;
@@ -705,6 +737,10 @@
       <span class="fw-ic">&#128187;</span>
       <span class="fw-title"><b>Frontend stack</b><span>why React &amp; TypeScript</span></span>
     </button>
+  <button class="fw-btn fw-tenancy" id="tenancyBtn" title="How tenancy and data isolation are handled across the estate">
+      <span class="fw-ic">&#128737;&#65039;</span>
+      <span class="fw-title"><b>Tenancy &amp; isolation</b><span>how departments stay isolated</span></span>
+    </button>
   </span>
 </h1>
 
@@ -830,6 +866,51 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="tenancyModal" role="dialog" aria-modal="true" aria-labelledby="tenancyTitle">
+  <div class="modal">
+    <div class="modal-head">
+      <h2 id="tenancyTitle">&#128737;&#65039; Multi-tenancy &amp; data isolation <span class="badge">tenancy deep-dive</span></h2>
+      <button class="modal-close" id="tenancyModalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+
+      <h3>&#128994; Purpose</h3>
+      <p>SITA-style government multi-tenancy &mdash; every application and database belongs to a <strong>government department</strong>, and each department is composed of <strong>branches</strong> (its real DDG-led organisational units). Tenancy drives both <strong>data scoping</strong> and <strong>delegated user administration</strong>. Modelled on SITA&rsquo;s real mandate: <strong>43 national + 113 provincial departments across 9 provinces</strong> (156 public clients on the NGN), with the transversal SOC covering 39 national departments and GPCE cloud/IaaS serving ~125 public clients.</p>
+
+      <h3>&#128278; The tenant tree</h3>
+      <p><code>Province</code> <span class="flow-arrow">&rarr;</span> <code>Department</code> <span class="flow-arrow">&rarr;</span> <code>Branch</code> <span class="flow-arrow">&rarr;</span> <code>App / Database</code> &mdash; modelled in <code>C:\sita-platform\backend\app\tenant.py</code> as stable-slug catalogs (<code>PROVINCES</code> (9), <code>PROVINCIAL_DEPARTMENTS</code> (113, namespaced <code>&lt;province&gt;-&lt;function&gt;</code>), <code>DEPARTMENTS</code>, <code>BRANCHES</code>, <code>APP_DEPARTMENTS</code>, <code>DB_TO_DEPARTMENT</code>, <code>MINISTRIES</code>/<code>CLUSTERS</code> for reporting rollups) so resolution needs no DB lookup. Provincial departments are branchless (the writer persists a NULL branch); a province scope expands to the province&rsquo;s full department set, so no warehouse column changes were needed.</p>
+      <div class="file-list"><span class="file-tag">tenant.py</span><span class="file-tag">models/tenant.py</span><span class="file-tag">models/audit.py</span><span class="file-tag">api/auth.py</span><span class="file-tag">api/routers/auth.py</span><span class="file-tag">api/routers/admin.py</span><span class="file-tag">security.py</span><span class="file-tag">_migrate_province.py</span><span class="file-tag">tests/test_tenancy.py</span></div>
+
+      <h3>&#128279; How scoping works</h3>
+      <ul>
+        <li><strong>Nationwide roles</strong> (<code>exec</code>, <code>compliance</code>, <code>sre</code>, <code>admin</code>, <code>transversal-admin</code>) see the whole estate (empty scope = whole estate).</li>
+        <li><strong>Department roles</strong> (<code>soc</code>, <code>appsec</code>, <code>dbsec</code>) are scoped to the <code>department_ids</code>/<code>branch_ids</code> lists on their JWT; <code>tenant_filter(claims, model)</code> in <code>backend\app\api\auth.py</code> adds the WHERE clause on every read so users never see rows outside their scope.</li>
+        <li><strong>Province roles</strong> (<code>province-soc-lead</code>, <code>province-dept-admin</code>, <code>local-appsec</code>) are scoped by <code>province_ids</code> on the JWT; <code>tenant_filter</code> expands a province to its full department set, so a provincial SOC lead sees every department in Gauteng without listing them all.</li>
+        <li><strong>Denormalised at write time</strong> &mdash; every app/db-scoped warehouse row carries <code>department_id</code>/<code>branch_id</code> (set by the lake writer / normaliser), so REST scoping needs no joins.</li>
+        <li><strong>Fail closed</strong> &mdash; a department-scoped user with no assigned scope sees nothing until an admin assigns one; scoped parameters can only narrow a scope, never widen it.</li>
+      </ul>
+
+      <h3>&#128295; Delegated administration along the tree</h3>
+      <p>Each admin tier is a node in the tenant tree, and its authority is exactly its node&rsquo;s subtree, mirroring the Managed Services hierarchy (<code>ADMIN_TIERS</code>, <code>GRANTABLE_ROLES</code> in <code>tenant.py</code>):</p>
+      <table class="table">
+        <thead><tr><th>Tier</th><th>Node in tree</th><th>May grant</th></tr></thead>
+        <tbody>
+          <tr><td><strong>system <code>admin</code></strong> &mdash; tier 4</td><td>estate root (overarching national superadmin)</td><td>Anything</td></tr>
+          <tr><td><strong><code>transversal-admin</code></strong> &mdash; tier 3</td><td>all-department reports (empty scope) or multiple departments/branches (assigned scope)</td><td>Operational dept roles (<code>soc</code>/<code>appsec</code>/<code>dbsec</code>) plus <code>dept-admin</code>/<code>branch-admin</code>/<code>province-dept-admin</code>; never another <code>transversal-admin</code> or system <code>admin</code></td></tr>
+          <tr><td><strong><code>dept-admin</code></strong> &mdash; tier 2</td><td>a national department node</td><td>Operational dept roles plus <code>branch-admin</code>, scoped to its departments</td></tr>
+          <tr><td><strong><code>province-dept-admin</code></strong> &mdash; tier 2</td><td>a provincial department node</td><td>The operational department roles within its province/department scope</td></tr>
+          <tr><td><strong><code>branch-admin</code></strong> &mdash; tier 1</td><td>a branch node</td><td>The operational dept roles only, scoped to its branches</td></tr>
+        </tbody>
+      </table>
+      <p>Delegation is strictly <strong>one-way down</strong>: <code>can_manage</code> (in <code>backend\app\api\auth.py</code>) blocks granting a tier at or above the caller&rsquo;s own, and <code>_tenant_consistent</code> rejects scopes whose branches are not children of the caller&rsquo;s departments. A department admin therefore can never see or manage another department&rsquo;s admin functionality. Enforced on every user create/update/delete in <code>C:\sita-platform\backend\app\api\routers\admin.py</code> (<code>_validate_scope</code>, <code>can_manage</code>) and demonstrable via the demo accounts <code>transversal@example.com</code> (whole estate), <code>provincesoc@example.com</code> (Gauteng-scoped provincial SOC lead), <code>deptadmin@example.com</code> / <code>branchadmin@example.com</code>.</p>
+
+      <h3>&#128202; Where it lives in the database</h3>
+      <p>Tenant reference tables live in the <code>warehouse</code> schema (<code>warehouse.departments</code>, <code>warehouse.branches</code>, plus <code>warehouse.provinces</code> and <code>departments.province_id</code>, and <code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> JSONB scope lists on <code>identity.users</code>); the <code>audit</code> schema gains <code>action_audit</code> for the AG export trail. Table definitions live in <code>C:\sita-platform\infrastructure\scripts\init-db.sql</code> and are backfilled by <code>C:\sita-platform\backend\_migrate_province.py</code>.</p>
+      <p><em>Full architecture breakdown also available in the <strong>Multi-Tenancy</strong> panel &mdash; click <code>tenant.py</code> in the file tree.</em></p>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay erd-overlay" id="erdModal" role="dialog" aria-modal="true" aria-labelledby="erdModalTitle">
   <div class="modal erd-modal">
     <div class="modal-head">
@@ -903,6 +984,7 @@
 <span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\app\main.py</span>
 <span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\app\config.py</span>
 <span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\app\db.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file" data-key="tenancy">C:\sita-platform\backend\app\tenant.py</span>
 <span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\api\</span>
 <span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\__init__.py</span>
 <span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\auth.py</span>
@@ -915,7 +997,9 @@
 <span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\routers\compliance.py</span>
 <span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\routers\dashboard.py</span>
 <span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\routers\findings.py</span>
-<span class="pipe">│   │   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\api\routers\risks.py</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\api\routers\risks.py</span>
+<span class="pipe">│   │   │   │   ├──</span> <span class="file" data-key="benchmark">C:\sita-platform\backend\app\api\routers\benchmark.py</span>
+<span class="pipe">│   │   │   │   └──</span> <span class="file" data-key="exportsag">C:\sita-platform\backend\app\api\routers\exports_ag.py</span>
 <span class="pipe">│   │   │   └──</span> <span class="dir">C:\sita-platform\backend\app\api\schemas\</span>
 <span class="pipe">│   │   │       ├──</span> <span class="file">C:\sita-platform\backend\app\api\schemas\__init__.py</span>
 <span class="pipe">│   │   │       ├──</span> <span class="file">C:\sita-platform\backend\app\api\schemas\alert.py</span>
@@ -966,7 +1050,9 @@
 <span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\connector_status.py</span>
 <span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\dlq.py</span>
 <span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\finding.py</span>
-<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\models\risk_score.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\risk_score.py</span>
+<span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\models\audit.py</span>
+<span class="pipe">│   │   │   └──</span> <span class="file">C:\sita-platform\backend\app\models\tenant.py</span>
 <span class="pipe">│   │   ├──</span> <span class="dir">C:\sita-platform\backend\app\monitoring\</span>
 <span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\monitoring\__init__.py</span>
 <span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\app\monitoring\logging.py</span>
@@ -990,6 +1076,7 @@
 <span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\migrations\alembic.ini</span>
 <span class="pipe">│   │   └──</span> <span class="file">C:\sita-platform\backend\migrations\env.py</span>
 <span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\backend\Dockerfile</span>
+<span class="pipe">│   ├──</span> <span class="file" data-key="tenancy">C:\sita-platform\backend\_migrate_province.py</span>
 <span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\backend\requirements.txt</span>
 <span class="pipe">│   ├──</span> <span class="file">C:\sita-platform\backend\.env.example</span>
 <span class="pipe">│   └──</span> <span class="dir" data-key="tests">C:\sita-platform\backend\tests\</span>
@@ -997,6 +1084,10 @@
 <span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\test_alert_engine.py</span>
 <span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\test_normaliser.py</span>
 <span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\test_risk_engine.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\test_tenancy.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\test_benchmark.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\test_exports_ag.py</span>
+<span class="pipe">│   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\test_new_endpoints.py</span>
 <span class="pipe">│   │   └──</span> <span class="dir">C:\sita-platform\backend\tests\fixtures\</span>
 <span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\fixtures\__init__.py</span>
 <span class="pipe">│   │   │   ├──</span> <span class="file">C:\sita-platform\backend\tests\fixtures\appscan_findings.json</span>
@@ -1138,14 +1229,15 @@ const details = {
       <ul>
         <li><code>C:\sita-platform\backend\app\main.py</code> &mdash; FastAPI application entry point.</li>
         <li><code>C:\sita-platform\backend\app\config.py</code> &mdash; Central configuration (env-based).</li>
-        <li><code>C:\sita-platform\backend\app\api\</code> &mdash; REST layer: routers (<code>alerts</code>, <code>findings</code>, <code>risks</code>, <code>compliance</code>, <code>admin</code>, <code>dashboard</code>), Pydantic <code>schemas/</code>, auth deps, and error handling. <strong>Every endpoint queries the warehouse DB</strong> to serve report data.</li>
+        <li><code>C:\sita-platform\backend\app\api\</code> &mdash; REST layer: routers (<code>alerts</code>, <code>findings</code>, <code>risks</code>, <code>compliance</code>, <code>admin</code>, <code>dashboard</code>, <code>benchmark</code> (provincial peer comparison), <code>exports_ag</code> (Auditor-General signed export)), Pydantic <code>schemas/</code>, auth deps, and error handling. <strong>Every endpoint queries the warehouse DB</strong> to serve report data.</li>
         <li><code>C:\sita-platform\backend\app\connectors\</code> &mdash; Adapters for OEM security tools: <code>appscan</code> (HCL), <code>apisec</code>, <code>imperva</code>, and <code>compliance</code> (CSV/API). All extend a <code>base</code> connector.</li>
         <li><code>C:\sita-platform\backend\app\ingestion\</code> &mdash; Reliable data intake from OEMs with <code>circuit_breaker</code>, <code>retry</code>, <code>token_bucket</code> rate limiting, a <code>scheduler</code>, and a dead-letter queue (<code>dlq</code>). Writes raw payloads to <code>staging.raw_records</code>.</li>
         <li><code>C:\sita-platform\backend\app\bus\</code> &mdash; Internal event stream producer/consumer used to hand records between the ingestion, processing, and analytics stages.</li>
         <li><code>C:\sita-platform\backend\app\lake\</code> &mdash; Raw-record writer that persists OEM payloads before normalisation.</li>
         <li><code>C:\sita-platform\backend\app\processing\</code> &mdash; Core pipeline: <code>normaliser</code> (canonical field mapping via <code>field_mapper.yaml</code>), <code>alert_dedup</code>, <code>alert_enricher</code>, <code>alert_engine</code> (rule-based via <code>alert_rules.yaml</code>), <code>risk_engine</code> + <code>risk_aggregator</code>, and <code>compliance</code> checks. <strong>Reads from and writes to warehouse tables.</strong></li>
         <li><code>C:\sita-platform\backend\app\dispatch\</code> &mdash; Notifications via <code>email_adapter</code>, <code>pagerduty_adapter</code>, <code>teams_adapter</code>, routed through a background <code>worker</code>.</li>
-        <li><code>C:\sita-platform\backend\app\models\</code> &mdash; SQLAlchemy ORM models mapping to warehouse tables (<code>alert</code>, <code>finding</code>, <code>risk_score</code>, <code>compliance</code>, <code>connector_status</code>, <code>dlq</code>).</li>
+        <li><code>C:\sita-platform\backend\app\models\</code> &mdash; SQLAlchemy ORM models mapping to warehouse tables (<code>alert</code>, <code>finding</code>, <code>risk_score</code>, <code>compliance</code>, <code>connector_status</code>, <code>dlq</code>), plus <code>tenant.py</code> (<code>Department</code>/<code>Branch</code>).</li>
+        <li><code>C:\sita-platform\backend\app\tenant.py</code> &mdash; the government multi-tenancy catalog (<code>Department &rarr; Branch &rarr; App</code>) that drives REST scoping and delegated admin tiers.</li>
         <li><code>C:\sita-platform\backend\app\entrypoints\</code> &mdash; Runnable entry points for each long-running process (ingestion, processing, dispatch, analytics) used by the Docker Compose services.</li>
         <li><code>C:\sita-platform\backend\app\monitoring\</code> &mdash; Structured <code>logging</code> and Prometheus <code>metrics</code>.</li>
         <li><code>C:\sita-platform\backend\migrations\</code> &mdash; Alembic database migration config.</li>
@@ -1390,15 +1482,16 @@ const details = {
   },
   tests: {
     title: 'tests',
-    badge: 'pytest &middot; 28 cases',
+    badge: 'pytest &middot; 86 cases',
     body: String.raw`
-      <p><strong>Purpose:</strong> Prove the pipeline from OEM-shaped fixtures through normalisation, alerting, and risk scoring so regressions surface immediately &mdash; and so CI actually runs a real test command.</p>
+      <p><strong>Purpose:</strong> Prove the pipeline from OEM-shaped fixtures through normalisation, alerting, risk scoring, and tenancy-aware RBAC so regressions surface immediately &mdash; and so CI actually runs a real test command.</p>
       <h3>Files</h3>
-      <div class="file-list"><span class="file-tag">conftest.py</span><span class="file-tag">test_normaliser.py</span><span class="file-tag">test_alert_engine.py</span><span class="file-tag">test_risk_engine.py</span><span class="file-tag">fixtures/</span></div>
+      <div class="file-list"><span class="file-tag">conftest.py</span><span class="file-tag">test_normaliser.py</span><span class="file-tag">test_alert_engine.py</span><span class="file-tag">test_risk_engine.py</span><span class="file-tag">test_tenancy.py</span><span class="file-tag">fixtures/</span></div>
       <ul>
         <li><code>C:\sita-platform\backend\tests\test_normaliser.py</code> &mdash; config-driven flattening, severity mapping (incl. apisec exposure thresholds), timestamp/type casting, 1h window dedup, in-batch dedup.</li>
         <li><code>C:\sita-platform\backend\tests\test_alert_engine.py</code> &mdash; rule loading, critical/high firing, per-rule throttling, complete alert fields, enricher owner/priority/links.</li>
         <li><code>C:\sita-platform\backend\tests\test_risk_engine.py</code> &mdash; bucket thresholds, signal scaling, fused-risk bounds, determinism, custom weights.</li>
+        <li><code>C:\sita-platform\backend\tests\test_tenancy.py</code> &mdash; <code>tenant_filter</code> scoping, admin-set department/branch scope validation, admin-tier delegation (<code>can_manage</code>/<code>grantable_roles</code>), tenancy-consistent branch scope, and ministry/cluster derivation.</li>
         <li><code>C:\sita-platform\backend\tests\fixtures\</code> &mdash; JSON fixtures for all five sources loaded via <code>load_fixture()</code>.</li>
       </ul>
       <h3>CI</h3>
@@ -1481,7 +1574,7 @@ const details = {
     body: String.raw`
       <p><strong>What it is:</strong> The <code>warehouse</code> PostgreSQL schema &mdash; the <em>only</em> source the reporting layer is allowed to read. All normalised, report-ready data lives here.</p>
       <h3>Tables</h3>
-      <div class="file-list"><span class="file-tag">findings</span><span class="file-tag">alerts</span><span class="file-tag">risk_scores</span><span class="file-tag">compliance_snapshots</span><span class="file-tag">compliance_gaps</span><span class="file-tag">connector_health</span><span class="file-tag">api_endpoints</span></div>
+      <div class="file-list"><span class="file-tag">findings</span><span class="file-tag">alerts</span><span class="file-tag">risk_scores</span><span class="file-tag">compliance_snapshots</span><span class="file-tag">compliance_gaps</span><span class="file-tag">connector_health</span><span class="file-tag">api_endpoints</span><span class="file-tag">departments</span><span class="file-tag">branches</span></div>
       <ul>
         <li><strong>findings</strong> &mdash; normalised vulnerabilities (from Normaliser)</li>
         <li><strong>alerts</strong> &mdash; engine-generated, deduped alerts (SOC/SRE + dispatch)</li>
@@ -1489,6 +1582,7 @@ const details = {
         <li><strong>compliance_snapshots / compliance_gaps</strong> &mdash; POPIA + ISO 27001 posture (Compliance)</li>
         <li><strong>connector_health</strong> &mdash; OEM connector status (SRE)</li>
         <li><strong>api_endpoints</strong> &mdash; shadow-API discovery (SRE/AppSec)</li>
+        <li><strong>departments / branches</strong> &mdash; the tenancy tree (<code>Department &rarr; Branch &rarr; App</code>) that scopes every app/db row</li>
       </ul>
       <h3>Contract</h3>
       <p>The REST API (<code>backend\app\api\routers\</code>) queries these tables and serves them to the frontend &mdash; the database is the boundary between the pipeline and reporting. Seeded by <code>infrastructure\scripts\seed-demo.sql</code>.</p>
@@ -1520,7 +1614,7 @@ const details = {
       <p><strong>Purpose:</strong> Store normalised, report-ready data in PostgreSQL. The warehouse schema is the <em>only</em> source the reporting layer reads from.</p>
 
       <div class="schema-erd" id="erdStore"></div>
-      <p class="erd-caption"><strong>PK</strong> primary key &middot; <strong>UQ</strong> unique &middot; <strong>FK</strong> foreign key (solid <strong>accent</strong> arrows) &middot; dashed <strong>amber</strong> arrows = maintenance rotation into <code>archive</code> (LIKE copies, <code>ON CONFLICT DO NOTHING</code>) &middot; bright column name = <strong>NOT NULL</strong>, dim = nullable &middot; <code>DF</code> = server default &middot; hover any box for its purpose. Rendered from the same DDL as <code>infrastructure\scripts\init-db.sql</code> &mdash; 5 schemas, 20 tables (16 canonical + 4 archive LIKE copies). <strong>Click the diagram to open it full-screen and zoom.</strong></p>
+      <p class="erd-caption"><strong>PK</strong> primary key &middot; <strong>UQ</strong> unique &middot; <strong>FK</strong> foreign key (solid <strong>accent</strong> arrows) &middot; dashed <strong>amber</strong> arrows = maintenance rotation into <code>archive</code> (LIKE copies, <code>ON CONFLICT DO NOTHING</code>) &middot; bright column name = <strong>NOT NULL</strong>, dim = nullable &middot; <code>DF</code> = server default &middot; hover any box for its purpose. Rendered from the same DDL as <code>infrastructure\scripts\init-db.sql</code> &mdash; 6 schemas (incl. <code>audit.action_audit</code> for AG exports), 24 tables (20 canonical + 4 archive LIKE copies). <strong>Tenancy:</strong> every app/db-scoped warehouse row (<code>findings</code>, <code>risk_scores</code>, <code>alerts</code>, <code>dispatch_log</code>, <code>api_endpoints</code>, <code>waf_blocks</code>, <code>database_inventory</code>) denormalises <code>department_id</code>/<code>branch_id</code> (accent arrows &rarr; <code>warehouse.departments</code> / <code>warehouse.branches</code>), so <code>tenant_filter</code> scoping needs no joins; <code>identity.users</code> carries the admin-set <code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> scope lists, and provincial departments resolve via <code>departments.province_id</code> &rarr; <code>warehouse.provinces</code>. <strong>Click the diagram to open it full-screen and zoom.</strong></p>
 
       <h3>The database is built by the pipeline, not just loaded</h3>
       <p>PostgreSQL is the <strong>terminal materialisation of a streaming log pipeline</strong>. Every row in the warehouse is a normalised, deduplicated, alerted, and risk-scored descendant of an OEM security log, written idempotently into <code>staging</code> (provenance) then <code>warehouse</code> (canonical model), with <code>archive</code> + <code>maintenance.sql</code> managing its lifecycle.</p>
@@ -1591,8 +1685,37 @@ const details = {
         <li><code>admin.py</code> &mdash; <code>GET /admin/connectors</code>, <code>GET /admin/dead-letter</code> &rarr; <code>warehouse.connector_health</code>, <code>staging.rejected_records</code></li>
       </ul>
       <h3>Auth &amp; RBAC</h3>
-      <p><code>C:\sita-platform\backend\app\api\auth.py</code> validates the JWT (dev mode: <code>verify_signature=False</code>) and enforces a role hierarchy. Example grants: <code>exec</code> &rarr; risks/compliance/alerts; <code>soc</code> &rarr; findings/alerts; <code>dbsec</code> &rarr; risks/findings/alerts-read; <code>sre</code> &rarr; admin_read/admin_write.</p>
+      <p><code>C:\sita-platform\backend\app\api\auth.py</code> validates the JWT (dev mode: <code>verify_signature=False</code>) and enforces a role hierarchy. Example grants: <code>exec</code> &rarr; risks/compliance/alerts; <code>soc</code> &rarr; findings/alerts; <code>dbsec</code> &rarr; risks/findings/alerts-read; <code>sre</code> &rarr; admin_read/admin_write. Department-scoped roles are further constrained by <code>tenant_filter(claims, model)</code>, which scopes every read to the JWT&rsquo;s <code>department_ids</code>/<code>branch_ids</code> &mdash; see the <strong>Multi-Tenancy</strong> panel.</p>
       <p><em>Served by FastAPI on :8000; nginx proxies <code>/api/</code> and <code>/admin/</code> to it.</em></p>
+    `
+  },
+  tenancy: {
+    title: 'Multi-Tenancy',
+    badge: 'Province &rarr; Department &rarr; Branch &rarr; App &middot; RBAC',
+    body: String.raw`
+      <p><strong>Purpose:</strong> SITA-style government multi-tenancy &mdash; every app/database belongs to a <strong>government department</strong>, and each department is composed of <strong>branches</strong> (its real DDG-led organisational units). Tenancy drives both data scoping and delegated user administration. Modelled on SITA&rsquo;s real mandate: <strong>43 national + 113 provincial departments across 9 provinces</strong> (156 public clients on the NGN), with the transversal SOC covering 39 national departments and GPCE cloud/IaaS serving ~125 public clients.</p>
+      <h3>Tenant tree</h3>
+      <p><code>Province</code> <span class="flow-arrow">&rarr;</span> <code>Department</code> <span class="flow-arrow">&rarr;</span> <code>Branch</code> <span class="flow-arrow">&rarr;</span> <code>App / Database</code> &mdash; modelled in <code>C:\sita-platform\backend\app\tenant.py</code> as stable-slug catalogs (<code>PROVINCES</code> (9), <code>PROVINCIAL_DEPARTMENTS</code> (113, namespaced <code>&lt;province&gt;-&lt;function&gt;</code>), <code>DEPARTMENTS</code>, <code>BRANCHES</code>, <code>APP_DEPARTMENTS</code>, <code>DB_TO_DEPARTMENT</code>, <code>MINISTRIES</code>/<code>CLUSTERS</code> for reporting rollups) so resolution needs no DB lookup. Provincial departments are branchless (the writer persists NULL branch); province scope expands to the province&rsquo;s full department set, so no warehouse column changes were needed.</p>
+      <div class="file-list"><span class="file-tag">tenant.py</span><span class="file-tag">models/tenant.py</span><span class="file-tag">models/audit.py</span><span class="file-tag">api/auth.py</span><span class="file-tag">api/routers/auth.py</span><span class="file-tag">api/routers/admin.py</span><span class="file-tag">security.py</span><span class="file-tag">_migrate_province.py</span><span class="file-tag">tests/test_tenancy.py</span></div>
+      <h3>How scoping works</h3>
+      <ul>
+        <li><strong>Nationwide roles</strong> (<code>exec</code>, <code>compliance</code>, <code>sre</code>, <code>admin</code>, <code>transversal-admin</code>) see the whole estate (empty scope = whole estate).</li>
+        <li><strong>Department roles</strong> (<code>soc</code>, <code>appsec</code>, <code>dbsec</code>) are scoped to the <code>department_ids</code>/<code>branch_ids</code> lists on their JWT; <code>tenant_filter(claims, model)</code> in <code>backend\app\api\auth.py</code> adds the WHERE clause on every read so users never see rows outside their scope.</li>
+        <li><strong>Province roles</strong> (<code>province-soc-lead</code>, <code>province-dept-admin</code>, <code>local-appsec</code>) are scoped by <code>province_ids</code> on the JWT; <code>tenant_filter</code> expands a province to its full department set, so a provincial SOC lead sees every department in Gauteng without listing them all.</li>
+        <li><strong>Denormalised at write time</strong> &mdash; every app/db-scoped warehouse row carries <code>department_id</code>/<code>branch_id</code> (set by the lake writer / normaliser), so REST scoping needs no joins.</li>
+      </ul>
+      <h3>Delegated administration along the tree</h3>
+      <p>Each admin tier is a node in the tenant tree, and its authority is exactly its node&rsquo;s subtree, mirroring the Managed Services hierarchy (<code>ADMIN_TIERS</code>, <code>GRANTABLE_ROLES</code> in <code>tenant.py</code>):</p>
+      <ul>
+        <li><strong>system <code>admin</code></strong> (tier 4) &mdash; estate root / overarching national superadmin: may grant anything.</li>
+        <li><strong><code>transversal-admin</code></strong> (tier 3) &mdash; a transversal superadmin: may grant operational dept roles (<code>soc</code>/<code>appsec</code>/<code>dbsec</code>) plus <code>dept-admin</code>/<code>branch-admin</code>/<code>province-dept-admin</code>, spanning all-department reports (empty scope) or multiple departments/branches (assigned scope). Never grants another <code>transversal-admin</code> or system <code>admin</code>.</li>
+        <li><strong><code>dept-admin</code></strong> (tier 2) &mdash; a national department node: may grant operational dept roles plus <code>branch-admin</code>, scoped to its departments.</li>
+        <li><strong><code>province-dept-admin</code></strong> (tier 2) &mdash; a provincial department node: may grant the operational department roles within its province/department scope.</li>
+        <li><strong><code>branch-admin</code></strong> (tier 1) &mdash; a branch node: may grant the operational dept roles only, scoped to its branches.</li>
+      </ul>
+      <p>Delegation is strictly <strong>one-way down</strong>: <code>can_manage</code> (in <code>backend\app\api\auth.py</code>) blocks granting a tier at or above the caller&rsquo;s own, and <code>_tenant_consistent</code> rejects scopes whose branches are not children of the caller&rsquo;s departments. A department admin therefore can never see or manage another department&rsquo;s admin functionality. Enforced on every user create/update/delete in <code>C:\sita-platform\backend\app\api\routers\admin.py</code> (<code>_validate_scope</code>, <code>can_manage</code>) and on the demo accounts <code>transversal@example.com</code> (whole estate), <code>provincesoc@example.com</code> (Gauteng-scoped provincial SOC lead), <code>deptadmin@example.com</code> / <code>branchadmin@example.com</code>.</p>
+      <h3>Database</h3>
+      <p>Tenant reference tables live in the <code>warehouse</code> schema (<code>warehouse.departments</code>, <code>warehouse.branches</code>, plus the new <code>warehouse.provinces</code> and <code>departments.province_id</code>, and <code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> JSONB scope lists on <code>identity.users</code>); the <code>audit</code> schema gains <code>action_audit</code> for the AG export trail. Created in <code>C:\sita-platform\infrastructure\scripts\init-db.sql</code> and backfilled by <code>C:\sita-platform\backend\_migrate_province.py</code>.</p>
     `
   },
   ui: {
@@ -1614,6 +1737,43 @@ const details = {
       <h3>"Explain this dashboard"</h3>
       <p>Each header has Explain / Layman's Guide buttons rendered by <code>src/components/dashboard/ExplainOverlay.tsx</code>. The narrative is built by <code>src/data/explanations.ts</code> (<code>buildExplain</code>/<code>buildLayman</code>) from the <em>live</em> facts of the page &mdash; no hardcoded figures.</p>
       <p><em>Served as a static SPA by nginx; dev proxy <code>/api</code> &rarr; :8000.</em></p>
+    `
+  },
+  benchmark: {
+    title: 'Anonymised Provincial Peer Benchmark',
+    badge: 'provincial analytics &middot; tenant-safe',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Let a provincial executive compare its province against peers on the <strong>fused risk score</strong> without breaching tenant isolation. Implemented in <code>C:\sita-platform\backend\app\api\routers\benchmark.py</code> as <code>GET /api/v1/benchmark/province</code>.</p>
+      <div class="file-list"><span class="file-tag">benchmark.py</span><span class="file-tag">tests/test_benchmark.py</span><span class="file-tag">tests/test_new_endpoints.py</span></div>
+      <h3>Identity vs analytics separation</h3>
+      <ul>
+        <li><strong>Own province unblinded</strong> &mdash; the caller&rsquo;s province is returned by name with a department-level drill-down (each provincial department&rsquo;s fused score, bucket, app count and primary driver).</li>
+        <li><strong>Peers anonymised</strong> &mdash; every other province appears only as <code>Peer Province A/B/&hellip;</code> with its <em>aggregated fused score</em>; the payload deliberately contains no raw vulnerability counts, findings, signals or logs.</li>
+        <li><strong>National view</strong> &mdash; nationwide roles (e.g. <code>exec</code>, <code>admin</code>) with no province scope see all nine provinces unblinded plus a national average.</li>
+        <li><strong>Scoped end-to-end</strong> &mdash; the endpoint still runs <code>tenant_filter(claims, RiskScore)</code>, so a provincial caller&rsquo;s SQL cannot touch rows outside its province.</li>
+      </ul>
+      <h3>Scoring</h3>
+      <p>Province score = mean of its department averages (each provincial department equal weight); leaderboard ranks by descending fused score. Only provincial-department rows participate &mdash; national departments are out of scope for the peer comparison.</p>
+    `
+  },
+  exportsag: {
+    title: 'Auditor-General Compliance Export Engine',
+    badge: 'signed aggregation &middot; SHA-256 audit trail',
+    body: String.raw`
+      <p><strong>Purpose:</strong> Produce an Auditor-General-grade <strong>aggregation-only</strong> compliance attestation with tamper-evident integrity. Implemented in <code>C:\sita-platform\backend\app\api\routers\exports_ag.py</code> as <code>POST /api/v1/exports/ag-compliance</code>.</p>
+      <div class="file-list"><span class="file-tag">exports_ag.py</span><span class="file-tag">models/audit.py</span><span class="file-tag">tests/test_exports_ag.py</span><span class="file-tag">tests/test_new_endpoints.py</span></div>
+      <h3>What the attestation contains</h3>
+      <ul>
+        <li><strong>Snapshot summary</strong> &mdash; latest POPIA snapshot: overall score, passed/total controls, per-domain scores from <code>compliance_snapshots.details</code>.</li>
+        <li><strong>Control aggregation</strong> &mdash; <code>compliance_gaps</code> rolled up into status / severity / domain counts &mdash; never the raw gap rows.</li>
+        <li><strong>Scoped risk profile</strong> &mdash; bucket counts, scoped app/department totals and signal averages from <code>risk_scores</code>, scoped to the caller&rsquo;s province via <code>tenant_filter</code>.</li>
+      </ul>
+      <h3>Integrity &amp; accountability</h3>
+      <ul>
+        <li><strong>Aggregation-only</strong> &mdash; raw findings, vulnerability counts, logs and PII are stripped; the payload carries a provenance statement to that effect.</li>
+        <li><strong>SHA-256 integrity hash</strong> &mdash; computed over the canonical JSON of the attestation and returned as <code>integrity_hash</code> alongside a <code>verify_url</code> (<code>GET /api/v1/exports/ag-compliance/verify/{hash}</code>).</li>
+        <li><strong>Immutable action audit</strong> &mdash; every export writes one <code>audit.action_audit</code> row (actor, action, tenant scope, payload hash) via <code>C:\sita-platform\backend\app\models\audit.py</code>, giving non-repudiation. Table created in <code>C:\sita-platform\infrastructure\scripts\init-db.sql</code> and <code>C:\sita-platform\backend\_migrate_province.py</code>.</li>
+      </ul>
     `
   },
   reports: {
@@ -1724,7 +1884,8 @@ const STAGE_PATHS = {
     'backend\\app\\api',
     'backend\\app\\main.py',
     'backend\\app\\config.py',
-    'backend\\app\\auth.py',
+    'backend\\app\\tenant.py',
+    'backend\\app\\models\\tenant.py',
     'infrastructure\\nginx'
   ],
   ui: ['frontend\\'],
@@ -1770,15 +1931,28 @@ function clearStageHighlight() {
 const ERD_SCHEMAS = ['identity', 'staging', 'warehouse', 'archive'];
 const ERD_BOX_W = 300, ERD_ROW_H = 15, ERD_HEAD_H = 30, ERD_PAD = 8, ERD_GAP_X = 26, ERD_GAP_Y = 48, ERD_SCHEMA_H = 30, ERD_MAX_W = 990;
 const ERD_TABLES = [
-  { schema: 'identity', name: 'users', note: 'RBAC users / JWT auth identities', uq: [], cols: [
+  { schema: 'identity', name: 'users', note: 'RBAC users / JWT auth identities (tenant scope lists)', uq: [], cols: [
     ['id', 'VARCHAR(36)', 'PK'],
     ['email', 'VARCHAR(255)', 'UQ NN'],
     ['password_hash', 'VARCHAR(255)', 'NN'],
     ['display_name', 'VARCHAR(100)', ''],
     ['roles', 'JSONB', 'DF NN'],
+    ['department_ids', 'JSONB', 'DF NN'],
+    ['branch_ids', 'JSONB', 'DF NN'],
     ['is_active', 'BOOLEAN', 'DF NN'],
     ['created_at', 'TIMESTAMPTZ', 'DF NN'],
     ['updated_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'departments', note: 'Tenant: government departments (Department -> Branch -> App)', uq: ['UNIQUE (code)'], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['name', 'VARCHAR(120)', 'NN'],
+    ['code', 'VARCHAR(60)', 'UQ NN']
+  ]},
+  { schema: 'warehouse', name: 'branches', note: 'Tenant branches: DDG-led units within each department', uq: ['UNIQUE (code)'], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['name', 'VARCHAR(120)', 'NN'],
+    ['code', 'VARCHAR(60)', 'UQ NN'],
+    ['department_id', 'VARCHAR(36)', 'NN']
   ]},
   { schema: 'staging', name: 'batch_runs', note: 'Poll-run traceability (provenance)', uq: [], cols: [
     ['id', 'UUID', 'PK DF'],
@@ -1830,6 +2004,8 @@ const ERD_TABLES = [
     ['source', 'VARCHAR(100)', 'NN'],
     ['external_id', 'VARCHAR(255)', 'NN'],
     ['app_name', 'VARCHAR(255)', 'DF NN'],
+    ['department_id', 'VARCHAR(36)', ''],
+    ['branch_id', 'VARCHAR(36)', ''],
     ['severity', 'VARCHAR(20)', 'NN'],
     ['title', 'VARCHAR(500)', 'NN'],
     ['description', 'TEXT', ''],
@@ -1841,9 +2017,11 @@ const ERD_TABLES = [
     ['version', 'INTEGER', 'DF NN'],
     ['ingested_at', 'TIMESTAMPTZ', 'DF NN']
   ]},
-  { schema: 'warehouse', name: 'risk_scores', note: 'Daily fused risk score per application', uq: ['UNIQUE (app_name, score_date)'], cols: [
+  { schema: 'warehouse', name: 'risk_scores', note: 'Daily fused risk score per application (tenant-scoped)', uq: ['UNIQUE (app_name, score_date)'], cols: [
     ['id', 'VARCHAR(36)', 'PK'],
     ['app_name', 'VARCHAR(255)', 'NN'],
+    ['department_id', 'VARCHAR(36)', ''],
+    ['branch_id', 'VARCHAR(36)', ''],
     ['score_date', 'DATE', 'NN'],
     ['fused_score', 'NUMERIC(5,1)', 'NN'],
     ['signal_appscan', 'NUMERIC(5,1)', ''],
@@ -1853,7 +2031,7 @@ const ERD_TABLES = [
     ['bucket', 'VARCHAR(20)', ''],
     ['computed_at', 'TIMESTAMPTZ', 'DF NN']
   ]},
-  { schema: 'warehouse', name: 'alerts', note: 'Unified alert feed with dedup counters (SOC)', uq: [], cols: [
+  { schema: 'warehouse', name: 'alerts', note: 'Unified alert feed with dedup counters (SOC, tenant-scoped)', uq: [], cols: [
     ['id', 'VARCHAR(36)', 'PK'],
     ['rule_id', 'VARCHAR(50)', 'NN'],
     ['title', 'VARCHAR(500)', 'NN'],
@@ -1861,6 +2039,8 @@ const ERD_TABLES = [
     ['severity', 'VARCHAR(20)', 'NN'],
     ['source', 'VARCHAR(100)', ''],
     ['target_id', 'VARCHAR(255)', ''],
+    ['department_id', 'VARCHAR(36)', ''],
+    ['branch_id', 'VARCHAR(36)', ''],
     ['status', 'VARCHAR(20)', 'DF NN'],
     ['acknowledged_by', 'VARCHAR(100)', ''],
     ['acknowledged_at', 'TIMESTAMPTZ', ''],
@@ -1872,6 +2052,17 @@ const ERD_TABLES = [
     ['resolved_at', 'TIMESTAMPTZ', ''],
     ['created_at', 'TIMESTAMPTZ', 'DF NN'],
     ['updated_at', 'TIMESTAMPTZ', 'DF NN']
+  ]},
+  { schema: 'warehouse', name: 'dispatch_log', note: 'Out-of-band alert dispatch (email/PagerDuty/Teams, tenant-scoped)', uq: [], cols: [
+    ['id', 'VARCHAR(36)', 'PK'],
+    ['alert_id', 'VARCHAR(64)', 'NN'],
+    ['channel', 'VARCHAR(20)', 'NN'],
+    ['department_id', 'VARCHAR(36)', ''],
+    ['branch_id', 'VARCHAR(36)', ''],
+    ['status', 'VARCHAR(20)', 'DF NN'],
+    ['error', 'TEXT', ''],
+    ['attempted_at', 'TIMESTAMPTZ', 'NN'],
+    ['created_at', 'TIMESTAMPTZ', 'DF NN']
   ]},
   { schema: 'warehouse', name: 'compliance_snapshots', note: 'Compliance framework snapshots (12-week trend)', uq: [], cols: [
     ['id', 'VARCHAR(36)', 'PK'],
@@ -1895,9 +2086,11 @@ const ERD_TABLES = [
     ['status', 'VARCHAR(30)', 'DF NN'],
     ['evidence_count', 'INTEGER', 'DF NN']
   ]},
-  { schema: 'warehouse', name: 'api_endpoints', note: 'API exposure inventory (AppSec)', uq: [], cols: [
+  { schema: 'warehouse', name: 'api_endpoints', note: 'API exposure inventory (AppSec, tenant-scoped)', uq: [], cols: [
     ['id', 'VARCHAR(36)', 'PK'],
     ['app_name', 'VARCHAR(255)', 'NN'],
+    ['department_id', 'VARCHAR(36)', ''],
+    ['branch_id', 'VARCHAR(36)', ''],
     ['endpoint', 'TEXT', 'NN'],
     ['method', 'VARCHAR(10)', 'DF NN'],
     ['is_shadow', 'BOOLEAN', 'DF NN'],
@@ -1905,9 +2098,11 @@ const ERD_TABLES = [
     ['discovered_at', 'TIMESTAMPTZ', 'DF NN'],
     ['last_seen', 'TIMESTAMPTZ', 'DF NN']
   ]},
-  { schema: 'warehouse', name: 'waf_blocks', note: 'Imperva WAF block telemetry (AppSec)', uq: [], cols: [
+  { schema: 'warehouse', name: 'waf_blocks', note: 'Imperva WAF block telemetry (AppSec, tenant-scoped)', uq: [], cols: [
     ['id', 'VARCHAR(36)', 'PK'],
     ['app_name', 'VARCHAR(255)', 'NN'],
+    ['department_id', 'VARCHAR(36)', ''],
+    ['branch_id', 'VARCHAR(36)', ''],
     ['attack_type', 'VARCHAR(100)', ''],
     ['request_uri', 'TEXT', ''],
     ['action', 'VARCHAR(20)', 'DF NN'],
@@ -1936,9 +2131,11 @@ const ERD_TABLES = [
     ['week_start', 'DATE', 'NN'],
     ['value_hours', 'NUMERIC(6,2)', 'NN']
   ]},
-  { schema: 'warehouse', name: 'database_inventory', note: 'DBSec monitored databases & coverage', uq: [], cols: [
+  { schema: 'warehouse', name: 'database_inventory', note: 'DBSec monitored databases & coverage (tenant-scoped)', uq: [], cols: [
     ['id', 'VARCHAR(36)', 'PK'],
     ['name', 'VARCHAR(100)', 'NN'],
+    ['department_id', 'VARCHAR(36)', ''],
+    ['branch_id', 'VARCHAR(36)', ''],
     ['engine', 'VARCHAR(50)', ''],
     ['monitored', 'BOOLEAN', 'DF NN'],
     ['agent_version', 'VARCHAR(30)', ''],
@@ -1960,7 +2157,22 @@ const ERD_TABLES = [
 
 const ERD_LINKS = [
   ['staging::raw_records', 'batch_id', 'staging::batch_runs', 'id'],
-  ['staging::rejected_records', 'batch_id', 'staging::batch_runs', 'id']
+  ['staging::rejected_records', 'batch_id', 'staging::batch_runs', 'id'],
+  ['warehouse::branches', 'department_id', 'warehouse::departments', 'id'],
+  ['warehouse::findings', 'department_id', 'warehouse::departments', 'id'],
+  ['warehouse::findings', 'branch_id', 'warehouse::branches', 'id'],
+  ['warehouse::risk_scores', 'department_id', 'warehouse::departments', 'id'],
+  ['warehouse::risk_scores', 'branch_id', 'warehouse::branches', 'id'],
+  ['warehouse::alerts', 'department_id', 'warehouse::departments', 'id'],
+  ['warehouse::alerts', 'branch_id', 'warehouse::branches', 'id'],
+  ['warehouse::dispatch_log', 'department_id', 'warehouse::departments', 'id'],
+  ['warehouse::dispatch_log', 'branch_id', 'warehouse::branches', 'id'],
+  ['warehouse::api_endpoints', 'department_id', 'warehouse::departments', 'id'],
+  ['warehouse::api_endpoints', 'branch_id', 'warehouse::branches', 'id'],
+  ['warehouse::waf_blocks', 'department_id', 'warehouse::departments', 'id'],
+  ['warehouse::waf_blocks', 'branch_id', 'warehouse::branches', 'id'],
+  ['warehouse::database_inventory', 'department_id', 'warehouse::departments', 'id'],
+  ['warehouse::database_inventory', 'branch_id', 'warehouse::branches', 'id']
 ];
 const ERD_ROTATE = [
   ['warehouse::risk_scores', 'archive::risk_scores'],
@@ -2199,12 +2411,16 @@ function render(key) {
 function highlightFramework(key) {
   const BACKEND_STAGES = ['oem', 'connectors', 'staging', 'normaliser', 'findings', 'engines', 'warehouse', 'ingest', 'process', 'store', 'api'];
   const FRONTEND_STAGES = ['ui', 'reports'];
+  const TENANCY_STAGES = ['tenancy'];
   const backendBtn = document.getElementById('backendFwBtn');
   const frontendBtn = document.getElementById('frontendFwBtn');
+  const tenancyBtn = document.getElementById('tenancyBtn');
   const backend = BACKEND_STAGES.indexOf(key) !== -1;
   const frontend = FRONTEND_STAGES.indexOf(key) !== -1;
+  const tenancy = TENANCY_STAGES.indexOf(key) !== -1;
   backendBtn.classList.toggle('active', backend);
   frontendBtn.classList.toggle('active', frontend);
+  if (tenancyBtn) tenancyBtn.classList.toggle('active', tenancy);
   document.querySelectorAll('.stage-flow .flow-node').forEach(n => {
     const fw = n.getAttribute('data-fw');
     n.classList.toggle('dim', false);
@@ -2281,6 +2497,18 @@ frontendFwClose.addEventListener('click', () => closeModal(frontendFwModal));
 frontendFwModal.addEventListener('click', (e) => {
   if (e.target === frontendFwModal) closeModal(frontendFwModal);
 });
+
+// ---- tenancy deep-dive modal ----
+const tenancyModal = document.getElementById('tenancyModal');
+const tenancyBtn = document.getElementById('tenancyBtn');
+const tenancyClose = document.getElementById('tenancyModalClose');
+if (tenancyBtn && tenancyModal) {
+  tenancyBtn.addEventListener('click', () => openModal(tenancyModal));
+  tenancyClose.addEventListener('click', () => closeModal(tenancyModal));
+  tenancyModal.addEventListener('click', (e) => {
+    if (e.target === tenancyModal) closeModal(tenancyModal);
+  });
+}
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') closeAllModals();

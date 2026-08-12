@@ -10,7 +10,15 @@ EMAIL_TEMPLATE = Template("""
 <p><strong>Severity:</strong> {{ alert.severity }}</p>
 <p><strong>Source:</strong> {{ alert.source }}</p>
 <p><strong>Rule:</strong> {{ alert.rule_id }}</p>
+{% if alert.get('enriched_data') %}
+<p><strong>Owner:</strong> {{ alert.enriched_data.get('owner', '') }}</p>
+<p><strong>Team:</strong> {{ alert.enriched_data.get('team', '') }}</p>
+<p><strong>Priority:</strong> P{{ alert.enriched_data.get('priority', '') }}</p>
+{% endif %}
 <p>{{ alert.description }}</p>
+{% if alert.get('enriched_data') and alert.enriched_data.get('dashboard_link') %}
+<p><a href="{{ alert.enriched_data.dashboard_link }}">View in SITA</a></p>
+{% endif %}
 <hr>
 <p><small>SITA Security Intelligence Platform</small></p>
 """)

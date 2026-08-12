@@ -28,6 +28,13 @@ export interface AdminUser {
   email: string;
   display_name?: string | null;
   roles: string[];
+  department_ids: string[];
+  branch_ids: string[];
+  branch_names?: string[];
+  department_id?: string | null;
+  department_name?: string | null;
+  province_ids?: string[];
+  province_name?: string | null;
   is_active: boolean;
   created_at?: string | null;
   updated_at?: string | null;
@@ -38,7 +45,33 @@ export interface UserPayload {
   display_name?: string;
   password?: string;
   roles?: string[];
+  department_ids?: string[];
+  branch_ids?: string[];
+  province_ids?: string[];
   is_active?: boolean;
+}
+
+export interface DepartmentOption {
+  id: string;
+  name: string;
+}
+
+export interface BranchOption {
+  id: string;
+  name: string;
+  department_id: string;
+}
+
+export async function fetchDepartments(): Promise<{ items: DepartmentOption[] }> {
+  const { data } = await adminApi.get('/departments');
+  return data;
+}
+
+export async function fetchBranches(departmentId?: string): Promise<{ items: BranchOption[] }> {
+  const { data } = await adminApi.get('/branches', {
+    params: departmentId ? { department_id: departmentId } : undefined,
+  });
+  return data;
 }
 
 export async function fetchUsers(): Promise<{ items: AdminUser[]; total: number }> {

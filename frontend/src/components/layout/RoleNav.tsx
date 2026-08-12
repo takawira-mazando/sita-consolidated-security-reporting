@@ -25,7 +25,7 @@ export default function RoleNav() {
 
   const baseRoles = user?.roles || [];
   const allowedRoles = baseRoles.includes('admin') ? ALL_ROLES : baseRoles;
-  const canManageUsers = allowedRoles.includes('sre');
+  const canManageUsers = allowedRoles.some((r) => ['sre', 'dept-admin', 'branch-admin', 'transversal-admin'].includes(r));
   const activeRole = location.pathname.replace('/', '') || allowedRoles[0] || '';
   const isDark = document.body.dataset.theme !== 'light';
 
@@ -41,6 +41,15 @@ export default function RoleNav() {
   };
 
   const userName = user?.email?.split('@')[0] || 'user';
+
+  const deptIds = user?.department_ids || [];
+  const scopeLabel = deptIds.length
+    ? user?.department_name || deptIds[0]
+    : 'National';
+  const scopeTitle = deptIds.length
+    ? `Tenant scope: ${deptIds.length} department(s)${(user?.branch_names || []).length ? ` · ${(user?.branch_names || []).join(', ')}` : ''}`
+    : 'Tenant scope: national (all departments)';
+  const extraDepts = deptIds.length > 1 ? `+${deptIds.length - 1}` : null;
 
   return (
     <nav className="role-nav">
@@ -71,6 +80,15 @@ export default function RoleNav() {
         <button className="theme-toggle" onClick={toggleTheme}>
           {isDark ? '☀ Light' : '🌙 Dark'}
         </button>
+        {user?.department_name && (
+          <span className="nav-dept" title={scopeTitle}>
+            {scopeLabel}
+            {extraDepts && <span className="nav-dept-more">{extraDepts}</span>}
+          </span>
+        )}
+        {!user?.department_name && (
+          <span className="nav-dept" title={scopeTitle}>National</span>
+        )}
         <span className="nav-user">{userName}</span>
         <button className="logout-btn" onClick={handleLogout}>Sign Out</button>
       </div>

@@ -375,7 +375,7 @@ export default function HomePage() {
       <section className="cta-band">
         <div className="container">
           <h2>See your own view before rolling this out.</h2>
-          <p>Six roles are already provisioned with live demo data. Sign in to explore your persona's dashboard — or talk to us about connecting your OEMs.</p>
+          <p>Every role — from executive and compliance to delegated department and branch admins — is provisioned with live demo data. Sign in to explore your persona's dashboard — or talk to us about connecting your OEMs.</p>
           <div className="cta-row" style={{ justifyContent: 'center' }}>
             <button className="btn btn-flare" onClick={openModal}>Explore Live Dashboards</button>
             <a href="#preview" className="btn btn-outline">Why the score moves</a>

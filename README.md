@@ -111,7 +111,16 @@ The application includes demo accounts for local exploration. Use the credential
 - appsec@example.com / pass123
 - dbsec@example.com / pass123
 - compliance@example.com / pass123
+- transversal@example.com / pass123 (transversal superadmin — spans all-department reports / multiple departments)
+- provincesoc@example.com / pass123 (provincial SOC lead — scoped to Gauteng's provincial departments)
 - admin@example.com / admin123
+
+Demo login supports a tenancy-scope override: pick a province, department or branch on the login page to sign in under that scope (province scope expands to every provincial department inside the province).
+
+### 4. Provincial peer benchmarking & AG export
+
+- `GET /api/v1/benchmark/province` — anonymised provincial peer benchmark. The caller's own province is unblinded with a department drill-down; peers appear as `Peer Province A/B/…` (aggregated fused risk only — raw vulnerability counts, findings and logs are never exposed).
+- `POST /api/v1/exports/ag-compliance` — Auditor-General aggregation-only compliance attestation. Raw findings and PII are stripped; a SHA-256 integrity hash is bound to the actor + tenant scope in the `audit.action_audit` trail. Returns `integrity_hash` and `verify_url` (`GET /api/v1/exports/ag-compliance/verify/{hash}`).
 
 ## Docker-based setup
 

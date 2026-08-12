@@ -38,9 +38,12 @@ export default function App() {
   }
 
   const baseRoles = user.roles?.length ? user.roles : ALL_ROLES;
-  const allowedRoles = baseRoles.includes('admin') ? ALL_ROLES : baseRoles;
-  const defaultRole = allowedRoles[0];
-  const canManageUsers = allowedRoles.includes('sre');
+  const isAdmin = baseRoles.includes('admin');
+  const allowedRoles = isAdmin ? ALL_ROLES : baseRoles;
+  const canManageUsers = allowedRoles.some((r) => ['sre', 'dept-admin', 'branch-admin', 'transversal-admin'].includes(r));
+  const defaultRole = isAdmin || allowedRoles.some((r) => ['dept-admin', 'branch-admin', 'transversal-admin'].includes(r))
+    ? 'users'
+    : allowedRoles[0];
 
   return (
     <div className="app-wrapper">

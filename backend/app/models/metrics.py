@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, Integer, Numeric, String, func
+from sqlalchemy import Boolean, Column, Date, DateTime, Numeric, String, func
 
 from app.models.base import Base
 
@@ -9,6 +9,10 @@ class ApiEndpoint(Base):
 
     id = Column(String, primary_key=True)
     app_name = Column(String(255), nullable=False)
+    department_id = Column(String(36), index=True)
+    branch_id = Column(String(36), index=True)
+    ministry_id = Column(String(36), index=True)
+    cluster_id = Column(String(36), index=True)
     endpoint = Column(String, nullable=False)
     method = Column(String(10), nullable=False, default="GET")
     is_shadow = Column(Boolean, nullable=False, default=False)
@@ -23,6 +27,10 @@ class WafBlock(Base):
 
     id = Column(String, primary_key=True)
     app_name = Column(String(255), nullable=False)
+    department_id = Column(String(36), index=True)
+    branch_id = Column(String(36), index=True)
+    ministry_id = Column(String(36), index=True)
+    cluster_id = Column(String(36), index=True)
     attack_type = Column(String(100))
     request_uri = Column(String)
     action = Column(String(20), nullable=False, default="block")
@@ -70,6 +78,10 @@ class DatabaseInventory(Base):
 
     id = Column(String, primary_key=True)
     name = Column(String(100), nullable=False)
+    department_id = Column(String(36), index=True)
+    branch_id = Column(String(36), index=True)
+    ministry_id = Column(String(36), index=True)
+    cluster_id = Column(String(36), index=True)
     engine = Column(String(50))
     monitored = Column(Boolean, nullable=False, default=True)
     agent_version = Column(String(30))

@@ -35,6 +35,50 @@ CROSS JOIN (
 ON CONFLICT (app_name, score_date) DO UPDATE
     SET fused_score = EXCLUDED.fused_score, bucket = EXCLUDED.bucket;
 
+-- ---------------------------------------------------------------------
+-- 1b) PROVINCIAL RISK SCORES — one app per provincial department, so the
+--     anonymised provincial peer benchmark (GET /api/v1/benchmark/province)
+--     returns a full leaderboard across the 9 provinces. Each row carries
+--     the province-namespaced department_id (e.g. gp-health) that
+--     tenant_filter expands from the caller's province_ids.
+-- ---------------------------------------------------------------------
+INSERT INTO warehouse.risk_scores
+    (id, app_name, department_id, score_date, fused_score, signal_appscan,
+     signal_imperva, signal_api_exposure, signal_compliance_penalty, bucket)
+SELECT
+    gen_random_uuid()::text,
+    a.app_name,
+    a.department_id,
+    CURRENT_DATE,
+    a.today_score,
+    ROUND(GREATEST(0, a.today_score * 0.55)::numeric, 1),
+    ROUND(GREATEST(0, a.today_score * 0.25)::numeric, 1),
+    ROUND(GREATEST(0, a.today_score * 0.15)::numeric, 1),
+    ROUND(GREATEST(0, a.today_score * 0.05)::numeric, 1),
+    CASE WHEN a.today_score >= 70 THEN 'critical'
+         WHEN a.today_score >= 45 THEN 'monitored'
+         ELSE 'safe' END
+FROM (VALUES
+    ('gp-health-core',    'gp-health',          81.4),
+    ('gp-education-core', 'gp-education',       67.2),
+    ('gp-cogta-core',     'gp-cogta',           58.9),
+    ('wc-health-core',    'wc-health',          74.6),
+    ('wc-education-core', 'wc-education',       51.3),
+    ('wc-transport-core', 'wc-transport',       39.7),
+    ('ec-health-core',    'ec-health',          62.1),
+    ('ec-education-core', 'ec-education',       44.5),
+    ('kzn-health-core',   'kzn-health',         70.8),
+    ('kzn-cogta-core',    'kzn-cogta',          55.2),
+    ('lp-health-core',    'lp-health',          48.9),
+    ('mp-health-core',    'mp-health',          59.3),
+    ('nw-health-core',    'nw-health',          42.6),
+    ('nc-health-core',    'nc-health',          36.4),
+    ('fs-health-core',    'fs-health',          47.1),
+    ('fs-education-core', 'fs-education',       33.8)
+) AS a(app_name, department_id, today_score)
+ON CONFLICT (app_name, score_date) DO UPDATE
+    SET fused_score = EXCLUDED.fused_score, bucket = EXCLUDED.bucket;
+
 -- =====================================================================
 -- 2) FINDINGS — AppScan vulnerability findings
 -- =====================================================================

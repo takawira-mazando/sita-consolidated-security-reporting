@@ -25,7 +25,7 @@ export function buildExplain(role: string, f: ExplainFacts): string {
       return `<h3>Executive Risk Dashboard &mdash; Consolidation Logic</h3>
 <ul>
   <li><strong>Fused Risk Score (${fmt(f.fusedRisk)}):</strong> Weighted composite of AppScan severity (40%), Imperva violation volume (30%), API exposure (20%), and compliance maturity (10%). Each factor normalized 0&ndash;100 before weighting. Computed from the live risk-scoring pipeline.</li>
-  <li><strong>Open Findings (${count(f.findings)}):</strong> All AppScan findings across 5 applications. Critical &amp; high severity findings are flagged for immediate remediation.</li>
+  <li><strong>Open Findings (${count(f.findings)}):</strong> All AppScan findings across the monitored applications of every national department (60 departments). Critical &amp; high severity findings are flagged for immediate remediation.</li>
   <li><strong>POPIA Compliance (${fmt(f.popia, '%')}):</strong> Aggregated from the compliance snapshots stored in the warehouse &mdash; data inventory, consent management, breach response, data subject rights, and cross-border transfer.</li>
   <li><strong>Active Alerts (${count(f.alerts)}):</strong> Alert rules evaluated against the fused data stream &mdash; includes fusion-specific rules (e.g., fused_score &gt; 71) and OEM-specific rules from each source.</li>
   <li><strong>Heatmap:</strong> AppScan findings &times; severity per application. Color intensity reflects finding count (4 levels). ${f.topApp ? `<strong>${f.topApp}</strong> currently leads the critical bucket.` : ''}</li>
@@ -47,7 +47,7 @@ export function buildExplain(role: string, f: ExplainFacts): string {
     case 'appsec':
       return `<h3>Application Security Dashboard &mdash; Consolidation Logic</h3>
 <ul>
-  <li><strong>Total Findings (${count(f.findings)}):</strong> All AppScan vulnerabilities across 5 applications (legacy-api, payment-gateway, customer-portal, document-svc, internal-hr).</li>
+  <li><strong>Total Findings (${count(f.findings)}):</strong> All AppScan vulnerabilities across the application estate of all 60 national departments.</li>
   <li><strong>Critical (${count(f.critical)}):</strong> Severity-critical findings awaiting remediation.</li>
   <li><strong>Fix Rate / WAF Blocks:</strong> Not tracked by the backend yet &mdash; shown once a remediation and WAF telemetry feed is available.</li>
   <li><strong>API Exposure:</strong> API Security findings for risky endpoints. Shadow APIs flagged for immediate investigation.</li>
@@ -58,7 +58,7 @@ export function buildExplain(role: string, f: ExplainFacts): string {
     case 'dbsec':
       return `<h3>Database Security Dashboard &mdash; Consolidation Logic</h3>
 <ul>
-  <li><strong>Total Violations (${count(f.violations)}):</strong> Imperva DAM policy violations across monitored database servers (DB-CUST-01, DB-PAY-01, DB-DOC-01, DB-HR-01).</li>
+  <li><strong>Total Violations (${count(f.violations)}):</strong> Imperva DAM policy violations across monitored database servers of every national department.</li>
   <li><strong>Critical Violations (${count(f.critical)}):</strong> Severity-critical violations requiring immediate investigation.</li>
   <li><strong>Databases Monitored / Coverage:</strong> Not tracked by the backend yet &mdash; no DAM inventory feed.</li>
   <li><strong>Violation Categories:</strong> Unauthorized access, privilege abuse, SQL injection, data exfiltration, and other policy violations.</li>

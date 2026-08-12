@@ -1,10 +1,10 @@
 from math import ceil
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import require_roles
+from app.api.auth import require_roles, tenant_filter
 from app.api.schemas.common import PaginatedResponse
 from app.api.schemas.finding import Finding
 from app.db import get_session
@@ -28,6 +28,9 @@ async def get_findings(
     claims = Depends(require_roles("findings")),
 ):
     filters = []
+    scope = tenant_filter(claims, FindingModel)
+    if scope is not None:
+        filters.append(scope)
     if app:
         filters.append(FindingModel.app_name == app)
     if severity:
@@ -82,13 +85,17 @@ async def get_finding(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("findings")),
 ):
+    scope = tenant_filter(claims, FindingModel)
+    base = select(FindingModel)
+    if scope is not None:
+        base = base.where(scope)
     row = (
-        await session.execute(
-            select(FindingModel).where(
-                or_(FindingModel.id == finding_id, FindingModel.external_id == finding_id)
-            )
-        )
+        await session.execute(base.where(FindingModel.id == finding_id))
     ).scalar_one_or_none()
+    if row is None:
+        row = (
+            await session.execute(base.where(FindingModel.external_id == finding_id))
+        ).scalar_one_or_none()
     if row is None:
         return {"id": finding_id, "source": "", "external_id": "", "app_name": "", "severity": "info", "title": "", "first_seen": "", "last_seen": "", "status": "", "version": 1}
     return Finding(

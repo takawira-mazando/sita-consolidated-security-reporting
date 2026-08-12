@@ -5,7 +5,7 @@ import pandas as pd
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.alert import Alert, AlertStatus
+from app.models.alert import Alert, AlertStatus, DispatchLog
 from app.models.compliance import ComplianceGap, ComplianceSnapshot
 from app.models.connector_status import ConnectorHealth
 from app.models.finding import Finding, Severity
@@ -18,6 +18,16 @@ from app.models.metrics import (
     WafBlock,
 )
 from app.models.risk_score import RiskBucket, RiskScore
+from app.tenant import (
+    branch_for_app,
+    branch_for_db,
+    cluster_for_app,
+    cluster_for_db,
+    department_for_app,
+    department_for_db,
+    ministry_for_app,
+    ministry_for_db,
+)
 
 
 def _first(record: dict, *keys: str, default=None):
@@ -55,11 +65,16 @@ def record_to_finding(record: dict, source: str = "") -> dict:
     first_seen = _as_datetime(_first(record, "first_seen", "timestamp", "discovered_at", "last_seen"), now)
     last_seen = _as_datetime(_first(record, "last_seen", "timestamp", "first_seen", "discovered_at"), now)
     status_raw = str(_first(record, "status", "state") or "open").lower()
+    app_name = str(_first(record, "app_name", "application_name", "database_name", "endpoint") or "unknown")
     return {
         "id": str(uuid.uuid4()),
         "source": source,
         "external_id": str(_first(record, "external_id", "event_id", "id", "control_id") or uuid.uuid4()),
-        "app_name": str(_first(record, "app_name", "application_name", "database_name", "endpoint") or "unknown"),
+        "app_name": app_name,
+        "department_id": department_for_app(app_name) or department_for_db(app_name),
+        "branch_id": branch_for_app(app_name) or branch_for_db(app_name),
+        "ministry_id": ministry_for_app(app_name) or ministry_for_db(app_name),
+        "cluster_id": cluster_for_app(app_name) or cluster_for_db(app_name),
         "severity": severity_raw,
         "title": str(_first(record, "title", "vulnerability_name", "rule_name", "attack_name", "name", "description") or "Finding"),
         "description": _first(record, "description", "details", "summary"),
@@ -80,6 +95,11 @@ async def upsert_findings(session: AsyncSession, records: list[dict], source: st
     stmt = stmt.on_conflict_do_update(
         index_elements=[Finding.source, Finding.external_id],
         set_={
+            "app_name": stmt.excluded.app_name,
+            "department_id": stmt.excluded.department_id,
+            "branch_id": stmt.excluded.branch_id,
+            "ministry_id": stmt.excluded.ministry_id,
+            "cluster_id": stmt.excluded.cluster_id,
             "severity": stmt.excluded.severity,
             "title": stmt.excluded.title,
             "description": stmt.excluded.description,
@@ -109,6 +129,11 @@ async def upsert_lake_batch(
     stmt = stmt.on_conflict_do_update(
         index_elements=[Finding.source, Finding.external_id],
         set_={
+            "app_name": stmt.excluded.app_name,
+            "department_id": stmt.excluded.department_id,
+            "branch_id": stmt.excluded.branch_id,
+            "ministry_id": stmt.excluded.ministry_id,
+            "cluster_id": stmt.excluded.cluster_id,
             "severity": stmt.excluded.severity,
             "title": stmt.excluded.title,
             "description": stmt.excluded.description,
@@ -126,6 +151,11 @@ async def upsert_lake_batch(
     return len(findings)
 
 
+def _chunked(seq: list, size: int = 500):
+    for i in range(0, len(seq), size):
+        yield seq[i : i + size]
+
+
 async def upsert_risk_scores(session: AsyncSession, rows: list[dict]) -> int:
     if not rows:
         return 0
@@ -134,9 +164,14 @@ async def upsert_risk_scores(session: AsyncSession, rows: list[dict]) -> int:
         bucket_raw = str(row.get("bucket") or "monitored").lower()
         if bucket_raw not in {b.value for b in RiskBucket}:
             bucket_raw = "monitored"
+        app_name = row.get("app_name", "unknown")
         values.append({
             "id": str(uuid.uuid4()),
-            "app_name": row.get("app_name", "unknown"),
+            "app_name": app_name,
+            "department_id": department_for_app(app_name) or department_for_db(app_name),
+            "branch_id": branch_for_app(app_name) or branch_for_db(app_name),
+            "ministry_id": ministry_for_app(app_name) or ministry_for_db(app_name),
+            "cluster_id": cluster_for_app(app_name) or cluster_for_db(app_name),
             "score_date": row.get("score_date") or datetime.now(timezone.utc).date(),
             "fused_score": float(row.get("fused_score", 0.0)),
             "signal_appscan": row.get("signal_appscan"),
@@ -145,19 +180,24 @@ async def upsert_risk_scores(session: AsyncSession, rows: list[dict]) -> int:
             "signal_compliance_penalty": row.get("signal_compliance_penalty"),
             "bucket": bucket_raw,
         })
-    stmt = pg_insert(RiskScore).values(values)
-    stmt = stmt.on_conflict_do_update(
-        index_elements=[RiskScore.app_name, RiskScore.score_date],
-        set_={
-            "fused_score": stmt.excluded.fused_score,
-            "signal_appscan": stmt.excluded.signal_appscan,
-            "signal_imperva": stmt.excluded.signal_imperva,
-            "signal_api_exposure": stmt.excluded.signal_api_exposure,
-            "signal_compliance_penalty": stmt.excluded.signal_compliance_penalty,
-            "bucket": stmt.excluded.bucket,
-        },
-    )
-    await session.execute(stmt)
+    for chunk in _chunked(values):
+        stmt = pg_insert(RiskScore).values(chunk)
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[RiskScore.app_name, RiskScore.score_date],
+            set_={
+                "department_id": stmt.excluded.department_id,
+                "branch_id": stmt.excluded.branch_id,
+                "ministry_id": stmt.excluded.ministry_id,
+                "cluster_id": stmt.excluded.cluster_id,
+                "fused_score": stmt.excluded.fused_score,
+                "signal_appscan": stmt.excluded.signal_appscan,
+                "signal_imperva": stmt.excluded.signal_imperva,
+                "signal_api_exposure": stmt.excluded.signal_api_exposure,
+                "signal_compliance_penalty": stmt.excluded.signal_compliance_penalty,
+                "bucket": stmt.excluded.bucket,
+            },
+        )
+        await session.execute(stmt)
     await session.commit()
     return len(values)
 
@@ -175,6 +215,7 @@ async def upsert_alerts(session: AsyncSession, alerts: list[dict], commit: bool 
         if status_raw not in {s.value for s in AlertStatus}:
             status_raw = "new"
         triggered = _as_datetime(alert.get("first_triggered"), now)
+        target_id = alert.get("target_id")
         values.append({
             "id": str(alert.get("id") or uuid.uuid4()),
             "rule_id": str(alert.get("rule_id") or "unknown"),
@@ -182,13 +223,19 @@ async def upsert_alerts(session: AsyncSession, alerts: list[dict], commit: bool 
             "description": alert.get("description"),
             "severity": severity_raw,
             "source": alert.get("source"),
-            "target_id": alert.get("target_id"),
+            "target_id": target_id,
+            "department_id": department_for_app(target_id) or department_for_db(target_id),
+            "branch_id": branch_for_app(target_id) or branch_for_db(target_id),
+            "ministry_id": ministry_for_app(target_id) or ministry_for_db(target_id),
+            "cluster_id": cluster_for_app(target_id) or cluster_for_db(target_id),
             "status": status_raw,
             "enriched_data": alert.get("enriched_data"),
+            "channels": alert.get("channels") if alert.get("channels") else None,
             "dedup_key": alert.get("dedup_key"),
             "dedup_count": int(alert.get("dedup_count") or 1),
             "first_triggered": triggered,
             "last_triggered": _as_datetime(alert.get("last_triggered"), triggered),
+            "last_dispatched_at": _as_datetime(alert.get("last_dispatched_at")) if alert.get("last_dispatched_at") else None,
         })
     stmt = pg_insert(Alert).values(values)
     stmt = stmt.on_conflict_do_update(
@@ -197,10 +244,51 @@ async def upsert_alerts(session: AsyncSession, alerts: list[dict], commit: bool 
             "status": stmt.excluded.status,
             "severity": stmt.excluded.severity,
             "enriched_data": stmt.excluded.enriched_data,
+            "channels": stmt.excluded.channels,
             "dedup_count": stmt.excluded.dedup_count,
             "last_triggered": stmt.excluded.last_triggered,
+            "last_dispatched_at": stmt.excluded.last_dispatched_at,
         },
     )
+    await session.execute(stmt)
+    if commit:
+        await session.commit()
+    return len(values)
+
+
+async def record_dispatch(
+    session: AsyncSession,
+    alert_id: str,
+    results: list[dict],
+    commit: bool = True,
+) -> int:
+    """Persist per-channel delivery outcomes for an alert (dispatch audit trail)."""
+    if not results:
+        return 0
+    now = datetime.now(timezone.utc)
+    from sqlalchemy import select
+    alert = (
+        await session.execute(select(Alert).where(Alert.id == alert_id))
+    ).scalar_one_or_none()
+    department_id = alert.department_id if alert is not None else department_for_app(alert_id)
+    branch_id = alert.branch_id if alert is not None else branch_for_app(alert_id)
+    ministry_id = alert.ministry_id if alert is not None else ministry_for_app(alert_id)
+    cluster_id = alert.cluster_id if alert is not None else cluster_for_app(alert_id)
+    values = []
+    for result in results:
+        values.append({
+            "id": str(uuid.uuid4()),
+            "alert_id": str(alert_id or ""),
+            "channel": str(result.get("channel") or "unknown"),
+            "department_id": department_id,
+            "branch_id": branch_id,
+            "ministry_id": ministry_id,
+            "cluster_id": cluster_id,
+            "status": str(result.get("status") or "failed"),
+            "error": result.get("error"),
+            "attempted_at": _as_datetime(result.get("attempted_at"), now),
+        })
+    stmt = pg_insert(DispatchLog).values(values)
     await session.execute(stmt)
     if commit:
         await session.commit()
@@ -293,6 +381,10 @@ async def upsert_waf_blocks(session: AsyncSession, rows: list[dict]) -> int:
     values = [{
         "id": str(row.get("id") or uuid.uuid4()),
         "app_name": row.get("app_name", "unknown"),
+        "department_id": department_for_app(row.get("app_name")),
+        "branch_id": branch_for_app(row.get("app_name")),
+        "ministry_id": ministry_for_app(row.get("app_name")),
+        "cluster_id": cluster_for_app(row.get("app_name")),
         "attack_type": row.get("attack_type"),
         "request_uri": row.get("request_uri"),
         "action": row.get("action", "block"),
@@ -312,6 +404,10 @@ async def upsert_api_endpoints(session: AsyncSession, rows: list[dict]) -> int:
     values = [{
         "id": str(row.get("id") or uuid.uuid4()),
         "app_name": row.get("app_name", "unknown"),
+        "department_id": department_for_app(row.get("app_name")),
+        "branch_id": branch_for_app(row.get("app_name")),
+        "ministry_id": ministry_for_app(row.get("app_name")),
+        "cluster_id": cluster_for_app(row.get("app_name")),
         "endpoint": row.get("endpoint", ""),
         "method": row.get("method", "GET"),
         "is_shadow": bool(row.get("is_shadow", False)),
@@ -387,6 +483,10 @@ async def upsert_database_inventory(session: AsyncSession, rows: list[dict]) -> 
     values = [{
         "id": str(row.get("id") or uuid.uuid4()),
         "name": row.get("name", ""),
+        "department_id": department_for_db(row.get("name")),
+        "branch_id": branch_for_db(row.get("name")),
+        "ministry_id": ministry_for_db(row.get("name")),
+        "cluster_id": cluster_for_db(row.get("name")),
         "engine": row.get("engine"),
         "monitored": bool(row.get("monitored", True)),
         "agent_version": row.get("agent_version"),

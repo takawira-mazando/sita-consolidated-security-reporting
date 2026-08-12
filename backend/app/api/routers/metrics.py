@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import require_roles
+from app.api.auth import require_roles, tenant_filter
 from app.db import get_session
 from app.models.alert import Alert, AlertStatus
 from app.models.compliance import ComplianceGap, ComplianceSnapshot
@@ -42,16 +42,20 @@ async def get_waf_blocks(
     claims = Depends(require_roles("findings")),
 ):
     window = datetime.now(timezone.utc) - timedelta(days=30)
+    scope = tenant_filter(claims, WafBlock)
+    where = [WafBlock.block_time >= window]
+    if scope is not None:
+        where.append(scope)
     total = (
         await session.execute(
-            select(func.count()).select_from(WafBlock).where(WafBlock.block_time >= window)
+            select(func.count()).select_from(WafBlock).where(*where)
         )
     ).scalar_one()
 
     by_type_rows = (
         await session.execute(
             select(WafBlock.attack_type, func.count())
-            .where(WafBlock.block_time >= window)
+            .where(*where)
             .group_by(WafBlock.attack_type)
             .order_by(func.count().desc())
         )
@@ -61,7 +65,7 @@ async def get_waf_blocks(
     latest_rows = (
         await session.execute(
             select(WafBlock)
-            .where(WafBlock.block_time >= window)
+            .where(*where)
             .order_by(WafBlock.block_time.desc())
             .limit(50)
         )
@@ -86,7 +90,11 @@ async def get_api_exposure(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("findings")),
 ):
-    rows = (await session.execute(select(ApiEndpoint).order_by(ApiEndpoint.exposure_score.desc()))).scalars().all()
+    q = select(ApiEndpoint).order_by(ApiEndpoint.exposure_score.desc())
+    scope = tenant_filter(claims, ApiEndpoint)
+    if scope is not None:
+        q = q.where(scope)
+    rows = (await session.execute(q)).scalars().all()
     items = [
         {
             "id": r.id,
@@ -113,17 +121,24 @@ async def get_fix_rate(
     claims = Depends(require_roles("findings")),
 ):
     window = datetime.now(timezone.utc) - timedelta(days=30)
+    scope = tenant_filter(claims, Finding)
+    total_where = [Finding.last_seen >= window]
+    if scope is not None:
+        total_where.append(scope)
     total = (
         await session.execute(
-            select(func.count()).select_from(Finding).where(Finding.last_seen >= window)
+            select(func.count()).select_from(Finding).where(*total_where)
         )
     ).scalar_one()
+    fixed_where = [
+        Finding.last_seen >= window,
+        Finding.status.in_(["fixed", "closed", "resolved", "remediated"]),
+    ]
+    if scope is not None:
+        fixed_where.append(scope)
     fixed = (
         await session.execute(
-            select(func.count()).select_from(Finding).where(
-                Finding.last_seen >= window,
-                Finding.status.in_(["fixed", "closed", "resolved", "remediated"]),
-            )
+            select(func.count()).select_from(Finding).where(*fixed_where)
         )
     ).scalar_one()
     return {
@@ -151,10 +166,12 @@ async def get_slo_metrics(
     ]
 
     open_statuses = [AlertStatus.NEW, AlertStatus.ACKNOWLEDGED, AlertStatus.INVESTIGATING]
+    backlog_q = select(Alert.first_triggered).where(Alert.status.in_(open_statuses))
+    scope = tenant_filter(claims, Alert)
+    if scope is not None:
+        backlog_q = backlog_q.where(scope)
     backlog_rows = (
-        await session.execute(
-            select(Alert.first_triggered).where(Alert.status.in_(open_statuses))
-        )
+        await session.execute(backlog_q)
     ).scalars().all()
     now = datetime.now(timezone.utc)
     buckets = {"0-6h": 0, "6-24h": 0, "1-3d": 0, "3d+": 0}
@@ -245,7 +262,11 @@ async def get_database_inventory(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("findings")),
 ):
-    rows = (await session.execute(select(DatabaseInventory).order_by(DatabaseInventory.name))).scalars().all()
+    q = select(DatabaseInventory).order_by(DatabaseInventory.name)
+    scope = tenant_filter(claims, DatabaseInventory)
+    if scope is not None:
+        q = q.where(scope)
+    rows = (await session.execute(q)).scalars().all()
     items = [
         {
             "id": r.id,

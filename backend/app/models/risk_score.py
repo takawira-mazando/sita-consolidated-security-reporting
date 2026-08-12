@@ -16,6 +16,10 @@ class RiskScore(Base):
 
     id = Column(String, primary_key=True)
     app_name = Column(String(255), nullable=False)
+    department_id = Column(String(36), index=True)
+    branch_id = Column(String(36), index=True)
+    ministry_id = Column(String(36), index=True)
+    cluster_id = Column(String(36), index=True)
     score_date = Column(Date, nullable=False)
     fused_score = Column(Numeric(5, 1), nullable=False)
     signal_appscan = Column(Numeric(5, 1))

@@ -16,4 +16,9 @@ class Alert(BaseModel):
     acknowledged_at: datetime | None = None
     first_triggered: datetime
     last_triggered: datetime
+    last_dispatched_at: datetime | None = None
+    resolved_at: datetime | None = None
+    dedup_count: int | None = None
+    channels: list[str] | None = None
+    enriched_data: dict | None = None
     created_at: datetime

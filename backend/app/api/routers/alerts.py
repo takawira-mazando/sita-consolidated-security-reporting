@@ -4,12 +4,12 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import require_roles
+from app.api.auth import require_roles, tenant_filter
 from app.api.schemas.alert import Alert
 from app.api.schemas.common import PaginatedResponse
 from app.db import get_session
 from app.models.alert import Alert as AlertModel
-from app.models.alert import AlertStatus
+from app.models.alert import AlertStatus, DispatchLog
 
 router = APIRouter(tags=["alerts"])
 
@@ -34,6 +34,9 @@ async def get_alerts(
     claims = Depends(require_roles("alerts_read")),
 ):
     filters = []
+    scope = tenant_filter(claims, AlertModel)
+    if scope is not None:
+        filters.append(scope)
     if severity:
         filters.append(AlertModel.severity == severity)
     if status:
@@ -61,6 +64,11 @@ async def get_alerts(
             acknowledged_at=r.acknowledged_at,
             first_triggered=r.first_triggered,
             last_triggered=r.last_triggered,
+            last_dispatched_at=r.last_dispatched_at,
+            resolved_at=r.resolved_at,
+            dedup_count=r.dedup_count,
+            channels=r.channels,
+            enriched_data=r.enriched_data,
             created_at=r.created_at,
         )
         for r in rows
@@ -75,6 +83,28 @@ async def get_alerts(
     }
 
 
+@router.get("/alerts/{alert_id}/dispatch", response_model=list)
+async def get_alert_dispatch(
+    alert_id: str,
+    session: AsyncSession = Depends(get_session),
+    claims = Depends(require_roles("alerts_read")),
+):
+    q = select(DispatchLog).where(DispatchLog.alert_id == alert_id)
+    scope = tenant_filter(claims, DispatchLog)
+    if scope is not None:
+        q = q.where(scope)
+    rows = (await session.execute(q.order_by(DispatchLog.attempted_at.desc()))).scalars().all()
+    return [
+        {
+            "channel": r.channel,
+            "status": r.status,
+            "error": r.error,
+            "attempted_at": r.attempted_at,
+        }
+        for r in rows
+    ]
+
+
 @router.patch("/alerts/{alert_id}/acknowledge")
 async def acknowledge_alert(
     alert_id: str,
@@ -82,11 +112,11 @@ async def acknowledge_alert(
     claims = Depends(require_roles("alerts_write")),
 ):
     from datetime import datetime, timezone
-    row = (
-        await session.execute(
-            select(AlertModel).where(AlertModel.id == alert_id)
-        )
-    ).scalar_one_or_none()
+    q = select(AlertModel).where(AlertModel.id == alert_id)
+    scope = tenant_filter(claims, AlertModel)
+    if scope is not None:
+        q = q.where(scope)
+    row = (await session.execute(q)).scalar_one_or_none()
     if row is None:
         return {"id": alert_id, "status": "not_found"}
     row.status = AlertStatus.ACKNOWLEDGED
@@ -103,11 +133,11 @@ async def resolve_alert(
     claims = Depends(require_roles("alerts_write")),
 ):
     from datetime import datetime, timezone
-    row = (
-        await session.execute(
-            select(AlertModel).where(AlertModel.id == alert_id)
-        )
-    ).scalar_one_or_none()
+    q = select(AlertModel).where(AlertModel.id == alert_id)
+    scope = tenant_filter(claims, AlertModel)
+    if scope is not None:
+        q = q.where(scope)
+    row = (await session.execute(q)).scalar_one_or_none()
     if row is None:
         return {"id": alert_id, "status": "not_found"}
     row.status = AlertStatus.RESOLVED

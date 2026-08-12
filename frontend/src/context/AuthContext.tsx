@@ -1,6 +1,12 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthContextType } from '../types';
-import { loginRequest, demoLoginRequest, fetchDemoAccounts, DemoAccount } from '../api/auth';
+import {
+  loginRequest,
+  demoLoginRequest,
+  fetchDemoAccounts,
+  DemoAccount,
+  LoginScope,
+} from '../api/auth';
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
@@ -18,6 +24,8 @@ export const FALLBACK_DEMO_ACCOUNTS: DemoAccount[] = [
   { email: 'dbsec@example.com', label: 'DB Security', role: 'dbsec' },
   { email: 'compliance@example.com', label: 'Compliance', role: 'compliance' },
   { email: 'sre@example.com', label: 'Service Ops', role: 'sre' },
+  { email: 'transversal@example.com', label: 'Transversal Admin', role: 'transversal-admin' },
+  { email: 'provincesoc@example.com', label: 'Provincial SOC Lead', role: 'province-soc-lead' },
   { email: 'admin@example.com', label: 'Admin', role: 'admin' },
 ];
 
@@ -71,9 +79,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const loginDemo = async (role: string): Promise<{ ok: boolean; error?: string }> => {
+  const loginDemo = async (role: string, scope?: LoginScope): Promise<{ ok: boolean; error?: string }> => {
     try {
-      const { token, user: u } = await demoLoginRequest(role);
+      const { token, user: u } = await demoLoginRequest(role, scope);
       storeSession(u, token);
       setUser(u);
       return { ok: true };

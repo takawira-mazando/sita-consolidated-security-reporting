@@ -177,6 +177,30 @@ body {
   transition: all 0.2s;
 }
 .login-demo-chip:hover { border-color: var(--blue); color: var(--blue); background: #e0ecfb; }
+.login-scope {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #f4f7fa;
+  border: 1px dashed #cfd9e3;
+  border-radius: 6px;
+  text-align: left;
+}
+.login-scope-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #455565;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.login-scope-default { font-weight: 400; font-style: normal; color: var(--blue); }
+.login-scope-row { display: flex; gap: 8px; }
+.login-scope-row .form-input { font-size: 12px; padding: 6px 8px; }
+.login-scope-summary { font-size: 11px; color: #7a8a99; }
+.login-scope-summary::before { content: '▸ '; }
 .login-demo-chip:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
 
 .app-wrapper { display: flex; flex-direction: column; min-height: 100vh; }
@@ -203,7 +227,8 @@ body {
 .role-nav .role-tab.active { background: #e9eef4; border-color: #cfd9e3; color: #1a2431; }
 .role-nav .theme-toggle { background: #e9eef4; border-color: #cfd9e3; color: #455565; }
 .role-nav .theme-toggle:hover { background: #dde6ef; }
-.role-nav .nav-user { color: #455565; }
+  .role-nav .nav-user { color: #455565; }
+  .role-nav .nav-dept { color: #b45309; border-color: #cfd9e3; }
 .role-nav .logout-btn { border-color: #cfd9e3; color: #455565; }
 .role-nav .logout-btn:hover { background: #fee2e2; border-color: #dc2626; color: #dc2626; }
 .nav-brand { display: flex; align-items: center; gap: 8px; margin-right: 12px; }
@@ -270,6 +295,24 @@ body {
 }
 .theme-toggle:hover { background: var(--surface-3); }
 .nav-user { color: var(--text-muted); font-size: 13px; font-family: var(--mono); }
+.nav-dept {
+  color: var(--amber);
+  font-size: 12px;
+  font-family: var(--mono);
+  border: 1px solid var(--border-dim);
+  border-radius: 999px;
+  padding: 3px 10px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nav-dept-more {
+  margin-left: 4px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-dim);
+  color: var(--text-muted);
+}
 .logout-btn {
   padding: 6px 14px;
   background: transparent;
@@ -631,6 +674,26 @@ tbody tr:last-child td { border-bottom: none; }
 }
 .role-check:hover { border-color: var(--blue); }
 .role-check.checked { border-color: var(--violet); background: var(--violet-dim); color: var(--violet); }
+.scope-count {
+  margin-left: 6px;
+  font-size: 10.5px;
+  font-family: var(--mono);
+  color: var(--text-muted);
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  padding: 0 5px;
+}
+.branch-group { margin-top: 8px; }
+.branch-group-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.branch-group-title::before { content: '▸'; color: var(--violet); }
 .role-check.checked .role-check-box { background: var(--violet); border-color: var(--violet); }
 
 .form-check {

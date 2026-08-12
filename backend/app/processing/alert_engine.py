@@ -123,6 +123,7 @@ class AlertRuleEngine:
             "source": row.get("source") or rule.get("source"),
             "target_id": row.get("target_id") or row.get("app_name") or row.get("application_name"),
             "status": "new",
+            "channels": list(rule.get("channels") or []),
             "first_triggered": now,
             "last_triggered": now,
             "dedup_key": f"{rule.get('id')}:{row.get('source', '')}:{row.get('target_id', '') or row.get('app_name', '')}",

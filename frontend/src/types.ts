@@ -3,6 +3,13 @@ export interface User {
   email: string;
   roles: string[];
   name?: string;
+  department_ids?: string[];
+  branch_ids?: string[];
+  branch_names?: string[];
+  department_id?: string | null;
+  department_name?: string | null;
+  province_ids?: string[];
+  province_name?: string | null;
 }
 
 export interface AuthContextType {
@@ -10,8 +17,14 @@ export interface AuthContextType {
   isLoading: boolean;
   demoAccounts: DemoAccount[];
   login: (email?: string, password?: string) => Promise<{ ok: boolean; error?: string }>;
-  loginDemo: (role: string) => Promise<{ ok: boolean; error?: string }>;
+  loginDemo: (role: string, scope?: LoginScope) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
+}
+
+export interface LoginScope {
+  department_id: string | null;
+  branch_id: string | null;
+  province_id?: string | null;
 }
 
 export interface DemoAccount {
@@ -86,7 +99,27 @@ export interface Alert {
   acknowledged_at?: string;
   first_triggered: string;
   last_triggered: string;
+  last_dispatched_at?: string;
+  resolved_at?: string;
+  dedup_count?: number;
+  channels?: string[];
+  enriched_data?: {
+    owner?: string;
+    team?: string;
+    tier?: string;
+    priority?: number;
+    external_id?: string;
+    dashboard_link?: string;
+    enriched_at?: string;
+  };
   created_at: string;
+}
+
+export interface DispatchLogEntry {
+  channel: string;
+  status: string;
+  error?: string;
+  attempted_at: string;
 }
 
 export interface ConnectorHealth {

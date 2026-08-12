@@ -41,15 +41,25 @@ from app.lake.writer import (
     upsert_system_metrics,
     upsert_waf_blocks,
 )
+from app.processing.alert_enricher import AlertEnricher
 from app.processing.normaliser import Normaliser
 from app.processing.risk_engine import RiskInputs, fused_risk, risk_bucket
-from app.synthetic.generator import SyntheticOEMFeed
+from app.synthetic.generator import API_ENDPOINTS, SyntheticOEMFeed
+from app.tenant import (
+    APP_DEPARTMENTS,
+    BRANCHES,
+    DB_TO_DEPARTMENT,
+    DEPARTMENTS,
+    department_for_app,
+    department_for_db,
+)
 
 logger = logging.getLogger(__name__)
 
 ALL_SOURCES = ["appscan", "imperva_dam", "imperva_waf", "apisec", "compliance"]
 
-APPS = ["legacy-api", "payment-gateway", "customer-portal", "document-svc", "internal-hr"]
+APPS = list(APP_DEPARTMENTS)
+DB_NAMES = list(DB_TO_DEPARTMENT)
 
 SOURCE_OWNER = {
     "appscan": "AppSec Engineer",
@@ -59,7 +69,7 @@ SOURCE_OWNER = {
     "compliance": "Compliance Officer",
 }
 
-DB_NAMES = ["DB-CUST-01", "DB-PAY-01", "DB-DOC-01", "DB-HR-01", "DB-CUST-02"]
+DB_NAMES = list(DB_TO_DEPARTMENT)
 
 WAF_ATTACKS = ["sqli", "xss", "rce", "lfi", "shellshock", "scanner-probe", "brute-force"]
 
@@ -89,6 +99,36 @@ def _normalise_records(records: list[dict], source: str, normaliser: Normaliser)
     for row in rows:
         row["source"] = source
     return json.loads(json.dumps(rows, default=str))
+
+
+async def seed_tenants(session) -> int:
+    """Upsert the Department -> Branch hierarchy (stable slugs, idempotent)."""
+    from sqlalchemy.dialects.postgresql import insert as pg_insert
+
+    from app.models.tenant import Branch, Department
+
+    rows = 0
+    stmt = pg_insert(Department).values(
+        [
+            {"id": dept_id, "name": name, "code": dept_id}
+            for dept_id, name in DEPARTMENTS.items()
+        ]
+    )
+    stmt = stmt.on_conflict_do_nothing(index_elements=[Department.id])
+    await session.execute(stmt)
+    rows += len(DEPARTMENTS)
+
+    stmt = pg_insert(Branch).values(
+        [
+            {"id": branch_id, "name": name, "code": branch_id, "department_id": parent}
+            for branch_id, (name, parent) in BRANCHES.items()
+        ]
+    )
+    stmt = stmt.on_conflict_do_nothing(index_elements=[Branch.id])
+    await session.execute(stmt)
+    rows += len(BRANCHES)
+    await session.commit()
+    return rows
 
 
 async def write_staging_batch(session, source: str, records: list[dict]) -> uuid.UUID:
@@ -141,6 +181,8 @@ async def compute_and_store_risks(session, findings: list[dict], days: int = 30)
     rows: list[dict] = []
     today = datetime.now(timezone.utc).date()
     for app, recs in by_app.items():
+        if not (department_for_app(app) or department_for_db(app)):
+            continue  # unmapped payloads (e.g. compliance) carry no tenant
         counts = {"critical": 0, "high": 0, "medium": 0, "low": 0}
         for r in recs:
             sev = str(r.get("severity") or "info").lower()
@@ -208,6 +250,19 @@ async def seed_metric_tables(session, feed: SyntheticOEMFeed) -> None:
             "src_ip": f"198.51.100.{rng.randint(1, 254)}",
             "block_time": ts.isoformat(),
         })
+    covered_apps = {row["app_name"] for row in waf_rows}
+    for app in APPS:
+        if app in covered_apps:
+            continue
+        ts = now - timedelta(minutes=rng.randint(0, 60 * 24 * 3))
+        waf_rows.append({
+            "app_name": app,
+            "attack_type": rng.choice(WAF_ATTACKS),
+            "request_uri": rng.choice(["/api/v1/pay", "/api/v2/admin", "/api/v3/export", "/soap/login", "/api/v1/orders"]),
+            "action": rng.choice(["block", "block", "block", "log"]),
+            "src_ip": f"198.51.100.{rng.randint(1, 254)}",
+            "block_time": ts.isoformat(),
+        })
     upserted_waf = await upsert_waf_blocks(session, waf_rows)
     logger.info("seeded %d WAF block records", upserted_waf)
 
@@ -230,6 +285,19 @@ async def seed_metric_tables(session, feed: SyntheticOEMFeed) -> None:
             "method": method,
             "is_shadow": shadow,
             "exposure_score": exposure,
+            "discovered_at": (now - timedelta(days=rng.randint(1, 90))).isoformat(),
+            "last_seen": (now - timedelta(hours=rng.randint(1, 72))).isoformat(),
+        })
+    covered_apps = {app for app, *_ in endpoints}
+    for app in APPS:
+        if app in covered_apps:
+            continue
+        api_rows.append({
+            "app_name": app,
+            "endpoint": rng.choice(API_ENDPOINTS),
+            "method": rng.choice(["GET", "POST", "PUT"]),
+            "is_shadow": rng.random() < 0.2,
+            "exposure_score": round(rng.uniform(5, 95), 1),
             "discovered_at": (now - timedelta(days=rng.randint(1, 90))).isoformat(),
             "last_seen": (now - timedelta(hours=rng.randint(1, 72))).isoformat(),
         })
@@ -365,6 +433,31 @@ async def seed_source(
         source = "imperva_dam"
 
     records = feed.batch(source, count)
+
+    # Guarantee national coverage: every app (or database) appears at least once
+    # per source so no department is missing from the M2/M3 dashboards.
+    if source in ("appscan", "imperva_waf", "apisec"):
+        covered = {rec.get("application_name") or rec.get("application") for rec in records}
+        for app in APPS:
+            if app in covered:
+                continue
+            if source == "appscan":
+                rec = feed.appscan_finding()
+            elif source == "imperva_waf":
+                rec = feed.imperva_waf_event()
+            else:
+                rec = feed.apisec_endpoint()
+            rec["application_name" if source != "apisec" else "application"] = app
+            records.append(rec)
+    elif source == "imperva_dam":
+        covered = {rec.get("database_name") for rec in records}
+        for db in DB_NAMES:
+            if db in covered:
+                continue
+            rec = feed.imperva_dam_event()
+            rec["database_name"] = db
+            records.append(rec)
+
     # spread timestamps over the requested window to make trend charts meaningful
     now = datetime.now(timezone.utc)
 
@@ -398,6 +491,13 @@ async def seed_source(
     alerts: list[dict] = []
     # severity-based alerts; vary status so the SOC timeline/queue look alive
     status_cycle = ["new", "new", "acknowledged", "investigating", "resolved"]
+    default_channels = {
+        "critical": ["email", "teams", "pagerduty"],
+        "high": ["email", "teams"],
+        "medium": ["teams"],
+        "low": ["teams"],
+    }
+    enricher = AlertEnricher()
     for row in rows:
         sev = str(row.get("severity") or "info").lower()
         if sev in ("critical", "high"):
@@ -413,12 +513,14 @@ async def seed_source(
                     "source": source,
                     "target_id": row.get("app_name"),
                     "status": status,
+                    "channels": default_channels.get(sev, ["teams"]),
                     "dedup_key": f"{sev}_record:{source}:{row.get('app_name')}",
                     "first_triggered": fired.isoformat(),
                     "last_triggered": fired.isoformat(),
                 }
             )
     if alerts:
+        alerts = [enricher.enrich(a) for a in alerts]
         await upsert_alerts(session, alerts, commit=False)
         logger.info("created %d alerts for %s", len(alerts), source)
 
@@ -440,6 +542,7 @@ async def run(sources: list[str], count: int, days: int, publish: bool) -> None:
     total_fetched = total_rows = total_alerts = 0
     findings_sink: list[dict] = []
     async with SessionFactory() as session:
+        seeded_tenants = await seed_tenants(session)
         for source in sources:
             fetched, rows, alerts = await seed_source(session, source, count, days, feed, normaliser)
             total_fetched += fetched
@@ -449,7 +552,8 @@ async def run(sources: list[str], count: int, days: int, publish: bool) -> None:
         risk_rows = await compute_and_store_risks(session, findings_sink, days=30)
         await seed_metric_tables(session, feed)
     logger.info(
-        "seed complete: fetched=%d normalised=%d alerts=%d risk_scores=%d",
+        "seed complete: tenants=%d fetched=%d normalised=%d alerts=%d risk_scores=%d",
+        seeded_tenants,
         total_fetched,
         total_rows,
         total_alerts,

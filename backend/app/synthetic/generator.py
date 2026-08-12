@@ -9,13 +9,10 @@ from __future__ import annotations
 import random
 from datetime import datetime, timedelta, timezone
 
-APPS = [
-    "legacy-api",
-    "payment-gateway",
-    "customer-portal",
-    "document-svc",
-    "internal-hr",
-]
+from app.tenant import APP_DEPARTMENTS, DB_TO_DEPARTMENT
+
+APPS = list(APP_DEPARTMENTS)
+DB_NAMES = list(DB_TO_DEPARTMENT)
 
 OWASP_CATEGORIES = [
     "A01-broken-access-control",
@@ -34,8 +31,6 @@ IMPERVA_SEVERITIES = ["Info", "Notice", "Warning", "Error", "Critical", "Emergen
 VIOLATION_TYPES = ["unauth_access", "sql_injection", "privilege_abuse", "data_exfil", "policy_other", "anomaly"]
 
 ATTACK_TYPES = ["sqli", "xss", "rce", "lfi", "shellshock", "scanner-probe", "brute-force"]
-
-DB_NAMES = ["DB-CUST-01", "DB-PAY-01", "DB-DOC-01", "DB-HR-01", "DB-CUST-02"]
 
 DB_USERS = ["sa", "app_user", "etl_svc", "dba_admin", "reporting"]
 

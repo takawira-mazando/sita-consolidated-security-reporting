@@ -2,15 +2,16 @@ from datetime import date
 from math import ceil
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import require_roles
+from app.api.auth import require_roles, tenant_filter
 from app.api.schemas.common import PaginatedResponse
 from app.api.schemas.risk import RiskScore, RiskTrend
 from app.db import get_session
 from app.models.risk_score import RiskBucket
 from app.models.risk_score import RiskScore as RiskScoreModel
+from app.tenant import CLUSTERS, MINISTRIES, MINISTRY_TO_CLUSTER
 
 router = APIRouter(tags=["risks"])
 
@@ -33,6 +34,9 @@ async def get_risks(
     claims = Depends(require_roles("risks")),
 ):
     filters = []
+    scope = tenant_filter(claims, RiskScoreModel)
+    if scope is not None:
+        filters.append(scope)
     if app:
         filters.append(RiskScoreModel.app_name == app)
     if bucket:
@@ -72,6 +76,107 @@ async def get_risks(
     }
 
 
+@router.get("/risks/by-cluster")
+async def get_risks_by_cluster(
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    session: AsyncSession = Depends(get_session),
+    claims = Depends(require_roles("risks")),
+):
+    """Rank Treasury clusters by average fused risk (most vulnerable first).
+
+    cluster_id/ministry_id are nullable reporting metadata derived from each
+    row's department_id; they never widen the tenant scope (tenant_filter still
+    keys on department_id).
+    """
+    filters = []
+    scope = tenant_filter(claims, RiskScoreModel)
+    if scope is not None:
+        filters.append(scope)
+    if date_from:
+        filters.append(RiskScoreModel.score_date >= date_from)
+    if date_to:
+        filters.append(RiskScoreModel.score_date <= date_to)
+
+    rows = (
+        await session.execute(
+            select(
+                RiskScoreModel.cluster_id,
+                func.avg(RiskScoreModel.fused_score).label("avg_risk"),
+                func.max(RiskScoreModel.fused_score).label("max_risk"),
+                func.count(func.distinct(RiskScoreModel.department_id)).label("departments"),
+                func.count().label("rows"),
+            )
+            .where(*filters)
+            .group_by(RiskScoreModel.cluster_id)
+            .order_by(func.avg(RiskScoreModel.fused_score).desc())
+        )
+    ).all()
+    return {
+        "items": [
+            {
+                "cluster_id": r.cluster_id,
+                "cluster_name": CLUSTERS.get(r.cluster_id) if r.cluster_id else None,
+                "avg_risk": round(float(r.avg_risk), 1) if r.avg_risk is not None else None,
+                "max_risk": round(float(r.max_risk), 1) if r.max_risk is not None else None,
+                "departments": int(r.departments),
+                "rows": int(r.rows),
+            }
+            for r in rows
+        ]
+    }
+
+
+@router.get("/risks/by-ministry")
+async def get_risks_by_ministry(
+    cluster_id: str | None = Query(None),
+    date_from: date | None = Query(None),
+    date_to: date | None = Query(None),
+    session: AsyncSession = Depends(get_session),
+    claims = Depends(require_roles("risks")),
+):
+    """Rank ministries by average fused risk (most vulnerable first)."""
+    filters = []
+    scope = tenant_filter(claims, RiskScoreModel)
+    if scope is not None:
+        filters.append(scope)
+    if cluster_id:
+        filters.append(RiskScoreModel.cluster_id == cluster_id)
+    if date_from:
+        filters.append(RiskScoreModel.score_date >= date_from)
+    if date_to:
+        filters.append(RiskScoreModel.score_date <= date_to)
+
+    rows = (
+        await session.execute(
+            select(
+                RiskScoreModel.ministry_id,
+                func.avg(RiskScoreModel.fused_score).label("avg_risk"),
+                func.max(RiskScoreModel.fused_score).label("max_risk"),
+                func.count(func.distinct(RiskScoreModel.department_id)).label("departments"),
+                func.count().label("rows"),
+            )
+            .where(*filters)
+            .group_by(RiskScoreModel.ministry_id)
+            .order_by(func.avg(RiskScoreModel.fused_score).desc())
+        )
+    ).all()
+    return {
+        "items": [
+            {
+                "ministry_id": r.ministry_id,
+                "ministry_name": MINISTRIES.get(r.ministry_id) if r.ministry_id else None,
+                "cluster_id": MINISTRY_TO_CLUSTER.get(r.ministry_id) if r.ministry_id else None,
+                "avg_risk": round(float(r.avg_risk), 1) if r.avg_risk is not None else None,
+                "max_risk": round(float(r.max_risk), 1) if r.max_risk is not None else None,
+                "departments": int(r.departments),
+                "rows": int(r.rows),
+            }
+            for r in rows
+        ]
+    }
+
+
 @router.get("/risks/{app_name}/trend", response_model=RiskTrend)
 async def get_risk_trend(
     app_name: str,
@@ -81,12 +186,14 @@ async def get_risk_trend(
 ):
     from datetime import timedelta
     cutoff = date.today() - timedelta(days=days)
+    q = select(RiskScoreModel).where(
+        RiskScoreModel.app_name == app_name, RiskScoreModel.score_date >= cutoff
+    )
+    scope = tenant_filter(claims, RiskScoreModel)
+    if scope is not None:
+        q = q.where(scope)
     rows = (
-        await session.execute(
-            select(RiskScoreModel)
-            .where(RiskScoreModel.app_name == app_name, RiskScoreModel.score_date >= cutoff)
-            .order_by(RiskScoreModel.score_date)
-        )
+        await session.execute(q.order_by(RiskScoreModel.score_date))
     ).scalars().all()
     trend = [
         RiskScore(
