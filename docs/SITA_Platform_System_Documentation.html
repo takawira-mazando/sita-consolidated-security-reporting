@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITA Consolidated Security Reporting — System Documentation</title>
+<style>
+:root {
+  --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
+  --muted: #8b949e; --accent: #f0883e; --amber: #f0c674; --blue: #79c0ff; --green: #7ee787;
+  --code: #1f2937;
+}
+html[data-theme="light"] {
+  --bg: #fafbfc; --panel: #ffffff; --border: #d0d7de; --text: #1f2328;
+  --muted: #6e7781; --accent: #cf5c19; --amber: #7a5d00; --blue: #0969da; --green: #1a7f37;
+  --code: #f6f8fa;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  line-height: 1.65; padding: 2rem 1rem; max-width: 980px; margin: 0 auto;
+}
+header {
+  border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+}
+header h1 { font-size: 1.6rem; color: var(--accent); }
+header .sub { color: var(--muted); font-size: 0.95rem; margin-top: 0.25rem; }
+button {
+  background: var(--panel); color: var(--amber); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.45rem 0.8rem; cursor: pointer; font-weight: 700;
+  white-space: nowrap;
+}
+button:hover { border-color: var(--accent); }
+h1 { font-size: 1.5rem; color: var(--accent); margin: 1.6rem 0 0.6rem; }
+h2 { font-size: 1.25rem; color: var(--accent); margin: 1.5rem 0 0.5rem; }
+h3 { font-size: 1.05rem; color: var(--amber); margin: 1.2rem 0 0.4rem; }
+p { margin: 0.5rem 0; }
+ul, ol { margin: 0.5rem 0 0.5rem 1.4rem; }
+li { margin: 0.25rem 0; }
+strong { color: var(--amber); }
+code {
+  background: var(--code); border: 1px solid var(--border); border-radius: 5px;
+  padding: 0.1rem 0.35rem; font-size: 0.85em; font-family: Consolas, monospace;
+}
+pre { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 1rem; overflow-x: auto; margin: 0.75rem 0; }
+pre code { background: none; border: none; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 0.75rem 0; font-size: 0.92rem; }
+th, td { border: 1px solid var(--border); padding: 0.45rem 0.65rem; text-align: left; vertical-align: top; }
+th { background: var(--panel); color: var(--amber); }
+tr:nth-child(even) td { background: rgba(127,127,127,0.06); }
+hr { border: none; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+a { color: var(--blue); }
+footer { border-top: 1px solid var(--border); margin-top: 2.5rem; padding-top: 1rem; color: var(--muted); font-size: 0.85rem; }
+@media print { button { display: none; } }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>SITA Consolidated Security Reporting — System Documentation</h1>
+    <div class="sub">Full technical documentation · architecture, tenancy, API, infrastructure &amp; operations</div>
+  </div>
+  <button id="themeToggle" title="Toggle dark / light mode">&#127769; Theme</button>
+</header>
+<h1>SITA Consolidated Security Reporting — System Documentation</h1>
+
+<p>Full technical documentation for the SITA platform: architecture, multi-tenancy, security, data pipeline, API reference, frontend, infrastructure, deployment and operations.</p>
+
+<hr/>
+
+<h2>Table of contents</h2>
+
+<ol>
+<li><a href="#1-system-overview">System overview</a></li>
+<li><a href="#2-architecture">Architecture</a></li>
+<li><a href="#3-multi-tenancy-model">Multi-tenancy model</a></li>
+<li><a href="#4-authentication--authorization">Authentication &amp; authorization</a></li>
+<li><a href="#5-data-pipeline">Data pipeline</a></li>
+<li><a href="#6-database-schema">Database schema</a></li>
+<li><a href="#7-rest-api-reference">REST API reference</a></li>
+<li><a href="#8-frontend-application">Frontend application</a></li>
+<li><a href="#9-infrastructure--deployment">Infrastructure &amp; deployment</a></li>
+<li><a href="#10-monitoring--observability">Monitoring &amp; observability</a></li>
+<li><a href="#11-cicd">CI/CD</a></li>
+<li><a href="#12-security-model">Security model</a></li>
+<li><a href="#13-operations-runbook">Operations runbook</a></li>
+<li><a href="#14-testing">Testing</a></li>
+<li><a href="#15-demo-accounts--getting-started">Demo accounts &amp; getting started</a></li>
+<li><a href="#16-configuration-reference">Configuration reference</a></li>
+</ol>
+
+<hr/>
+
+<h2>1. System overview</h2>
+
+<p>SITA Consolidated Security Reporting is a full-stack security intelligence platform that unifies application security, database security, SOC operations, compliance and executive reporting into a single experience. It is built to run as a <strong>multi-tenant government platform</strong> on SITA's real mandate: <strong>43 national departments and 113 provincial departments across South Africa's 9 provinces (156 public clients)</strong>.</p>
+
+<p>The platform:</p>
+
+<ul>
+<li>Ingests findings from four OEM security sources (HCL AppScan, Imperva DAM/WAF, an API Security platform, and compliance CSV feeds)</li>
+<li>Normalises and correlates the data into a PostgreSQL warehouse</li>
+<li>Runs alert, risk and compliance engines over the warehouse</li>
+<li>Dispatches alerts out-of-band (email, Microsoft Teams, PagerDuty)</li>
+<li>Serves role-gated, tenant-scoped dashboards through a FastAPI REST API and a React SPA</li>
+<li>Isolates every tenant's data and delegates administration along the tenancy tree</li>
+<li>Supports tenant-safe provincial benchmarking and Auditor-General attestation exports</li>
+</ul>
+
+<h3>Key capabilities</h3>
+
+<ul>
+<li><strong>Multi-role dashboards</strong> for executive, SOC, AppSec, DBsec, Compliance, SRE and provincial personas</li>
+<li><strong>Government multi-tenancy</strong> — Province → Department → Branch → App, with <code>tenant_filter</code> scoping on every query</li>
+<li><strong>Delegated administration</strong> — four admin tiers whose authority is exactly their node's subtree</li>
+<li><strong>Tenant-safe analytics</strong> — anonymised provincial peer benchmarks, raw data never exposed</li>
+<li><strong>AG export attestation</strong> — aggregation-only exports with SHA-256 integrity hash bound to actor + tenant scope</li>
+<li><strong>OEM ingestion</strong> — async connectors with circuit breaker, token bucket, retry and dead-letter queue</li>
+<li><strong>Alert dispatch</strong> — email (Jinja2), Teams Adaptive Cards, PagerDuty Events v2, per-channel rate limiting</li>
+<li><strong>Compliance</strong> — POPIA (8 conditions) and ISO 27001 (A.5–A.16) weighted scoring</li>
+<li><strong>Risk engine</strong> — 4-signal multiplicative fusion to a 0–100 score with safe/monitored/critical buckets</li>
+</ul>
+
+<h3>Technology stack</h3>
+
+<table>
+<thead><tr><th>Layer</th><th>Technology</th></tr></thead>
+<tbody>
+<tr><td>Frontend</td><td>React 18, TypeScript, Vite, React Router, Recharts, Axios, Auth0 SDK</td></tr>
+<tr><td>Backend</td><td>Python 3.12, FastAPI, SQLAlchemy 2 (async), Pydantic v2, pandas</td></tr>
+<tr><td>Data</td><td>PostgreSQL 16 (asyncpg), Redis 7</td></tr>
+<tr><td>Auth</td><td>JWT (HS256 dev / RS256 Auth0), python-jose</td></tr>
+<tr><td>Dispatch</td><td>SMTP, Teams webhook, PagerDuty Events v2</td></tr>
+<tr><td>Monitoring</td><td>Prometheus, Grafana, structlog</td></tr>
+<tr><td>Infra</td><td>Docker Compose, nginx, GHCR, GitHub Actions</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h2>2. Architecture</h2>
+
+<h3>2.1 Layer overview</h3>
+
+<pre><code>┌──────────────────────────────────────────────────────────────┐
+│  FRONTEND (React SPA)  ── role-gated pages, consume /api/v1 │
+└──────────────────────────────┬───────────────────────────────┘
+                               │ HTTPS (nginx)
+┌──────────────────────────────▼──────────────────────────────┐
+│  BACKEND (FastAPI) — routers, RBAC, tenant_filter scoping   │
+└──────┬──────────────────┬──────────────────┬────────────────┘
+       │                  │                  │
+       ▼                  ▼                  ▼
+┌──────────┐     ┌───────────────┐    ┌─────────────┐
+│ Redis    │     │ PostgreSQL    │    │ SMTP/Teams  │
+│ (bus,    │     │ warehouse +   │    │ /PagerDuty  │
+│ dedup)   │     │ audit + ids   │    │ (dispatch)  │
+└──────────┘     └───────────────┘    └─────────────┘</code></pre>
+
+<h3>2.2 Runtime services (Docker Compose)</h3>
+
+<table>
+<thead><tr><th>Service</th><th>Command</th><th>Role</th></tr></thead>
+<tbody>
+<tr><td><code>postgres</code></td><td>postgres:16-alpine</td><td>Primary data store (staging / warehouse / archive / audit / identity schemas)</td></tr>
+<tr><td><code>redis</code></td><td>redis:7-alpine</td><td>Message bus, alert dedup, rate limiting</td></tr>
+<tr><td><code>backend</code></td><td><code>uvicorn app.main:app</code></td><td>REST API (port 8000)</td></tr>
+<tr><td><code>ingestion</code></td><td><code>python -m app.entrypoints.ingestion</code></td><td>Polls OEM connectors, writes staging</td></tr>
+<tr><td><code>processing</code></td><td><code>python -m app.entrypoints.processing</code></td><td>Consumes raw records → normaliser → warehouse + engines</td></tr>
+<tr><td><code>dispatch</code></td><td><code>python -m app.entrypoints.dispatch</code></td><td>Alert out-of-band dispatch worker</td></tr>
+<tr><td><code>analytics</code></td><td><code>python -m app.entrypoints.analytics</code></td><td>Periodic aggregate/risk scoring</td></tr>
+<tr><td><code>frontend</code></td><td>nginx serving built SPA</td><td>UI (port 3000)</td></tr>
+</tbody>
+</table>
+
+<h3>2.3 Repository structure</h3>
+
+<p>backend/</p>
+
+<p>  app/</p>
+
+<p>    api/            # FastAPI app, routers, auth, schemas, errors</p>
+
+<p>    bus/            # Redis bus abstractions</p>
+
+<p>    connectors/     # OEM connectors (appscan, imperva, apisec, compliance, base)</p>
+
+<p>    dispatch/       # email / teams / pagerduty adapters + worker</p>
+
+<p>    entrypoints/    # ingestion, processing, analytics, dispatch, seed_simulated</p>
+
+<p>    ingestion/      # scheduler, circuit_breaker, token_bucket, retry, dlq</p>
+
+<p>    lake/           # warehouse writer</p>
+
+<p>    models/         # SQLAlchemy ORM models</p>
+
+<p>    monitoring/     # metrics (Prometheus), logging (structlog)</p>
+
+<p>    processing/     # normaliser, alert engine, risk engine, compliance, enricher</p>
+
+<p>    synthetic/      # deterministic synthetic OEM feed generator</p>
+
+<p>    tenant.py       # tenancy catalogs, provinces, roles, admin tiers</p>
+
+<p>  tests/</p>
+
+<p>  requirements.txt</p>
+
+<p>frontend/</p>
+
+<p>  src/</p>
+
+<p>    api/            # typed API clients</p>
+
+<p>    components/     # layout + dashboard widget kit</p>
+
+<p>    context/        # AuthContext</p>
+
+<p>    hooks/          # per-dashboard data hooks</p>
+
+<p>    pages/          # dashboard + auth pages</p>
+
+<p>    types.ts</p>
+
+<p>  package.json</p>
+
+<p>infrastructure/</p>
+
+<p>  docker-compose.yml</p>
+
+<p>  monitoring/       # prometheus.yml, grafana dashboard</p>
+
+<p>  nginx/sita.conf</p>
+
+<p>  scripts/          # init-db.sql, seed-demo.sql, maintenance.sql, backup.sh, deploy.sh</p>
+
+<p>docs/               # this documentation set</p>
+
+<p>.github/workflows/  # ci.yml, publish-ghcr.yml</p>
+
+<pre><code>
+### 2.4 End-to-end data flow
+</code></pre>
+
+<p>OEM sources (AppScan / Imperva / API-Security / Compliance)</p>
+
+<p>        │  (live connectors, or SyntheticOEMFeed until live access)</p>
+
+<p>        ▼</p>
+
+<p>staging.raw_records  ── normaliser (field_mapper.yaml) ──▶ warehouse.findings</p>
+
+<p>        │                                                    │</p>
+
+<p>        ▼                                                    ▼</p>
+
+<p>   alert_engine ──▶ warehouse.alerts ──▶ dispatch ──▶ email/Teams/PagerDuty</p>
+
+<p>   risk_engine  ──▶ warehouse.risk_scores</p>
+
+<p>   compliance   ──▶ warehouse.compliance_snapshots / compliance_gaps</p>
+
+<p>        │</p>
+
+<p>        ▼</p>
+
+<p>   REST API (/api/v1) ──▶ React dashboards (tenant-scoped)</p>
+
+<hr/>
+
+<h2>3. Multi-tenancy model</h2>
+
+<p>Tenancy is the core security property of the platform: <strong>a tenant is a government department</strong>, and every user only ever sees data inside their assigned scope.</p>
+
+<p>&gt; The complete stakeholder explainer lives in <code>docs/Tenancy_Stakeholder_Overview.docx</code>.</p>
+
+<h3>3.1 Tenant tree</h3>
+
+<pre><code>Province → Department → Branch → App / Database</code></pre>
+
+<ul>
+<li><strong>System identity (Tenant)</strong> — national department or provincial administration</li>
+<li><strong>Sub-tenant (Department)</strong> — e.g. Department of Home Affairs, Gauteng Department of Health</li>
+<li><strong>Asset (Application / Database)</strong> — the app/database records belonging to a department</li>
+<li><strong>Branch</strong> — national departments only; DDG-led organisational units (e.g. DHA Information Services/CIO)</li>
+</ul>
+
+<p>Provincial departments are <strong>branchless</strong>; province scope expands automatically to the province's full department set.</p>
+
+<h3>3.2 Tenancy catalogs (<code>backend/app/tenant.py</code>)</h3>
+
+<table>
+<thead><tr><th>Catalog</th><th>Contents</th></tr></thead>
+<tbody>
+<tr><td><code>PROVINCES</code></td><td>9 provinces (ec, fs, gp, kzn, lp, mp, nw, nc, wc)</td></tr>
+<tr><td><code>PROVINCIAL_DEPARTMENTS</code></td><td>113 departments, slugs <code>&lt;province&gt;-&lt;function&gt;</code></td></tr>
+<tr><td><code>DEPARTMENTS</code></td><td>national + provincial departments (~156 total)</td></tr>
+<tr><td><code>BRANCHES</code></td><td>per-department DDG-led units (national only)</td></tr>
+<tr><td><code>APP_DEPARTMENTS</code> / <code>DB_TO_DEPARTMENT</code></td><td>app/database → department ownership</td></tr>
+<tr><td><code>MINISTRIES</code> / <code>CLUSTERS</code></td><td>reporting rollups (32 ministries → 5 clusters)</td></tr>
+<tr><td><code>ADMIN_TIERS</code> / <code>GRANTABLE_ROLES</code></td><td>delegation model</td></tr>
+</tbody>
+</table>
+
+<p>Identifiers are <strong>stable slugs</strong>, so resolution requires no DB lookup.</p>
+
+<h3>3.3 Scoping rules</h3>
+
+<ul>
+<li><strong>Nationwide roles</strong> (exec, compliance, sre, admin, transversal-admin) see the whole estate (empty scope = whole estate)</li>
+<li><strong>Department roles</strong> (soc, appsec, dbsec) scoped to <code>department_ids</code>/<code>branch_ids</code> on the JWT</li>
+<li><strong>Province roles</strong> (province-soc-lead, province-dept-admin, local-appsec) scoped by <code>province_ids</code>; expands to the province's departments</li>
+<li>Every warehouse row denormalises <code>department_id</code>/<code>branch_id</code> at write time, so scoping needs <strong>no joins</strong></li>
+<li><strong>Fail-closed</strong>: a department-scoped user with no assigned scope sees nothing until an admin assigns one</li>
+</ul>
+
+<h3>3.4 Enforcement</h3>
+
+<p><code>tenant_filter(claims, model)</code> in <code>backend/app/api/auth.py</code> adds the WHERE clause to every read. Scoped parameters can only narrow a scope, never widen it. Enforced on <strong>every</strong> data endpoint: risks, findings, alerts, dashboard, exports, metrics, benchmark, AG exports, admin.</p>
+
+<h3>3.5 Delegated administration</h3>
+
+<table>
+<thead><tr><th>Tier</th><th>Role</th><th>Authority</th></tr></thead>
+<tbody>
+<tr><td>4</td><td>system <code>admin</code></td><td>Estate root — national superadmin, grants anything</td></tr>
+<tr><td>3</td><td><code>transversal-admin</code></td><td>Transversal superadmin — grants operational roles + dept/branch-admin across scope</td></tr>
+<tr><td>2</td><td><code>dept-admin</code> / <code>province-dept-admin</code></td><td>Department or province node — operational roles (+ branch-admin nationally)</td></tr>
+<tr><td>1</td><td><code>branch-admin</code></td><td>Branch node — operational roles only</td></tr>
+</tbody>
+</table>
+
+<p>Delegation is <strong>strictly one-way down</strong>: <code>can_manage</code> blocks granting a tier at or above the caller's own; <code>_tenant_consistent</code> rejects branches not under the caller's departments.</p>
+
+<hr/>
+
+<h2>4. Authentication &amp; authorization</h2>
+
+<h3>4.1 Token flow</h3>
+
+<ul>
+<li><code>POST /api/v1/auth/login</code> or <code>/api/v1/auth/demo-login</code> → JWT (HS256 with <code>jwt_secret</code> in dev; RS256 via Auth0 when <code>auth0_domain</code> is configured)</li>
+<li><code>verify_token</code> (dependency) decodes and validates the JWT, returns <code>JWTClaims</code></li>
+<li><code>require_roles(*perms)</code> checks the role permission matrix</li>
+</ul>
+
+<h3>4.2 Role permission matrix (<code>backend/app/api/auth.py</code>)</h3>
+
+<table>
+<thead><tr><th>Role</th><th>Permissions</th></tr></thead>
+<tbody>
+<tr><td><code>admin</code></td><td><code>*</code> (everything)</td></tr>
+<tr><td><code>exec</code></td><td>risks, compliance, alerts, alerts_read, alerts_write, findings, dashboard</td></tr>
+<tr><td><code>soc</code></td><td>findings, alerts_read, alerts_write, dashboard</td></tr>
+<tr><td><code>appsec</code></td><td>risks, findings</td></tr>
+<tr><td><code>dbsec</code></td><td>risks, findings, alerts_read</td></tr>
+<tr><td><code>compliance</code></td><td>compliance</td></tr>
+<tr><td><code>sre</code></td><td>admin_read, admin_write, alerts_read, dashboard</td></tr>
+<tr><td><code>transversal-admin</code></td><td>admin_read, admin_write</td></tr>
+<tr><td><code>dept-admin</code></td><td>admin_read, admin_write</td></tr>
+<tr><td><code>branch-admin</code></td><td>admin_read, admin_write</td></tr>
+<tr><td><code>province-soc-lead</code></td><td>findings, alerts_read, alerts_write, dashboard</td></tr>
+<tr><td><code>province-dept-admin</code></td><td>admin_read, admin_write</td></tr>
+<tr><td><code>local-appsec</code></td><td>risks, findings</td></tr>
+</tbody>
+</table>
+
+<h3>4.3 JWT claims</h3>
+
+<p>{</p>
+
+<p>  "sub": "user-id",</p>
+
+<p>  "email": "user@example.com",</p>
+
+<p>  "roles": ["province-soc-lead"],</p>
+
+<p>  "department_ids": [],</p>
+
+<p>  "branch_ids": [],</p>
+
+<p>  "province_ids": ["gp"],</p>
+
+<p>  "exp": 1750000000</p>
+
+<p>}</p>
+
+<pre><code>
+### 4.4 Start-of-day identity bootstrap
+
+On startup (`app/main.py` lifespan):
+
+1. `bootstrap_superadmin` — creates `admin@example.com` if absent
+2. `seed_demo_users` — seeds the demo accounts (see §15)
+3. Startup failures are logged but do not block the server
+
+---
+
+## 5. Data pipeline
+
+### 5.1 Connectors (`backend/app/connectors/`)
+
+`BaseConnector` defines `authenticate() → poll() → parse() → validate()`, orchestrated by `run()`.
+
+| Connector | Source | Notes |
+|---|---|---|
+| `appscan.py` | HCL AppScan | vulnerability findings |
+| `imperva.py` | Imperva DAM/WAF | database activity + web attack events |
+| `apisec.py` | API Security platform | API endpoint exposure inventory |
+| `compliance.py` | compliance CSV feeds | control snapshots |
+
+**Ingestion hardening** (`backend/app/ingestion/`): APScheduler-driven polling, circuit breaker state machine, token-bucket rate limiter, retry with backoff, and a dead-letter queue (`staging.rejected_records`).
+
+### 5.2 Synthetic feed (`backend/app/synthetic/generator.py`)
+
+Because live OEM credentials are not yet available, a **deterministic synthetic feed** (`SyntheticOEMFeed`, seed=42) emits payloads shaped exactly like each real connector's `poll()` output. Everything downstream (staging → normaliser → warehouse → engines → API → dashboards) runs and is tested before live access exists. Cutover is a source swap at the ingestion boundary — no downstream changes.
+
+### 5.3 Normaliser (`backend/app/processing/normaliser.py` + `field_mapper.yaml`)
+
+- JSONPath field maps + severity maps per source
+- Severity normalisation, UTC timestamp coercion, field flatten/cast
+- Dedup by `source` + `external_id`
+- Parse/validation failures route to the DLQ
+
+### 5.4 Alert engine (`backend/app/processing/alert_engine.py` + `alert_rules.yaml`)
+
+Six rules:
+
+1. `risk_critical` — fused risk crosses critical threshold
+2. `new_critical_cve` — new critical CVE appears
+3. `shadow_api_detected` — unapproved API endpoint found
+4. `compliance_drop` — compliance score drops
+5. `imperva_violation_spike` — WAF/DAM violation spike
+6. `connector_auth_failure` — connector can't authenticate
+
+Redis + MD5 throttle suppression (`alert_dedup.py`) prevents alert storms. `alert_enricher.py` adds owner/team/priority/URL from `app_catalog.yaml`.
+
+### 5.5 Risk engine (`backend/app/processing/risk_engine.py`)
+
+4-signal multiplicative fusion, per-app daily score [0–100]:
+</code></pre>
+
+<p>R = (w1·Sa + w2·Si + w3·E + w4·C) / Σw</p>
+
+<p>weights: 0.35 (appsec) · 0.25 (imperva) · 0.20 (exposure) · 0.20 (compliance)</p>
+
+<p>Buckets: <code>safe</code> (&lt;45) · <code>monitored</code> (45–69) · <code>critical</code> (≥70).</p>
+
+<h3>5.6 Compliance (<code>backend/app/processing/compliance.py</code>)</h3>
+
+<ul>
+<li><strong>POPIA</strong> — 8 conditions weighted scoring, security safeguards weight 0.30</li>
+<li><strong>ISO 27001</strong> — Annex A themes A.5–A.16 weighted scoring</li>
+</ul>
+
+<h3>5.7 Dispatch (<code>backend/app/dispatch/</code>)</h3>
+
+<ul>
+<li><code>email_adapter.py</code> — SMTP + Jinja2 template</li>
+<li><code>teams_adapter.py</code> — Adaptive Cards</li>
+<li><code>pagerduty_adapter.py</code> — PagerDuty Events v2</li>
+<li><code>worker.py</code> — async worker with per-channel rate limit; writes <code>warehouse.dispatch_log</code> + <code>alerts.last_dispatched_at</code></li>
+</ul>
+
+<hr/>
+
+<h2>6. Database schema</h2>
+
+<p>Six schemas, 24 tables (20 canonical + 4 archive <code>LIKE</code> copies).</p>
+
+<h3>Schemas</h3>
+
+<table>
+<thead><tr><th>Schema</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>staging</code></td><td>batch runs, raw records, rejected records (DLQ)</td></tr>
+<tr><td><code>warehouse</code></td><td>canonical processed data + tenant reference tables</td></tr>
+<tr><td><code>archive</code></td><td>LIKE-copy rotation tables for maintenance TTL</td></tr>
+<tr><td><code>audit</code></td><td><code>action_audit</code> — immutable AG export trail</td></tr>
+<tr><td><code>identity</code></td><td><code>users</code>, <code>persons</code></td></tr>
+</tbody>
+</table>
+
+<h3>Tables</h3>
+
+<p><strong>identity</strong></p>
+
+<ul>
+<li><code>users</code> — RBAC identities, JWT scope lists (<code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> JSONB)</li>
+<li><code>persons</code> — HR person records for user↔person linking</li>
+</ul>
+
+<p><strong>audit</strong></p>
+
+<ul>
+<li><code>action_audit</code> — actor, action, target, tenant_scope (JSONB), payload_hash, created_at</li>
+</ul>
+
+<p><strong>staging</strong></p>
+
+<ul>
+<li><code>batch_runs</code>, <code>raw_records</code>, <code>rejected_records</code></li>
+</ul>
+
+<p><strong>warehouse</strong></p>
+
+<ul>
+<li><code>provinces</code>, <code>departments</code> (incl. <code>province_id</code>), <code>branches</code></li>
+<li><code>findings</code> (tenant-scoped via department_id/branch_id)</li>
+<li><code>risk_scores</code> (daily fused score per app, tenant-scoped)</li>
+<li><code>alerts</code> (unified feed, dedup counters, dispatch channels)</li>
+<li><code>dispatch_log</code> (out-of-band dispatch trail)</li>
+<li><code>compliance_snapshots</code>, <code>compliance_gaps</code></li>
+<li><code>api_endpoints</code> (AppSec exposure inventory)</li>
+<li><code>waf_blocks</code> (Imperva WAF block telemetry)</li>
+<li><code>system_metrics</code>, <code>agents</code>, <code>slo_metrics</code>, <code>database_inventory</code>, <code>connector_health</code></li>
+</ul>
+
+<p><strong>archive</strong></p>
+
+<ul>
+<li><code>risk_scores</code>, <code>alerts</code>, <code>compliance_snapshots</code>, <code>findings</code> (LIKE copies)</li>
+</ul>
+
+<p><strong>Tenancy note:</strong> every app/db-scoped warehouse row denormalises <code>department_id</code>/<code>branch_id</code>, so <code>tenant_filter</code> scoping needs no joins. Provincial departments resolve via <code>departments.province_id → warehouse.provinces</code>.</p>
+
+<p>The full DDL is in <code>infrastructure/scripts/init-db.sql</code>; the interactive ER diagram is rendered in <code>tree.html</code>.</p>
+
+<hr/>
+
+<h2>7. REST API reference</h2>
+
+<p>Base prefixes: <code>/api/v1</code> (core), <code>/admin</code> (admin), <code>/health</code>.</p>
+
+<h3>Auth</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>POST</td><td><code>/api/v1/auth/login</code></td><td>public</td><td>Password login</td></tr>
+<tr><td>POST</td><td><code>/api/v1/auth/demo-login</code></td><td>public</td><td>Demo login with tenancy-scope override</td></tr>
+<tr><td>GET</td><td><code>/api/v1/auth/demo-accounts</code></td><td>public</td><td>List demo accounts</td></tr>
+<tr><td>GET</td><td><code>/api/v1/auth/tenancy</code></td><td>public</td><td>Tenancy options (provinces, etc.)</td></tr>
+<tr><td>GET</td><td><code>/api/v1/auth/me</code></td><td>any</td><td>Current user + scope</td></tr>
+</tbody>
+</table>
+
+<h3>Risks</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/v1/risks</code></td><td>risks</td><td>Paginated risk scores</td></tr>
+<tr><td>GET</td><td><code>/api/v1/risks/by-cluster</code></td><td>risks</td><td>Cluster rollups</td></tr>
+<tr><td>GET</td><td><code>/api/v1/risks/by-ministry</code></td><td>risks</td><td>Ministry rollups</td></tr>
+<tr><td>GET</td><td><code>/api/v1/risks/{app_name}/trend</code></td><td>risks</td><td>Per-app trend</td></tr>
+</tbody>
+</table>
+
+<h3>Findings</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/v1/findings</code></td><td>findings</td><td>Paginated findings</td></tr>
+<tr><td>GET</td><td><code>/api/v1/findings/{finding_id}</code></td><td>findings</td><td>Finding detail</td></tr>
+</tbody>
+</table>
+
+<h3>Compliance</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/v1/compliance</code></td><td>compliance</td><td>Compliance summary</td></tr>
+<tr><td>GET</td><td><code>/api/v1/compliance/gaps</code></td><td>compliance</td><td>Gap list</td></tr>
+<tr><td>GET</td><td><code>/api/v1/compliance/evidence</code></td><td>compliance</td><td>Evidence</td></tr>
+</tbody>
+</table>
+
+<h3>Alerts</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/v1/alerts</code></td><td>alerts_read</td><td>Paginated alerts</td></tr>
+<tr><td>GET</td><td><code>/api/v1/alerts/{alert_id}/dispatch</code></td><td>alerts_read</td><td>Dispatch history</td></tr>
+<tr><td>PATCH</td><td><code>/api/v1/alerts/{alert_id}/acknowledge</code></td><td>alerts_write</td><td>Acknowledge</td></tr>
+<tr><td>PATCH</td><td><code>/api/v1/alerts/{alert_id}/resolve</code></td><td>alerts_write</td><td>Resolve</td></tr>
+</tbody>
+</table>
+
+<h3>Dashboard</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/v1/dashboard/summary</code></td><td>dashboard</td><td>Cross-domain summary</td></tr>
+</tbody>
+</table>
+
+<h3>Metrics</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/v1/metrics/appsec/waf</code></td><td>findings</td><td>WAF blocks</td></tr>
+<tr><td>GET</td><td><code>/api/v1/metrics/appsec/api-exposure</code></td><td>findings</td><td>API exposure</td></tr>
+<tr><td>GET</td><td><code>/api/v1/metrics/appsec/fix-rate</code></td><td>findings</td><td>Fix rate</td></tr>
+<tr><td>GET</td><td><code>/api/v1/metrics/soc/slo</code></td><td>alerts_read</td><td>SOC SLO</td></tr>
+<tr><td>GET</td><td><code>/api/v1/metrics/sre/system</code></td><td>dashboard</td><td>System metrics</td></tr>
+<tr><td>GET</td><td><code>/api/v1/metrics/sre/agents</code></td><td>dashboard</td><td>Agent status</td></tr>
+<tr><td>GET</td><td><code>/api/v1/metrics/dbsec/inventory</code></td><td>findings</td><td>DB inventory</td></tr>
+<tr><td>GET</td><td><code>/api/v1/metrics/compliance/trend</code></td><td>compliance</td><td>Compliance trend</td></tr>
+<tr><td>GET</td><td><code>/api/v1/metrics/compliance/calendar</code></td><td>compliance</td><td>Compliance calendar</td></tr>
+</tbody>
+</table>
+
+<h3>Exports</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/v1/exports/findings.csv</code></td><td>findings</td><td>CSV export</td></tr>
+<tr><td>GET</td><td><code>/api/v1/exports/risk-scores.csv</code></td><td>risks</td><td>CSV export</td></tr>
+<tr><td>GET</td><td><code>/api/v1/exports/alerts.csv</code></td><td>alerts_read</td><td>CSV export</td></tr>
+<tr><td>POST</td><td><code>/api/v1/exports/ag-compliance</code></td><td>compliance, admin_write</td><td>AG attestation export (hash-bound)</td></tr>
+<tr><td>GET</td><td><code>/api/v1/exports/ag-compliance/verify/{hash}</code></td><td>compliance, admin_write</td><td>Verify attestation</td></tr>
+</tbody>
+</table>
+
+<h3>Benchmark</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/api/v1/benchmark/province</code></td><td>dashboard</td><td>Anonymised provincial peer benchmark</td></tr>
+</tbody>
+</table>
+
+<h3>Admin</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Roles</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/admin/departments</code></td><td>admin_read</td><td>Department catalog</td></tr>
+<tr><td>GET</td><td><code>/admin/branches</code></td><td>admin_read</td><td>Branch catalog</td></tr>
+<tr><td>GET</td><td><code>/admin/connectors</code></td><td>admin_read</td><td>Connector health</td></tr>
+<tr><td>GET</td><td><code>/admin/dead-letter</code></td><td>admin_read</td><td>DLQ overview</td></tr>
+<tr><td>POST</td><td><code>/admin/connectors/{name}/reset</code></td><td>admin_write</td><td>Circuit reset</td></tr>
+<tr><td>POST</td><td><code>/admin/dead-letter/reprocess/{record_id}</code></td><td>admin_write</td><td>Reprocess DLQ record</td></tr>
+<tr><td>GET</td><td><code>/admin/users</code></td><td>admin_read</td><td>User list</td></tr>
+<tr><td>POST</td><td><code>/admin/users</code></td><td>admin_write</td><td>Create user (scope-validated)</td></tr>
+<tr><td>PATCH</td><td><code>/admin/users/{user_id}</code></td><td>admin_write</td><td>Update user</td></tr>
+<tr><td>DELETE</td><td><code>/admin/users/{user_id}</code></td><td>admin_write</td><td>Delete user</td></tr>
+<tr><td>GET</td><td><code>/admin/persons</code></td><td>admin_read</td><td>Person registry</td></tr>
+<tr><td>POST</td><td><code>/admin/hr/sync</code></td><td>admin_write</td><td>HR sync</td></tr>
+</tbody>
+</table>
+
+<h3>Health</h3>
+
+<table>
+<thead><tr><th>Method</th><th>Path</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>GET</td><td><code>/health</code></td><td>Liveness + uptime</td></tr>
+</tbody>
+</table>
+
+<p>Interactive OpenAPI docs are available at <code>http://localhost:8000/docs</code> when running.</p>
+
+<hr/>
+
+<h2>8. Frontend application</h2>
+
+<h3>8.1 Pages &amp; roles</h3>
+
+<table>
+<thead><tr><th>Page</th><th>Roles</th><th>Feeds</th></tr></thead>
+<tbody>
+<tr><td><code>HomePage</code></td><td>any (authed)</td><td>Landing</td></tr>
+<tr><td><code>LoginPage</code></td><td>public</td><td>Login + tenancy-scope override</td></tr>
+<tr><td><code>ExecDashboard</code></td><td>exec</td><td>risks, compliance, alerts, findings, dashboard</td></tr>
+<tr><td><code>SocDashboard</code></td><td>soc, province-soc-lead</td><td>findings, alerts, dispatch</td></tr>
+<tr><td><code>AppSecDashboard</code></td><td>appsec, local-appsec</td><td>risks, findings, metrics/appsec</td></tr>
+<tr><td><code>DbSecDashboard</code></td><td>dbsec</td><td>risks, findings, metrics/dbsec</td></tr>
+<tr><td><code>ComplianceDashboard</code></td><td>compliance</td><td>compliance + metrics/compliance</td></tr>
+<tr><td><code>SreDashboard</code></td><td>sre</td><td>admin_read, system metrics, agents</td></tr>
+<tr><td><code>AdminUsersPage</code></td><td>admin tiers</td><td>user CRUD with province/department/branch scope pickers</td></tr>
+</tbody>
+</table>
+
+<h3>8.2 Component kit (<code>frontend/src/components/dashboard/</code>)</h3>
+
+<p><code>StatCard</code>, <code>Panel</code>, <code>Gauge</code>, <code>MiniBarChart</code>, <code>BarRow</code>, <code>Chip</code>, <code>OemTag</code>, <code>DashHeader</code>, <code>ExplainOverlay</code>. <code>RoleNav</code> (layout) drives role-aware navigation.</p>
+
+<h3>8.3 Data layer</h3>
+
+<ul>
+<li><code>src/api/</code> — typed clients: admin, alerts, auth, client, compliance, dashboard, findings, metrics, risks</li>
+<li><code>src/hooks/</code> — <code>useApi</code>, <code>usePolling</code> + per-dashboard hooks (<code>useExecData</code>, <code>useSocData</code>, …)</li>
+<li><code>src/data/explanations.ts</code> — builds "Explain this dashboard" / layman's narratives from <strong>live</strong> API data (no hardcoded figures)</li>
+</ul>
+
+<h3>8.4 Routing &amp; guards</h3>
+
+<p><code>App.tsx</code> + <code>AuthContext</code> guard routes by role; unauthenticated users redirect to <code>/login</code>.</p>
+
+<hr/>
+
+<h2>9. Infrastructure &amp; deployment</h2>
+
+<h3>9.1 Docker Compose</h3>
+
+<p>See §2.2 for the service matrix. Backend/ingestion/processing/dispatch/analytics share the backend image; frontend is served by nginx.</p>
+
+<h3>9.2 nginx (<code>infrastructure/nginx/sita.conf</code>)</h3>
+
+<ul>
+<li>HTTPS-only (TLS 1.3), HSTS, CSP/X-Frame-Options/X-Content-Type-Options headers</li>
+<li>Rate limit on <code>/api/v1/auth/</code> (5 r/s) to blunt credential stuffing</li>
+<li>Proxies <code>/api/</code>, <code>/api/v1/auth/</code>, <code>/admin/</code> → backend; <code>/</code> → frontend</li>
+</ul>
+
+<h3>9.3 Scripts (<code>infrastructure/scripts/</code>)</h3>
+
+<table>
+<thead><tr><th>Script</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>init-db.sql</code></td><td>Full schema (all 6 schemas / 24 tables), mounted as Postgres init</td></tr>
+<tr><td><code>seed-demo.sql</code></td><td>Demo tenants/apps/databases + demo scope data</td></tr>
+<tr><td><code>maintenance.sql</code></td><td>Archive rotation + TTL maintenance</td></tr>
+<tr><td><code>backup.sh</code></td><td>pg_dump -Fc daily with retention</td></tr>
+<tr><td><code>deploy.sh</code></td><td>Deployment helper</td></tr>
+</tbody>
+</table>
+
+<h3>9.4 Backups &amp; DR</h3>
+
+<ul>
+<li>Daily <code>pg_dump -Fc</code> with retention (see <code>backup.sh</code>)</li>
+<li>WAL/PITR recovery path documented for RTO &lt; 15 min target</li>
+<li>Restore drills intended as part of the DR runbook</li>
+</ul>
+
+<hr/>
+
+<h2>10. Monitoring &amp; observability</h2>
+
+<ul>
+<li><strong>Prometheus</strong> scrapes the backend <code>/metrics</code> (prometheus-client), Postgres (9187) and Redis (9121) — see <code>infrastructure/monitoring/prometheus.yml</code></li>
+<li><strong>Grafana</strong> dashboard <code>sita-pipeline.json</code> visualises the pipeline</li>
+<li><strong>structlog</strong> structured logging through <code>app/monitoring/logging.py</code></li>
+<li><code>/health</code> liveness endpoint returns uptime</li>
+</ul>
+
+<hr/>
+
+<h2>11. CI/CD</h2>
+
+<h3><code>ci.yml</code> (push to <code>main</code>/<code>develop</code>, PR to <code>main</code>)</h3>
+
+<table>
+<thead><tr><th>Job</th><th>Steps</th></tr></thead>
+<tbody>
+<tr><td><code>lint</code></td><td>ruff check backend/ · eslint frontend</td></tr>
+<tr><td><code>test</code></td><td>postgres 16 + redis 7 services · pytest backend/tests · frontend build</td></tr>
+<tr><td><code>build</code></td><td>docker build backend + frontend</td></tr>
+</tbody>
+</table>
+
+<h3><code>publish-ghcr.yml</code></h3>
+
+<p>Builds and publishes <code>sita-backend</code> / <code>sita-frontend</code> images to GitHub Container Registry on <code>main</code>.</p>
+
+<hr/>
+
+<h2>12. Security model</h2>
+
+<ul>
+<li><strong>Data isolation</strong>: <code>tenant_filter</code> on every query — server-side, not UI-only; fail-closed defaults</li>
+<li><strong>Delegated admin</strong>: one-way-down grant rules; scope cannot exceed caller's subtree</li>
+<li><strong>JWT auth</strong>: HS256 dev secret (config-guarded for non-dev), RS256/Auth0 path for production; config guards reject default dev secret in non-dev environments</li>
+<li><strong>AG exports</strong>: PII stripped, aggregation-only, SHA-256 integrity hash bound to actor + tenant scope in <code>audit.action_audit</code> (tamper-evident)</li>
+<li><strong>Blinded benchmarking</strong>: peer provinces shown as anonymous aggregates only</li>
+<li><strong>Startup guards</strong> (<code>config.py</code>): non-dev environments must set a strong JWT secret + bootstrap password and disable demo seeding</li>
+<li><strong>Follow-ups tracked</strong>: Auth0/Okta RS256 + token rotation, secrets vault, OWASP scan, pen test (project item)</li>
+</ul>
+
+<hr/>
+
+<h2>13. Operations runbook</h2>
+
+<h3>Start the stack</h3>
+
+<pre><code>docker compose -f infrastructure/docker-compose.yml up --build</code></pre>
+
+<h3>Start backend + frontend locally</h3>
+
+<p>cd backend &amp;&amp; python -m uvicorn app.main:app --host 0.0.0.0 --port 8000</p>
+
+<p>cd frontend &amp;&amp; npm run dev -- --host 0.0.0.0 --port 3000</p>
+
+<pre><code>
+### Apply tenancy migration (fresh/legacy DBs)
+</code></pre>
+
+<p>cd backend &amp;&amp; python _migrate_tenancy.py</p>
+
+<p>cd backend &amp;&amp; python _migrate_province.py     # adds province_ids, provinces, action_audit</p>
+
+<h3>Seed simulated data</h3>
+
+<pre><code>cd backend &amp;&amp; python -m app.entrypoints.seed_simulated</code></pre>
+
+<h3>Health check</h3>
+
+<p>curl http://localhost:8000/health</p>
+
+<pre><code>
+### Common ops actions
+
+| Action | Where |
+|---|---|
+| Reset a connector circuit breaker | `POST /admin/connectors/{name}/reset` |
+| Reprocess a DLQ record | `POST /admin/dead-letter/reprocess/{record_id}` |
+| View DLQ | `GET /admin/dead-letter` |
+| Backup | `infrastructure/scripts/backup.sh` |
+
+---
+
+## 14. Testing
+
+| Suite | Coverage |
+|---|---|
+| `test_normaliser.py` | field mapping, flatten/cast, dedup, DLQ routing |
+| `test_alert_engine.py` | 6 alert rules, throttling |
+| `test_risk_engine.py` | fusion, buckets, aggregator |
+| `test_tenancy.py` | `tenant_filter` scoping, scope validation, delegation, ministry/cluster derivation |
+| `test_benchmark.py` | benchmark bucketing |
+| `test_exports_ag.py` | attestation, canonical JSON, hashing |
+| `test_exports.py` | CSV export endpoints |
+| `test_new_endpoints.py` | benchmark + AG endpoints, province scoping, audit row |
+
+Run:
+</code></pre>
+
+<p>cd backend &amp;&amp; python -m pytest tests -v</p>
+
+<p>CI runs the suite against postgres + redis services.</p>
+
+<hr/>
+
+<h2>15. Demo accounts &amp; getting started</h2>
+
+<table>
+<thead><tr><th>Email</th><th>Password</th><th>Role / scope</th></tr></thead>
+<tbody>
+<tr><td><code>exec@example.com</code></td><td><code>pass123</code></td><td>exec — whole estate</td></tr>
+<tr><td><code>soc@example.com</code></td><td><code>pass123</code></td><td>soc</td></tr>
+<tr><td><code>appsec@example.com</code></td><td><code>pass123</code></td><td>appsec</td></tr>
+<tr><td><code>dbsec@example.com</code></td><td><code>pass123</code></td><td>dbsec</td></tr>
+<tr><td><code>compliance@example.com</code></td><td><code>pass123</code></td><td>compliance</td></tr>
+<tr><td><code>transversal@example.com</code></td><td><code>pass123</code></td><td>transversal-admin — whole estate</td></tr>
+<tr><td><code>provincesoc@example.com</code></td><td><code>pass123</code></td><td>province-soc-lead — Gauteng</td></tr>
+<tr><td><code>admin@example.com</code></td><td><code>admin123</code></td><td>admin — superadmin</td></tr>
+</tbody>
+</table>
+
+<p>The login page supports a <strong>tenancy-scope override</strong>: pick a province/department/branch to sign in under that scope (province expands to all its departments).</p>
+
+<hr/>
+
+<h2>16. Configuration reference</h2>
+
+<p>Environment variables (<code>.env</code> at <code>backend/</code> — see <code>backend/.env.example</code>):</p>
+
+<table>
+<thead><tr><th>Variable</th><th>Default</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td><code>DATABASE_URL</code></td><td><code>postgresql+asyncpg://sita:password@localhost:5432/sita</code></td><td>Async Postgres DSN</td></tr>
+<tr><td><code>REDIS_URL</code></td><td><code>redis://:password@localhost:6379/0</code></td><td>Redis DSN</td></tr>
+<tr><td><code>ENVIRONMENT</code></td><td><code>dev</code></td><td>Guards non-dev defaults</td></tr>
+<tr><td><code>JWT_SECRET</code></td><td>dev-only default</td><td>HS256 signing secret</td></tr>
+<tr><td><code>AUTH0_DOMAIN</code> / <code>AUTH0_AUDIENCE</code></td><td>empty</td><td>Enables RS256/Auth0</td></tr>
+<tr><td><code>SEED_DEMO_USERS_ENABLED</code></td><td><code>true</code></td><td>Demo account seeding</td></tr>
+<tr><td><code>BOOTSTRAP_ADMIN_EMAIL</code> / <code>BOOTSTRAP_ADMIN_PASSWORD</code></td><td><code>admin@example.com</code> / <code>admin123</code></td><td>Superadmin bootstrap</td></tr>
+<tr><td><code>SMTP_HOST</code> / <code>SMTP_PORT</code> / <code>SMTP_USER</code> / <code>SMTP_PASSWORD</code></td><td>localhost:587</td><td>Email dispatch</td></tr>
+<tr><td><code>TEAMS_WEBHOOK_URL</code></td><td>empty</td><td>Teams dispatch</td></tr>
+<tr><td><code>PAGERDUTY_ROUTING_KEY</code></td><td>empty</td><td>PagerDuty dispatch</td></tr>
+<tr><td><code>DB_POOL_SIZE</code> / <code>DB_MAX_OVERFLOW</code> / <code>DB_POOL_TIMEOUT</code></td><td>20 / 40 / 30</td><td>Connection pool</td></tr>
+<tr><td><code>PROCESSING_BATCH_SIZE</code> / <code>PROCESSING_CONSUMERS</code></td><td>100 / 4</td><td>Processing tuning</td></tr>
+<tr><td><code>DISPATCH_MAX_WORKERS</code> / <code>DISPATCH_CONSUMERS</code></td><td>10 / 2</td><td>Dispatch tuning</td></tr>
+<tr><td><code>ANALYTICS_AGGREGATE_RULES_INTERVAL</code> / <code>ANALYTICS_RISK_INTERVAL</code></td><td>60 / 300</td><td>Analytics cadence (s)</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h2>Appendix A — Related deliverables</h2>
+
+<table>
+<thead><tr><th>Asset</th><th>Location</th></tr></thead>
+<tbody>
+<tr><td>Stakeholder tenancy explainer (Word)</td><td><code>docs/Tenancy_Stakeholder_Overview.docx</code></td></tr>
+<tr><td>Alert messaging design (Word)</td><td><code>docs/SITA_Alert_Messaging.docx</code></td></tr>
+<tr><td>Database schema reference</td><td><code>docs/database-schema.md</code></td></tr>
+<tr><td>Interactive architecture tree + ER diagram</td><td><code>tree.html</code></td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<p>*Generated from the repository at commit <code>a53f829</code> — multi-tenancy release.*</p>
+
+<footer>Generated from the repository documentation set · <a href="SITA_Platform_System_Documentation.docx">Download Word version</a></footer>
+<script>
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const root = document.documentElement;
+  const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+  root.setAttribute('data-theme', next);
+  try { localStorage.setItem('sita-doc-theme', next); } catch (e) {}
+});
+</script>
+</body>
+</html>
