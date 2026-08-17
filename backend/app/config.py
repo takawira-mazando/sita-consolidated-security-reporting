@@ -1,7 +1,7 @@
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
-DEV_JWT_SECRET = "sita-local-dev-secret-change-me"
+DEV_JWT_SECRET = "sita-local-dev-secret-change-me"  # nosec B105
 
 
 class Settings(BaseSettings):
@@ -43,7 +43,7 @@ class Settings(BaseSettings):
         if self.environment.lower() not in ("dev", "development", "test", "testing"):
             if self.jwt_secret == DEV_JWT_SECRET:
                 raise ValueError("JWT_SECRET is still the default dev value; set a strong secret for non-dev environments")
-            if not self.bootstrap_admin_password or self.bootstrap_admin_password == "admin123":
+            if not self.bootstrap_admin_password or self.bootstrap_admin_password == "admin123":  # nosec B105
                 raise ValueError("BOOTSTRAP_ADMIN_PASSWORD must be a strong, non-default value in non-dev environments")
             if self.seed_demo_users_enabled:
                 raise ValueError("SEED_DEMO_USERS_ENABLED must be false in non-dev environments")

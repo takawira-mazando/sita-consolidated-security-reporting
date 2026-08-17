@@ -1,9 +1,10 @@
 from datetime import datetime
 from math import ceil
+from typing import Any, Mapping
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import (
@@ -35,19 +36,9 @@ class UserCreate(BaseModel):
     department_ids: list[str] = Field(default_factory=list)
     branch_ids: list[str] = Field(default_factory=list)
     province_ids: list[str] = Field(default_factory=list)
-    # Identity detail for non-employee (contractor/service account) provisioning.
-    person_id: str | None = None
-    title: str | None = None
-    initials: str | None = None
-    surname: str | None = None
-    id_number: str | None = None
-    job_title: str | None = None
-    org_unit: str | None = None
-    manager_id: str | None = None
-    manager_name: str | None = None
-    work_phone: str | None = None
-    location: str | None = None
-    clearance_level: str | None = None
+    # Accounts can only be provisioned for HR-provisioned employees. There is
+    # no path to create an external/non-employee user.
+    person_id: str
 
 
 class UserUpdate(BaseModel):
@@ -59,13 +50,6 @@ class UserUpdate(BaseModel):
     is_active: bool | None = None
     password: str | None = Field(default=None, min_length=8)
     person_id: str | None = None
-    job_title: str | None = None
-    org_unit: str | None = None
-    manager_id: str | None = None
-    manager_name: str | None = None
-    work_phone: str | None = None
-    location: str | None = None
-    clearance_level: str | None = None
 
 
 class HRSyncRecord(BaseModel):
@@ -393,6 +377,35 @@ async def create_user(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("admin_write")),
 ):
+    """
+    Create a new user with strict tenancy and Role-Based Access Control (RBAC) validation.
+
+    This endpoint integrates the full SITA tenancy model (Provinces, Departments, Branches) 
+    and enforces **Delegated Authority**. The caller may only create users whose roles and 
+    scope fall strictly within their own administrative boundaries.
+
+    ### Delegated Authority (Hierarchical Tiers)
+    - **Tier 5 (Platform Operator / creator):** Role `operator`. National scope. Can create the SITA superuser (`admin`) and peer `operator` accounts only (rotation). Nothing else.
+    - **Tier 4 (SITA Superuser):** Role `admin`. National scope. Can create `transversal-admin`, `exec`, `compliance`, `sre`, `dept-admin`, `province-dept-admin`, `branch-admin` and the operational roles — never a peer `admin` or an `operator`.
+    - **Tier 3 (Transversal Admin):** Role `transversal-admin`. Assigned scope (may be national). Can create `transversal-admin` (peer), `exec`, `compliance`, `sre`, `dept-admin`, `province-dept-admin`, `branch-admin` and the operational roles within its scope.
+    - **Tier 2 (Department Admin):** Role `dept-admin` / `province-dept-admin`. Department/province scope. Can create `branch-admin` (dept-admin only) and the operational roles within their assigned departments/province.
+    - **Tier 1 (Branch Admin):** Role `branch-admin`. Branch scope. Can create the operational roles *only* within their assigned branch.
+    - **Tier 0 (Service Ops):** Role `sre`. Estate-wide scope, operational roles only (`soc`, `appsec`, `dbsec`, `province-soc-lead`, `local-appsec`) — no admin tiers.
+
+    ### Payload Requirements
+    - **person_id**: Required. Must reference an HR-provisioned employee record
+      (look it up via `GET /admin/persons`). Accounts can only be created for
+      employees imported from the HR system — there is no path for external or
+      non-employee users.
+    - **email**: Must match the HR employee's registered email.
+    - **roles**: Must contain valid SITA roles.
+    - **department_ids**: Must contain valid department slugs (e.g., `home-affairs-digital`) if the role requires department scoping.
+    - **branch_ids**: If provided, must belong to the specified department.
+    
+    ### Security
+    - Requires `admin_write` permission.
+    - Attempts to escalate privileges or scope will result in `HTTP 403 Forbidden`.
+    """
     _validate_roles(body.roles)
     _validate_departments(body.department_ids)
     _validate_branches(body.branch_ids, body.department_ids)
@@ -410,57 +423,34 @@ async def create_user(
     if existing is not None:
         raise HTTPException(status_code=409, detail="A user with this email already exists")
 
-    person = None
-    if body.person_id:
-        person = await session.get(Person, body.person_id)
-        if person is None:
-            raise HTTPException(
-                status_code=400,
-                detail=f"No person record found for person_id '{body.person_id}'. "
-                "Use /admin/persons to look up an HR-provisioned record.",
-            )
-    elif any(
-        [
-            body.initials,
-            body.surname,
-            body.id_number,
-            body.job_title,
-            body.org_unit,
-        ]
-    ):
-        person = Person(
-            employee_number=None,
-            email=email,
-            id_number=body.id_number,
-            title=body.title,
-            initials=body.initials,
-            surname=body.surname,
-            display_name=body.display_name,
-            job_title=body.job_title,
-            org_unit=body.org_unit,
-            department_id=body.department_ids[0] if body.department_ids else None,
-            branch_id=body.branch_ids[0] if body.branch_ids else None,
-            manager_id=body.manager_id,
-            manager_name=body.manager_name,
-            work_phone=body.work_phone,
-            location=body.location,
-            employment_status="active",
-            clearance_level=body.clearance_level,
-            source="manual",
-            is_active=True,
+    person = await session.get(Person, body.person_id)
+    if person is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No HR employee record found for person_id '{body.person_id}'. "
+            "Use /admin/persons to look up an HR-provisioned employee.",
         )
-        session.add(person)
-        await session.flush()
+    person_email = (person.email or "").lower().strip()
+    if not person_email:
+        raise HTTPException(
+            status_code=400,
+            detail="HR record has no registered email; an account cannot be provisioned.",
+        )
+    if email != person_email:
+        raise HTTPException(
+            status_code=400,
+            detail="Account email must match the HR employee's registered email.",
+        )
 
     user = User(
         email=email,
         password_hash=hash_password(body.password),
-        display_name=person.display_name if person else body.display_name,
+        display_name=person.display_name or body.display_name,
         roles=body.roles,
         department_ids=list(dict.fromkeys(body.department_ids)),
         branch_ids=list(dict.fromkeys(body.branch_ids)),
         province_ids=list(dict.fromkeys(body.province_ids)),
-        person_id=person.id if person else None,
+        person_id=person.id,
         is_active=True,
     )
     session.add(user)
@@ -513,29 +503,16 @@ async def update_user(
         user.password_hash = hash_password(body.password)
 
     person = None
-    if user.person_id:
-        person = await session.get(Person, user.person_id)
     if body.person_id is not None:
         person = await session.get(Person, body.person_id)
         if person is None:
             raise HTTPException(
                 status_code=400,
-                detail=f"No person record found for person_id '{body.person_id}'.",
+                detail=f"No HR employee record found for person_id '{body.person_id}'.",
             )
         user.person_id = person.id
-    if person is not None:
-        for attr in (
-            "job_title",
-            "org_unit",
-            "manager_id",
-            "manager_name",
-            "work_phone",
-            "location",
-            "clearance_level",
-        ):
-            value = getattr(body, attr, None)
-            if value is not None:
-                setattr(person, attr, value)
+    elif user.person_id:
+        person = await session.get(Person, user.person_id)
 
     await session.commit()
     await session.refresh(user)
@@ -577,7 +554,7 @@ async def list_persons(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("admin_read")),
 ):
-    """Browse HR-provisioned person records (for linking when creating users)."""
+    """Browse HR-provisioned person records (the only identity source for creating user accounts)."""
     size = min(max(size, 1), 200)
     page = max(page, 1)
     filters = []
@@ -647,17 +624,17 @@ async def list_persons(
     }
 
 
-@router.post("/hr/sync")
-async def hr_sync(
+async def _upsert_hr_records(
+    session: AsyncSession,
+    claims,
     records: list[HRSyncRecord],
-    session: AsyncSession = Depends(get_session),
-    claims = Depends(require_roles("admin_write")),
-):
-    """Upsert person records from the HR system (PERSAL/payroll or SCIM feed).
+) -> dict:
+    """Shared HR -> identity.persons pipeline.
 
-    Keyed on employee_number. HR sync never modifies roles or department/branch
-    scopes — those are set by admins on the linked user. Terminated employees
-    are soft-disabled on any linked platform account (is_active=False).
+    Used by the push endpoint (POST /admin/hr/sync) and the simulated-HR pull
+    (POST /admin/hr/sim/sync). Keyed on employee_number. HR sync never modifies
+    roles or department/branch scopes — those are set by admins on the linked
+    user. Terminated employees are soft-disabled on any linked platform account.
     """
     created = updated = deactivated = skipped = 0
     seen: set[str] = set()
@@ -735,3 +712,94 @@ async def hr_sync(
         "deactivated": deactivated,
         "skipped": skipped,
     }
+
+
+@router.post("/hr/sync")
+async def hr_sync(
+    records: list[HRSyncRecord],
+    session: AsyncSession = Depends(get_session),
+    claims = Depends(require_roles("admin_write")),
+):
+    """Upsert person records from the HR system (PERSAL/payroll or SCIM feed).
+
+    Keyed on employee_number. HR sync never modifies roles or department/branch
+    scopes — those are set by admins on the linked user. Terminated employees
+    are soft-disabled on any linked platform account (is_active=False).
+    """
+    return await _upsert_hr_records(session, claims, records)
+
+
+# The simulated external HR system lives in a separate `hr` schema and stands
+# in for a real PERSAL/SCIM feed so the HR-only provisioning flow can be
+# exercised end-to-end. See infrastructure/scripts/init-db.sql (DDL) and
+# infrastructure/scripts/seed-hr-system.sql (seed).
+_SIM_HR_SELECT = text(
+    "SELECT employee_number, id_number, title, initials, first_name, surname,"
+    " display_name, email, job_title, org_unit, department_code, branch_code,"
+    " manager_employee_number, manager_name, work_phone, location,"
+    " employment_status, clearance_level FROM hr.employees"
+)
+
+
+def _sim_row_to_sync(row: Mapping[str, Any]) -> HRSyncRecord:
+    """Map one hr.employees row to the canonical HR sync record.
+
+    The simulated HR system stores SITA tenancy slugs in department_code /
+    branch_code, so the record maps straight onto department_id / branch_id and
+    every validation and tenant-scoping rule in the shared pipeline applies
+    unchanged.
+    """
+    return HRSyncRecord(
+        employee_number=row["employee_number"],
+        email=row.get("email"),
+        id_number=row.get("id_number"),
+        title=row.get("title"),
+        initials=row.get("initials"),
+        surname=row.get("surname"),
+        display_name=row.get("display_name") or row.get("first_name"),
+        job_title=row.get("job_title"),
+        org_unit=row.get("org_unit"),
+        department_id=row.get("department_code"),
+        branch_id=row.get("branch_code"),
+        manager_id=row.get("manager_employee_number"),
+        manager_name=row.get("manager_name"),
+        work_phone=row.get("work_phone"),
+        location=row.get("location"),
+        employment_status=row.get("employment_status") or "active",
+        clearance_level=row.get("clearance_level"),
+    )
+
+
+@router.get("/hr/sim/employees")
+async def sim_hr_employees(
+    session: AsyncSession = Depends(get_session),
+    claims = Depends(require_roles("admin_read")),
+):
+    """Browse the simulated external HR system's employee master.
+
+    Read-only helper so the simulated feed can be inspected before syncing.
+    """
+    rows = (await session.execute(_SIM_HR_SELECT)).mappings().all()
+    return {
+        "system": "simulated-hr",
+        "total": len(rows),
+        "items": [dict(r) for r in rows],
+    }
+
+
+@router.post("/hr/sim/sync")
+async def hr_sim_sync(
+    session: AsyncSession = Depends(get_session),
+    claims = Depends(require_roles("admin_write")),
+):
+    """Pull every row from the simulated external HR system and run the exact
+    same HR sync pipeline used for live feeds (POST /admin/hr/sync).
+
+    This is how the HR-only account provisioning flow is tested: the pull lands
+    records in identity.persons, which then become the only source that user
+    accounts can be provisioned from.
+    """
+    rows = (await session.execute(_SIM_HR_SELECT)).mappings().all()
+    records = [_sim_row_to_sync(r) for r in rows]
+    result = await _upsert_hr_records(session, claims, records)
+    return {"system": "simulated-hr", "pulled": len(records), **result}

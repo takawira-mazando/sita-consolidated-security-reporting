@@ -164,7 +164,7 @@ async def backfill(session) -> None:
             await session.execute(
                 text(
                     f"UPDATE {table} SET department_id = :dept "
-                    f"WHERE {col} = :key AND department_id IS NULL"
+                    f"WHERE {col} = :key AND department_id IS NULL"  # nosec B608
                 ),
                 {"dept": dept_id, "key": key},
             )
@@ -174,7 +174,7 @@ async def backfill(session) -> None:
             await session.execute(
                 text(
                     f"UPDATE {table} SET branch_id = :branch "
-                    f"WHERE {col} = :key AND branch_id IS NULL"
+                    f"WHERE {col} = :key AND branch_id IS NULL"  # nosec B608
                 ),
                 {"branch": branch_id, "key": key},
             )
@@ -190,7 +190,7 @@ async def backfill(session) -> None:
             await session.execute(
                 text(
                     f"UPDATE {table} SET ministry_id = :ministry "
-                    f"WHERE department_id = :dept AND ministry_id IS NULL"
+                    f"WHERE department_id = :dept AND ministry_id IS NULL"  # nosec B608
                 ),
                 {"ministry": ministry_id, "dept": dept_id},
             )
@@ -198,7 +198,7 @@ async def backfill(session) -> None:
             await session.execute(
                 text(
                     f"UPDATE {table} SET cluster_id = :cluster "
-                    f"WHERE department_id = :dept AND cluster_id IS NULL"
+                    f"WHERE department_id = :dept AND cluster_id IS NULL"  # nosec B608
                 ),
                 {"cluster": cluster_id, "dept": dept_id},
             )

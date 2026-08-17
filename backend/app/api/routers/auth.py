@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import JWTClaims, verify_token
+from app.api.auth import JWTClaims, scope_covers, verify_token
 from app.config import settings
 from app.db import get_session
 from app.models.user import User
@@ -18,7 +18,7 @@ from app.tenant import (
     PROVINCE_DEPARTMENTS,
     PROVINCES,
     PROVINCIAL_DEPARTMENTS,
-    PROVINCIAL_ROLES,
+    province_for_department,
 )
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -30,20 +30,25 @@ ALL_ROLES = ["exec", "soc", "appsec", "dbsec", "compliance", "sre"]
 # the whole estate (empty scope); department roles are scoped to their
 # assigned departments (optionally narrowed to branches).
 DEMO_ACCOUNTS = [
-    # Demo accounts still carry the seeded department scope used by the
-    # regular email/password login; /demo-login ignores it and widens the
-    # issued token to the whole estate unless a scope override is supplied.
-    {"email": "exec@example.com", "password": "pass123", "roles": ["exec"], "label": "Executive", "role": "exec", "department_ids": []},
-    {"email": "soc@example.com", "password": "pass123", "roles": ["soc"], "label": "SOC Analyst", "role": "soc", "department_ids": ["home-affairs-digital"]},
-    {"email": "appsec@example.com", "password": "pass123", "roles": ["appsec"], "label": "AppSec", "role": "appsec", "department_ids": ["treasury"]},
-    {"email": "dbsec@example.com", "password": "pass123", "roles": ["dbsec"], "label": "DB Security", "role": "dbsec", "department_ids": ["dpsa-hr"]},
-    {"email": "compliance@example.com", "password": "pass123", "roles": ["compliance"], "label": "Compliance", "role": "compliance", "department_ids": []},
-    {"email": "sre@example.com", "password": "pass123", "roles": ["sre"], "label": "Service Ops", "role": "sre", "department_ids": []},
-    {"email": "deptadmin@example.com", "password": "pass123", "roles": ["dept-admin"], "label": "Dept Admin", "role": "dept-admin", "department_ids": ["treasury"]},
-    {"email": "branchadmin@example.com", "password": "pass123", "roles": ["branch-admin"], "label": "Branch Admin", "role": "branch-admin", "department_ids": ["treasury"]},
-    {"email": "transversal@example.com", "password": "pass123", "roles": ["transversal-admin"], "label": "Transversal Admin", "role": "transversal-admin", "department_ids": []},
-    {"email": "provincesoc@example.com", "password": "pass123", "roles": ["province-soc-lead"], "label": "Provincial SOC Lead", "role": "province-soc-lead", "department_ids": [], "province_ids": ["gp"]},
-    {"email": "admin@example.com", "password": "admin123", "roles": ALL_ROLES, "label": "Admin", "role": "admin", "department_ids": []},
+    # The seeded department/province scope below IS each account's tenancy
+    # entitlement: /demo-login issues it by default and any scope override
+    # must stay within it (scope_covers). Nationwide personas (exec,
+    # compliance, sre, transversal-admin) hold an empty scope = whole estate.
+    {"email": "exec@example.com", "password": "pass123", "roles": ["exec"], "label": "Executive", "role": "exec", "department_ids": []},  # nosec B105
+    {"email": "soc@example.com", "password": "pass123", "roles": ["soc"], "label": "SOC Analyst", "role": "soc", "department_ids": ["home-affairs-digital"]},  # nosec B105
+    {"email": "appsec@example.com", "password": "pass123", "roles": ["appsec"], "label": "AppSec", "role": "appsec", "department_ids": ["treasury"]},  # nosec B105
+    {"email": "dbsec@example.com", "password": "pass123", "roles": ["dbsec"], "label": "DB Security", "role": "dbsec", "department_ids": ["dpsa-hr"]},  # nosec B105
+    {"email": "compliance@example.com", "password": "pass123", "roles": ["compliance"], "label": "Compliance", "role": "compliance", "department_ids": []},  # nosec B105
+    {"email": "sre@example.com", "password": "pass123", "roles": ["sre"], "label": "Service Ops", "role": "sre", "department_ids": []},  # nosec B105
+    {"email": "deptadmin@example.com", "password": "pass123", "roles": ["dept-admin"], "label": "Dept Admin", "role": "dept-admin", "department_ids": ["treasury"]},  # nosec B105
+    {"email": "branchadmin@example.com", "password": "pass123", "roles": ["branch-admin"], "label": "Branch Admin", "role": "branch-admin", "department_ids": ["treasury"]},  # nosec B105
+    {"email": "transversal@example.com", "password": "pass123", "roles": ["transversal-admin"], "label": "Transversal Admin", "role": "transversal-admin", "department_ids": []},  # nosec B105
+    {"email": "provincesoc@example.com", "password": "pass123", "roles": ["province-soc-lead"], "label": "Provincial SOC Lead", "role": "province-soc-lead", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
+    {"email": "admin@example.com", "password": "admin123", "roles": ALL_ROLES, "label": "Admin", "role": "admin", "department_ids": []},  # nosec B105
+    # Managed-service creator: the platform provider's own credential. Holds
+    # no dashboard — its sole function is to create the SITA superuser
+    # (`admin`) from the HR pool, plus peer operators for rotation.
+    {"email": "operator@example.com", "password": "operator123", "roles": ["operator"], "label": "Platform Operator", "role": "operator", "department_ids": []},  # nosec B105
 ]
 
 LOGIN_WINDOW_SECONDS = 60
@@ -77,6 +82,15 @@ DEMO_ROLE_MAP = {account["role"]: account for account in DEMO_ACCOUNTS}
 class LoginRequest(BaseModel):
     email: str
     password: str
+    department_id: str | None = None
+    branch_id: str | None = None
+    province_id: str | None = None
+
+
+class SwitchTenantRequest(BaseModel):
+    department_id: str | None = None
+    branch_id: str | None = None
+    province_id: str | None = None
 
 
 class DemoLoginRequest(BaseModel):
@@ -96,6 +110,7 @@ class TenancyDepartment(BaseModel):
     name: str
     branch_count: int
     branches: list[TenancyBranch]
+    province_id: str | None = None
 
 
 class TenancyProvince(BaseModel):
@@ -133,6 +148,11 @@ class DemoAccount(BaseModel):
     email: str
     label: str
     role: str
+    department_ids: list[str] = []
+    province_ids: list[str] = []
+    department_name: str | None = None
+    province_name: str | None = None
+    is_nationwide: bool = False
 
 
 async def seed_demo_users(session: AsyncSession) -> int:
@@ -217,22 +237,44 @@ def _issue(
     )
 
 
-def _demo_scope(department_id: str | None, branch_id: str | None) -> tuple[list[str], list[str]]:
-    """Resolve an optional demo-login scope against the national hierarchy.
+def _resolve_scope(
+    department_id: str | None,
+    branch_id: str | None,
+    province_id: str | None,
+) -> tuple[list[str], list[str], list[str]]:
+    """Resolve a requested tenancy scope into (department_ids, branch_ids, province_ids).
 
-    Returns (department_ids, branch_ids). No department means no override
-    (the account's admin-set scope applies). A branch must belong to the
-    chosen department.
+    A department scope may be narrowed to one of its branches; a province
+    scope expands to the province's full department set and cannot be combined
+    with a specific department. Nothing supplied means "account default" and
+    is returned as three empty lists.
     """
+    if department_id is not None and province_id is not None:
+        raise HTTPException(
+            status_code=400,
+            detail="Choose a department or a province, not both",
+        )
+    if branch_id is not None and department_id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="A branch scope requires a department",
+        )
+    if province_id is not None:
+        if province_id not in PROVINCES:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown province '{province_id}'",
+            )
+        return [], [], [province_id]
     if department_id is None:
-        return [], []
+        return [], [], []
     if department_id not in DEPARTMENTS:
         raise HTTPException(
             status_code=400,
             detail=f"Unknown department '{department_id}'",
         )
     if branch_id is None:
-        return [department_id], []
+        return [department_id], [], []
     if branch_id not in BRANCHES:
         raise HTTPException(
             status_code=400,
@@ -244,7 +286,32 @@ def _demo_scope(department_id: str | None, branch_id: str | None) -> tuple[list[
             status_code=400,
             detail=f"Branch '{branch_id}' belongs to '{parent}', not '{department_id}'",
         )
-    return [department_id], [branch_id]
+    return [department_id], [branch_id], []
+
+
+def _scope_claims(user: User) -> JWTClaims:
+    """JWTClaims mirroring a user's admin-set scope (their entitlement)."""
+    return JWTClaims(
+        sub=user.id,
+        email=user.email,
+        roles=list(user.roles or []),
+        department_ids=list(user.department_ids or []),
+        branch_ids=list(user.branch_ids or []),
+        province_ids=list(user.province_ids or []),
+    )
+
+
+def _account_default_scope(user: User) -> tuple[list[str], list[str], list[str]]:
+    """A demo/real account's own tenancy: the admin-set (seeded) scope.
+
+    Nationwide personas hold an empty scope (whole estate); department- and
+    province-scoped personas get exactly their tenant subtree.
+    """
+    return (
+        list(user.department_ids or []),
+        list(user.branch_ids or []),
+        list(user.province_ids or []),
+    )
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -261,35 +328,17 @@ async def login(
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is disabled")
+    if body.department_id or body.branch_id or body.province_id:
+        depts, branches, provinces = _resolve_scope(
+            body.department_id, body.branch_id, body.province_id
+        )
+        if not scope_covers(_scope_claims(user), depts, branches, provinces):
+            raise HTTPException(
+                status_code=403,
+                detail="Requested tenancy scope is outside your assigned scope",
+            )
+        return _issue(user, depts, branches, provinces)
     return _issue(user)
-
-
-def _demo_nationwide_roles(user: User) -> list[str]:
-    """Roles issued for a demo login with no scope override.
-
-    Demo accounts default to the whole estate: an empty scope plus a nationwide
-    role. tenant_filter treats an empty scope as whole-estate for nationwide
-    roles and fails closed for department roles, so a nationwide role must be
-    granted or a department-scoped demo account would see nothing. Provincial
-    personas are the exception: they keep their province scope (see
-    `_demo_province_scope`) so tenant isolation is demonstrable.
-    """
-    roles = list(user.roles or [])
-    if not set(roles) & NATIONWIDE_ROLES and not set(roles) & PROVINCIAL_ROLES:
-        roles.append("exec")
-    return roles
-
-
-def _demo_province_scope(user: User) -> list[str]:
-    """Province scope issued for a provincial-persona demo login.
-
-    Provincial personas are seeded with a province so their JWT carries it
-    end-to-end and tenant_filter scopes reads to that province's departments.
-    Non-provincial accounts stay unscoped (whole estate) for demo purposes.
-    """
-    if set(user.roles or []) & PROVINCIAL_ROLES:
-        return list(user.province_ids or [])
-    return []
 
 
 @router.post("/demo-login", response_model=LoginResponse)
@@ -309,16 +358,21 @@ async def demo_login(
     ).scalar_one_or_none()
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="Demo account not available")
-    if body.department_id:
-        dept_ids, branch_ids = _demo_scope(body.department_id, body.branch_id)
-        return _issue(user, dept_ids, branch_ids)
-    if body.province_id:
-        if body.province_id not in PROVINCES:
-            raise HTTPException(status_code=400, detail=f"Unknown province '{body.province_id}'")
-        return _issue(user, [], [], province_ids=[body.province_id])
-    # No override: demo accounts default to the whole estate (ignore the seeded
-    # scope). The login page can still narrow via a scope override above.
-    return _issue(user, [], [], roles=_demo_nationwide_roles(user), province_ids=_demo_province_scope(user))
+    if body.department_id or body.branch_id or body.province_id:
+        depts, branches, provinces = _resolve_scope(
+            body.department_id, body.branch_id, body.province_id
+        )
+        if not scope_covers(_scope_claims(user), depts, branches, provinces):
+            raise HTTPException(
+                status_code=403,
+                detail="Requested tenancy scope is outside this demo account's scope",
+            )
+        return _issue(user, depts, branches, provinces)
+    # No override: demo accounts sign in as their admin-set (seeded) tenancy —
+    # nationwide personas get the whole estate, department-scoped and
+    # provincial personas get exactly their tenant subtree.
+    depts, branches, provinces = _account_default_scope(user)
+    return _issue(user, depts, branches, provinces)
 
 
 @router.get("/demo-accounts", response_model=list[DemoAccount])
@@ -335,7 +389,20 @@ async def demo_accounts(
         user = by_email.get(account["email"])
         if user is None or not user.is_active:
             continue
-        accounts.append(DemoAccount(email=account["email"], label=user.display_name or account["label"], role=account["role"]))
+        primary_dept = (user.department_ids or [None])[0]
+        primary_province = (user.province_ids or [None])[0]
+        accounts.append(
+            DemoAccount(
+                email=account["email"],
+                label=user.display_name or account["label"],
+                role=account["role"],
+                department_ids=list(user.department_ids or []),
+                province_ids=list(user.province_ids or []),
+                department_name=DEPARTMENTS.get(primary_dept) if primary_dept else None,
+                province_name=PROVINCES.get(primary_province) if primary_province else None,
+                is_nationwide=bool(set(user.roles or []) & NATIONWIDE_ROLES),
+            )
+        )
     return accounts
 
 
@@ -360,6 +427,7 @@ async def tenancy_hierarchy():
                 name=dept_name,
                 branch_count=len(branches),
                 branches=branches,
+                province_id=province_for_department(dept_id),
             )
         )
     provinces = []
@@ -401,3 +469,33 @@ async def me(claims: JWTClaims = Depends(verify_token)):
         province_name=PROVINCES.get(provinces[0]) if provinces else None,
         branch_names=[BRANCHES[b][0] for b in branches if b in BRANCHES],
     )
+
+
+@router.post("/switch-tenant", response_model=LoginResponse)
+async def switch_tenant(
+    body: SwitchTenantRequest,
+    session: AsyncSession = Depends(get_session),
+    claims: JWTClaims = Depends(verify_token),
+):
+    """Re-issue a token for a new tenancy scope without re-authenticating.
+
+    The target must sit within the user's admin-set entitlement; an empty body
+    resets to the account's default (stored) scope.
+    """
+    user = (
+        await session.execute(select(User).where(User.id == claims.sub))
+    ).scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise HTTPException(status_code=401, detail="Account not available")
+    if body.department_id or body.branch_id or body.province_id:
+        depts, branches, provinces = _resolve_scope(
+            body.department_id, body.branch_id, body.province_id
+        )
+        if not scope_covers(_scope_claims(user), depts, branches, provinces):
+            raise HTTPException(
+                status_code=403,
+                detail="Target tenant is outside your assigned scope",
+            )
+        return _issue(user, depts, branches, provinces)
+    depts, branches, provinces = _account_default_scope(user)
+    return _issue(user, depts, branches, provinces)

@@ -1,20 +1,23 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import DashHeader from '../components/dashboard/DashHeader';
 import Chip from '../components/dashboard/Chip';
 import { useApi } from '../hooks/useApi';
 import { useAuth } from '../hooks/useAuth';
-import { fetchUsers, createUser, updateUser, deleteUser, AdminUser } from '../api/admin';
+import { fetchUsers, createUser, updateUser, deleteUser, AdminUser, fetchPersons, PersonRecord } from '../api/admin';
 import { fetchTenancy, TenancyDepartment } from '../api/auth';
 import type { Tone } from '../data/mappers';
 
-const ROLE_OPTIONS = ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre', 'admin', 'transversal-admin', 'dept-admin', 'branch-admin', 'province-soc-lead', 'province-dept-admin', 'local-appsec'];
 const DEPARTMENT_ROLES = new Set(['soc', 'appsec', 'dbsec', 'dept-admin', 'branch-admin', 'province-soc-lead', 'province-dept-admin', 'local-appsec']);
 const PROVINCIAL_ROLES = new Set(['province-soc-lead', 'province-dept-admin', 'local-appsec']);
 const BRANCH_REQUIRED_ROLES = new Set(['branch-admin']);
 
-// Mirrors backend GRANTABLE_ROLES: roles a delegated admin may grant, by tier.
+// Mirrors backend GRANTABLE_ROLES: roles each tier may grant. The cascade is
+// operator (creator) -> admin (SITA superuser) -> dept/branch admins -> ops.
 const GRANTABLE_ROLES: Record<string, string[]> = {
-  'transversal-admin': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec', 'dept-admin', 'branch-admin', 'province-dept-admin'],
+  'operator': ['admin', 'operator'],
+  'admin': ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre', 'transversal-admin', 'dept-admin', 'branch-admin', 'province-dept-admin', 'province-soc-lead', 'local-appsec'],
+  'sre': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec'],
+  'transversal-admin': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec', 'dept-admin', 'branch-admin', 'province-dept-admin', 'transversal-admin', 'sre', 'exec', 'compliance'],
   'dept-admin': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec', 'branch-admin'],
   'province-dept-admin': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec'],
   'branch-admin': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec'],
@@ -28,6 +31,7 @@ const ROLE_TONE: Record<string, Tone> = {
   compliance: 'closed',
   sre: 'half',
   admin: 'severe',
+  operator: 'severe',
   'transversal-admin': 'severe',
   'dept-admin': 'severe',
   'branch-admin': 'high',
@@ -44,6 +48,7 @@ interface FormState {
   department_ids: string[];
   branch_ids: string[];
   province_ids: string[];
+  person_id: string;
   is_active: boolean;
 }
 
@@ -55,6 +60,7 @@ const EMPTY_FORM: FormState = {
   department_ids: [],
   branch_ids: [],
   province_ids: [],
+  person_id: '',
   is_active: true,
 };
 
@@ -80,6 +86,31 @@ export default function AdminUsersPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [personResults, setPersonResults] = useState<PersonRecord[]>([]);
+  const [personSearch, setPersonSearch] = useState('');
+  const [personLoading, setPersonLoading] = useState(false);
+  const personSearchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const runPersonSearch = async (q: string) => {
+    setPersonLoading(true);
+    try {
+      const res = await fetchPersons(q || undefined);
+      setPersonResults(res.items || []);
+    } catch {
+      setPersonResults([]);
+    } finally {
+      setPersonLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    runPersonSearch('');
+    return () => {
+      if (personSearchTimer.current) clearTimeout(personSearchTimer.current);
+    };
+  }, []);
+
+  const selectedPerson = personResults.find((p) => p.id === form.person_id);
 
   const items = users.data?.items || [];
   const departments: TenancyDepartment[] = tenancy.data?.departments || [];
@@ -90,9 +121,7 @@ export default function AdminUsersPage() {
   const myProvinces = me?.province_ids || [];
   const isSystemAdmin = me?.roles?.includes('admin');
   const isScopedAdmin = !isSystemAdmin && (me?.roles?.some((r) => ['dept-admin', 'branch-admin', 'province-dept-admin'].includes(r)) || myDepts.length > 0);
-  const grantableOptions = isSystemAdmin || me?.roles?.includes('sre')
-    ? ROLE_OPTIONS
-    : Array.from(new Set((me?.roles || []).flatMap((r) => GRANTABLE_ROLES[r] || [])));
+  const grantableOptions = Array.from(new Set((me?.roles || []).flatMap((r) => GRANTABLE_ROLES[r] || [])));
   const pickable = isScopedAdmin
     ? departments.filter((d) => myDepts.length === 0 || myDepts.includes(d.id))
     : departments;
@@ -120,6 +149,8 @@ export default function AdminUsersPage() {
   const openCreate = () => {
     setForm(EMPTY_FORM);
     setError('');
+    setPersonSearch('');
+    runPersonSearch('');
     setModal({ mode: 'create' });
   };
 
@@ -132,6 +163,7 @@ export default function AdminUsersPage() {
       department_ids: [...(user.department_ids || [])],
       branch_ids: [...(user.branch_ids || [])],
       province_ids: [...(user.province_ids || [])],
+      person_id: user.person_id || '',
       is_active: user.is_active,
     });
     setError('');
@@ -173,6 +205,23 @@ export default function AdminUsersPage() {
     }));
   };
 
+  const selectPerson = (p: PersonRecord) => {
+    const inPick = pickable.some((d) => d.id === p.department_id);
+    setForm((f) => ({
+      ...f,
+      person_id: p.id,
+      email: p.email || f.email,
+      display_name: p.display_name || f.display_name,
+      department_ids: inPick && p.department_id ? [p.department_id] : f.department_ids,
+    }));
+  };
+
+  const onPersonSearchChange = (value: string) => {
+    setPersonSearch(value);
+    if (personSearchTimer.current) clearTimeout(personSearchTimer.current);
+    personSearchTimer.current = setTimeout(() => runPersonSearch(value), 300);
+  };
+
   const needsDepartment = form.roles.some((r) => DEPARTMENT_ROLES.has(r));
   const needsProvince = form.roles.some((r) => PROVINCIAL_ROLES.has(r));
   const needsBranch = form.roles.some((r) => BRANCH_REQUIRED_ROLES.has(r));
@@ -194,6 +243,10 @@ export default function AdminUsersPage() {
       setError('Role branch-admin requires at least one assigned branch.');
       return;
     }
+    if (modal?.mode === 'create' && !form.person_id) {
+      setError('Select an HR employee to provision the account from.');
+      return;
+    }
     if (modal?.mode === 'create' && !form.password) {
       setError('Set an initial password (min 8 characters).');
       return;
@@ -210,6 +263,7 @@ export default function AdminUsersPage() {
           department_ids: form.department_ids,
           branch_ids: form.branch_ids,
           province_ids: form.province_ids,
+          person_id: form.person_id,
         });
         setNotice(`Created ${form.email}`);
       } else if (modal?.mode === 'edit' && modal.user) {
@@ -371,6 +425,55 @@ export default function AdminUsersPage() {
             <div className="overlay-title">
               {modal.mode === 'create' ? 'Create User' : `Edit ${modal.user.email}`}
             </div>
+            {modal.mode === 'create' && (
+              <div className="form-field">
+                <span className="form-label">HR employee</span>
+                <input
+                  type="search"
+                  className="form-input"
+                  value={personSearch}
+                  onChange={(e) => onPersonSearchChange(e.target.value)}
+                  placeholder="Search employee number, surname, or email…"
+                />
+                {personLoading && (
+                  <div className="form-hint" style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: 12 }}>
+                    Searching HR records…
+                  </div>
+                )}
+                <div className="person-list">
+                  {personResults.map((p) => {
+                    const checked = p.id === form.person_id;
+                    const name = p.display_name || `${p.title ? p.title + ' ' : ''}${p.initials ? p.initials + ' ' : ''}${p.surname || ''}`.trim();
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        className={`person-option${checked ? ' selected' : ''}`}
+                        onClick={() => selectPerson(p)}
+                      >
+                        <span className="person-option-name">
+                          {checked ? '✓ ' : ''}{name || 'Unnamed employee'}
+                        </span>
+                        <span className="person-meta">
+                          {[p.employee_number, p.job_title, p.department_name].filter(Boolean).join(' · ')}
+                        </span>
+                        {p.email && <span className="person-meta">{p.email}</span>}
+                      </button>
+                    );
+                  })}
+                  {!personLoading && personResults.length === 0 && (
+                    <div className="form-hint" style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: 12 }}>
+                      No active HR employees found. Import staff via the HR sync before creating accounts.
+                    </div>
+                  )}
+                </div>
+                {selectedPerson && (
+                  <div className="form-hint" style={{ marginTop: 6, color: 'var(--ok)', fontSize: 12 }}>
+                    Account will be provisioned for {selectedPerson.display_name || selectedPerson.surname}, employee {selectedPerson.employee_number}. Email is taken from the HR record.
+                  </div>
+                )}
+              </div>
+            )}
             <div className="form-field">
               <label className="form-label" htmlFor="uemail">Email address</label>
               <input
@@ -378,10 +481,15 @@ export default function AdminUsersPage() {
                 id="uemail"
                 className="form-input"
                 value={form.email}
-                disabled={modal.mode === 'edit'}
+                disabled={modal.mode !== 'create' || !form.person_id}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="you@example.com"
+                placeholder={modal.mode === 'create' ? 'From the selected HR employee' : 'you@example.com'}
               />
+              {modal.mode === 'create' && (
+                <div className="form-hint" style={{ marginTop: 6, color: 'var(--text-muted)', fontSize: 12 }}>
+                  The account email must match the HR employee's registered email.
+                </div>
+              )}
             </div>
             <div className="form-row">
               <div className="form-field">

@@ -207,7 +207,7 @@ async def compute_and_store_risks(session, findings: list[dict], days: int = 30)
         # walk back `days` days, adding mild noise so the 30-day trend chart has shape
         import random
 
-        rng = random.Random(42)
+        rng = random.Random(42)  # nosec B311
         for offset in range(days):
             noise = rng.uniform(-6, 6)
             score = max(5.0, min(98.0, base_score + noise + offset * 0.2))

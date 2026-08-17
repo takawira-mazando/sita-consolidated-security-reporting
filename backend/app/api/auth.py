@@ -32,6 +32,7 @@ ROLES_HIERARCHY = {
     "province-dept-admin": {"admin_read", "admin_write"},
     "local-appsec": {"risks", "findings"},
     "admin": {"*"},
+    "operator": {"*"},
 }
 
 class JWTClaims(BaseModel):
@@ -98,18 +99,18 @@ def is_department_scoped(claims: JWTClaims) -> bool:
 def grantable_roles(claims: JWTClaims) -> set[str] | None:
     """Roles the caller may assign to other users. None = anything (system admin).
 
-    Delegation follows the tenancy tree: system `admin` grants everything
-    (including other `dept-admin`); `transversal-admin` grants the operational
-    department roles plus the admin tiers beneath it (`dept-admin`,
-    `branch-admin`) across its scope; `dept-admin` grants the operational
-    department roles plus `branch-admin`; `branch-admin` grants the operational
-    department roles only. Nationwide `sre` (service ops) retains its
-    pre-existing whole-of-estate user management. See GRANTABLE_ROLES.
+    Delegation is a strict one-way cascade down the tenancy tree. The
+    managed-service creator (`operator`) may create the SITA superuser
+    (`admin`) and peer `operator` accounts only. The SITA superuser (`admin`)
+    may create department superusers (`dept-admin`, `province-dept-admin`,
+    `branch-admin`) and provision national-level dashboard access
+    (`exec`, `compliance`, `sre`) estate-wide — never a peer `admin`.
+    Beneath it, delegation follows the existing tree: `transversal-admin`
+    grants the operational department roles plus the admin tiers below it and
+    the specialist national roles; `dept-admin` adds `branch-admin`;
+    `branch-admin` and nationwide `sre` grant the operational department
+    roles only. See GRANTABLE_ROLES.
     """
-    if "admin" in claims.roles:
-        return None
-    if "sre" in claims.roles and is_nationwide(claims):
-        return None
     granted: set[str] = set()
     for role in claims.roles:
         granted |= GRANTABLE_ROLES.get(role, set())
@@ -180,7 +181,9 @@ def can_manage(claims: JWTClaims, roles: list[str], department_ids: list[str], b
 
     - Roles: every target role must be grantable by the caller, and no target
       admin-tier role may sit at or above the caller's own tier (delegation is
-      strictly one-way down the tenancy tree).
+      strictly one-way down the tenancy tree). Only the managed-service
+      creator (`operator`) sits above the SITA superuser, so only `operator`
+      can create/rotate a superuser (`admin`).
     - Scope: the target scope must be within the caller's admin-set scope.
     """
     granted = grantable_roles(claims)
@@ -189,6 +192,12 @@ def can_manage(claims: JWTClaims, roles: list[str], department_ids: list[str], b
     caller_tier = _caller_tier(claims)
     for role in roles:
         role_tier = tier_for_role(role)
+        # Allow operator to manage peer operators (creator rotation).
+        if role == "operator" and "operator" in claims.roles:
+            continue
+        # Allow transversal-admin to grant/manage peer transversal-admin accounts.
+        if role == "transversal-admin" and "transversal-admin" in claims.roles:
+            continue
         if role_tier and role_tier >= caller_tier:
             return False
     if not set(roles) <= granted:

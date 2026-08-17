@@ -74,6 +74,46 @@ CREATE INDEX IF NOT EXISTS idx_persons_dept ON identity.persons(department_id);
 CREATE INDEX IF NOT EXISTS idx_persons_status ON identity.persons(employment_status);
 
 -- ============================================================================
+-- hr - SIMULATED EXTERNAL HR SYSTEM (PERSAL/payroll employee master)
+-- ============================================================================
+-- Stands in for SITA's real HR system so the HR -> identity.persons ->
+-- platform account pipeline can be exercised end-to-end without a live
+-- PERSAL/SCIM feed. It is a SEPARATE logical system: the platform only reads
+-- it via the sim endpoints (/admin/hr/sim/*) and never treats it as the
+-- identity source of truth. Department/branch codes use the SITA tenancy
+-- slugs so the sync validation and tenant scoping apply unchanged.
+
+CREATE SCHEMA IF NOT EXISTS hr;
+
+CREATE TABLE IF NOT EXISTS hr.employees (
+    employee_number         VARCHAR(50) PRIMARY KEY,
+    id_number               VARCHAR(20),
+    title                   VARCHAR(20),
+    initials                VARCHAR(20),
+    first_name              VARCHAR(100),
+    surname                 VARCHAR(100),
+    display_name            VARCHAR(100),
+    email                   VARCHAR(255) UNIQUE,
+    job_title               VARCHAR(120),
+    org_unit                VARCHAR(120),
+    department_code         VARCHAR(36),
+    branch_code             VARCHAR(36),
+    manager_employee_number VARCHAR(50) REFERENCES hr.employees(employee_number),
+    manager_name            VARCHAR(120),
+    work_phone              VARCHAR(30),
+    location                VARCHAR(120),
+    employment_status       VARCHAR(30) NOT NULL DEFAULT 'active',
+    clearance_level         VARCHAR(30),
+    hire_date               DATE,
+    termination_date        DATE,
+    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_hr_emp_dept ON hr.employees(department_code);
+CREATE INDEX IF NOT EXISTS idx_hr_emp_branch ON hr.employees(branch_code);
+CREATE INDEX IF NOT EXISTS idx_hr_emp_status ON hr.employees(employment_status);
+CREATE INDEX IF NOT EXISTS idx_hr_emp_manager ON hr.employees(manager_employee_number);
+
+-- ============================================================================
 -- audit - reserved for immutable action trails (AG secure export engine)
 -- ============================================================================
 

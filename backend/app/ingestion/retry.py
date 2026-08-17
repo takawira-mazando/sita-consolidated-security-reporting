@@ -22,6 +22,6 @@ class RetryHandler:
                 if attempt < self.max_attempts:
                     delay = min(self.backoff_base ** attempt, self.backoff_max)
                     if self.jitter:
-                        delay *= 1 + random.random()
+                        delay *= 1 + random.random()  # nosec B311
                     await asyncio.sleep(delay)
         raise last_exception

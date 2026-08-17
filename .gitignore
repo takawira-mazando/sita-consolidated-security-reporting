@@ -41,3 +41,8 @@ backend/_create_tables.py
 backend/_db_check.py
 backend/.tmpcheck/
 backend/_test_dispatch.py
+
+# Credentials / secrets
+admin_credentials.md
+backend/new_credentials.txt
+

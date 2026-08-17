@@ -1,19 +1,29 @@
 import { useEffect, useState } from 'react';
 import LoginPage from './LoginPage';
 import { useAuth } from '../hooks/useAuth';
+import { fetchSummary, PublicSummary } from '../api/auth';
 import '../styles/home.css';
 
 const MATRIX_ROWS = [
-  { role: 'Executive', tag: 'exec@', alerts: true, vulns: false, logs: false, compliance: true, infra: false },
-  { role: 'SOC Analyst', tag: 'soc@', alerts: true, vulns: true, logs: true, compliance: false, infra: false },
-  { role: 'AppSec', tag: 'appsec@', alerts: false, vulns: true, logs: false, compliance: false, infra: false },
-  { role: 'DB Security', tag: 'dbsec@', alerts: false, vulns: true, logs: true, compliance: false, infra: false },
-  { role: 'Compliance', tag: 'compliance@', alerts: false, vulns: false, logs: true, compliance: true, infra: false },
-  { role: 'SRE', tag: 'sre@', alerts: false, vulns: false, logs: false, compliance: false, infra: true },
+  { role: 'Executive', tag: 'exec@', scope: 'National · whole estate', alerts: true, vulns: false, logs: false, compliance: true, infra: false },
+  { role: 'SOC Analyst', tag: 'soc@', scope: 'Assigned departments/branches', alerts: true, vulns: true, logs: true, compliance: false, infra: false },
+  { role: 'AppSec', tag: 'appsec@', scope: 'Assigned departments/branches', alerts: false, vulns: true, logs: false, compliance: false, infra: false },
+  { role: 'DB Security', tag: 'dbsec@', scope: 'Assigned departments/branches', alerts: false, vulns: true, logs: true, compliance: false, infra: false },
+  { role: 'Compliance', tag: 'compliance@', scope: 'National · whole estate', alerts: false, vulns: false, logs: true, compliance: true, infra: false },
+  { role: 'Service Ops', tag: 'sre@', scope: 'National · whole estate', alerts: false, vulns: false, logs: false, compliance: false, infra: true },
+  { role: 'Transversal Admin', tag: 'transversal@', scope: 'Depts or whole estate', alerts: true, vulns: true, logs: true, compliance: true, infra: true },
+  { role: 'Department Admin', tag: 'deptadmin@', scope: 'One department', alerts: true, vulns: true, logs: true, compliance: true, infra: false },
+  { role: 'Branch Admin', tag: 'branchadmin@', scope: 'Department branch', alerts: true, vulns: true, logs: true, compliance: true, infra: false },
+  { role: 'Provincial SOC Lead', tag: 'provincesoc@', scope: 'One province', alerts: true, vulns: true, logs: true, compliance: false, infra: false },
+  { role: 'Provincial Dept Admin', tag: 'provdeptadmin@', scope: 'Province dept', alerts: true, vulns: true, logs: true, compliance: true, infra: false },
+  { role: 'Local AppSec', tag: 'localappsec@', scope: 'Province dept', alerts: false, vulns: true, logs: false, compliance: false, infra: false },
+  { role: 'Admin', tag: 'admin@', scope: 'Whole estate', alerts: true, vulns: true, logs: true, compliance: true, infra: true },
 ];
 
 const MATRIX_COLUMNS = ['Alerts', 'Vulns', 'Access Logs', 'Compliance', 'Infra'];
 const MATRIX_KEYS: (keyof (typeof MATRIX_ROWS)[number])[] = ['alerts', 'vulns', 'logs', 'compliance', 'infra'];
+
+const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'info'];
 
 const FEATURES = [
   {
@@ -29,7 +39,7 @@ const FEATURES = [
   {
     icon: '◔',
     title: 'Least-privilege by default',
-    body: 'New accounts inherit the narrowest view for their role. Broader access is requested and logged, never assumed.',
+    body: 'New accounts inherit the narrowest view for their role. Broader access is requested and logged, never assumed — down to department, branch, or province.',
   },
   {
     icon: '⚙',
@@ -73,10 +83,10 @@ const SOURCES = [
 ];
 
 const PREVIEW_APPS = [
-  { app: 'payments-api', score: 82, bucket: 'critical', trend: '+6' },
-  { app: 'customer-portal', score: 57, bucket: 'monitored', trend: '−3' },
-  { app: 'identity-svc', score: 44, bucket: 'monitored', trend: '−11' },
-  { app: 'retail-web', score: 19, bucket: 'safe', trend: '−2' },
+  { app: 'payments-api', score: 82, bucket: 'critical' },
+  { app: 'customer-portal', score: 57, bucket: 'monitored' },
+  { app: 'identity-svc', score: 44, bucket: 'monitored' },
+  { app: 'retail-web', score: 19, bucket: 'safe' },
 ];
 
 const PREVIEW_TREND = [34, 41, 38, 52, 48, 61, 58, 66, 62, 71, 68, 74];
@@ -96,6 +106,19 @@ export default function HomePage() {
   const { loginDemo, demoAccounts } = useAuth();
   const [modalOpen, setModalOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => document.body.dataset.theme !== 'light');
+  const [summary, setSummary] = useState<PublicSummary | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchSummary()
+      .then((s) => {
+        if (!cancelled) setSummary(s);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const toggleTheme = () => {
     const next = isDark ? 'light' : 'dark';
@@ -131,6 +154,26 @@ export default function HomePage() {
     await loginDemo(role);
   };
 
+  const heroApps = summary
+    ? summary.top_risky_apps.slice(0, 4).map((a) => ({
+        app: a.app_name,
+        score: Math.round(a.score),
+        bucket: a.bucket,
+      }))
+    : PREVIEW_APPS;
+  const heroTrend = summary && summary.risk.trend.length ? summary.risk.trend : PREVIEW_TREND;
+  const gaugeScore = summary && summary.risk.trend.length ? Math.round(summary.risk.trend[summary.risk.trend.length - 1].avg_score) : 82;
+  const gaugeBucket = summary?.top_risky_apps[0]?.bucket || 'critical';
+  const connectorText = summary
+    ? `${summary.connectors.healthy}/${summary.connectors.total} connectors healthy`
+    : '4 sources fused';
+  const severityList = summary
+    ? SEVERITY_ORDER.filter((s) => summary.findings.by_severity[s]).map((s) => ({
+        sev: s,
+        count: summary.findings.by_severity[s],
+      }))
+    : [];
+
   return (
     <div className="home-page">
       <header className="site">
@@ -142,6 +185,7 @@ export default function HomePage() {
             <a href="#problem">The Problem</a>
             <a href="#preview">Live Preview</a>
             <a href="#pipeline">How It Works</a>
+            <a href="#estate">Live Estate</a>
             <a href="#matrix">Role Matrix</a>
             <a href="#security">Security</a>
           </nav>
@@ -182,35 +226,36 @@ export default function HomePage() {
           <div className="hero-preview" aria-hidden="true">
             <div className="preview-card">
               <div className="preview-card-h">
-                <span className="preview-live"><span className="dot"></span>Live · demo feed</span>
+                <span className="preview-live"><span className="dot"></span>Live · estate-wide</span>
                 <span className="preview-mono">executive view</span>
               </div>
               <div className="preview-body">
                 <div className="preview-score">
-                  <div className="gauge-ring" style={{ background: 'conic-gradient(var(--flare-1) 0deg 295deg, var(--line) 295deg 360deg)' }}>
+                  <div className="gauge-ring" style={{ background: `conic-gradient(var(--flare-1) 0deg ${(gaugeScore / 100) * 360}deg, var(--line) ${(gaugeScore / 100) * 360}deg 360deg)` }}>
                     <div className="inner">
-                      <span className="pct">82</span>
+                      <span className="pct">{gaugeScore}</span>
                       <span className="lbl">/ 100</span>
                     </div>
                   </div>
                   <div>
-                    <div className="preview-score-l">Fused Risk Score</div>
-                    <div className="preview-score-bucket">critical · 4 sources</div>
-                    <div className="preview-score-note">recomputed every 5 min</div>
+                    <div className="preview-score-l">Estate avg risk score</div>
+                    <div className={`preview-score-bucket ${gaugeBucket ? `b-${gaugeBucket}` : ''}`}>{gaugeBucket || '—'} · {connectorText}</div>
+                    <div className="preview-score-note">
+                      {summary?.risk.latest_score_date ? `latest scoring ${summary.risk.latest_score_date}` : 'recomputed every 5 min'}
+                    </div>
                   </div>
                 </div>
                 <div className="preview-panel">
-                  <div className="preview-panel-t">30-day trend</div>
-                  <PreviewTrend values={PREVIEW_TREND} />
+                  <div className="preview-panel-t">14-day average trend</div>
+                  <PreviewTrend values={heroTrend.map((t) => (typeof t === 'number' ? t : t.avg_score))} />
                 </div>
                 <div className="preview-panel">
-                  <div className="preview-panel-t">Top applications</div>
-                  {PREVIEW_APPS.map((r) => (
+                  <div className="preview-panel-t">Top applications at risk</div>
+                  {heroApps.map((r) => (
                     <div key={r.app} className="preview-row">
                       <code>{r.app}</code>
                       <span className={`preview-bucket b-${r.bucket}`}>{r.bucket}</span>
                       <strong style={{ color: 'var(--flare-1)' }}>{r.score}</strong>
-                      <span className="preview-trend">{r.trend}</span>
                     </div>
                   ))}
                 </div>
@@ -268,7 +313,7 @@ export default function HomePage() {
             </div>
             <div className="fusion-side">
               <div className="fusion-side-t">Score buckets</div>
-              <div className="fusion-bucket"><span className="b-chip b-critical">Critical</span><span>0–100 · needs attention now</span></div>
+              <div className="fusion-bucket"><span className="b-chip b-critical">Critical</span><span>needs attention now</span></div>
               <div className="fusion-bucket"><span className="b-chip b-monitored">Monitored</span><span>elevated but being watched</span></div>
               <div className="fusion-bucket"><span className="b-chip b-safe">Safe</span><span>within acceptable posture</span></div>
               <div className="fusion-side-t" style={{ marginTop: 22 }}>Sources feeding the score</div>
@@ -309,10 +354,71 @@ export default function HomePage() {
 
       <section className="metrics-band">
         <div className="container metrics-grid">
-          <div className="metric"><strong>4</strong><span>OEM sources fused</span></div>
-          <div className="metric"><strong>1</strong><span>risk score per app</span></div>
-          <div className="metric"><strong>5 min</strong><span>recompute cadence</span></div>
-          <div className="metric"><strong>3</strong><span>dispatch channels</span></div>
+          <div className="metric"><strong>{summary ? summary.assets.apps : 4}</strong><span>{summary ? 'applications scored' : 'OEM sources fused'}</span></div>
+          <div className="metric"><strong>{summary ? summary.assets.monitored_databases : 1}</strong><span>{summary ? 'databases monitored' : 'risk score per app'}</span></div>
+          <div className="metric"><strong>{summary ? summary.findings.open : 5}</strong><span>{summary ? 'open findings' : 'min recompute cadence'}</span></div>
+          <div className="metric"><strong>{summary ? `${summary.connectors.healthy}/${summary.connectors.total}` : 3}</strong><span>{summary ? 'connectors healthy' : 'dispatch channels'}</span></div>
+        </div>
+      </section>
+
+      <section className="estate-section" id="estate">
+        <div className="container">
+          <div className="section-head">
+            <div className="eyebrow"><span className="dot"></span>The whole estate, live</div>
+            <h2>One window into every tenant's posture</h2>
+            <p>Aggregates computed from the live warehouse — open findings by severity, risk distribution, connector health, and the three-tier government tenancy model (national → department → branch, provincial included).</p>
+          </div>
+          <div className="estate-grid">
+            <div className="estate-card">
+              <div className="estate-card-t">Open findings</div>
+              <div className="estate-big">{summary ? summary.findings.open.toLocaleString() : '—'}</div>
+              <div className="estate-chips">
+                {summary && severityList.length
+                  ? severityList.map((s) => (
+                      <span key={s.sev} className={`estate-sev s-${s.sev}`}>{s.count} {s.sev}</span>
+                    ))
+                  : <span className="estate-sub">all severities from every connected source</span>}
+              </div>
+            </div>
+            <div className="estate-card">
+              <div className="estate-card-t">Risk distribution</div>
+              <div className="estate-rows">
+                <div className="estate-row"><span className="estate-row-l"><span className="b-chip b-critical">Critical</span></span><strong>{summary?.risk.distribution.critical ?? '—'}</strong></div>
+                <div className="estate-row"><span className="estate-row-l"><span className="b-chip b-monitored">Monitored</span></span><strong>{summary?.risk.distribution.monitored ?? '—'}</strong></div>
+                <div className="estate-row"><span className="estate-row-l"><span className="b-chip b-safe">Safe</span></span><strong>{summary?.risk.distribution.safe ?? '—'}</strong></div>
+              </div>
+              <div className="estate-sub">{summary?.risk.latest_score_date ? `as scored ${summary.risk.latest_score_date}` : 'latest daily scoring snapshot'}</div>
+            </div>
+            <div className="estate-card">
+              <div className="estate-card-t">Connector health</div>
+              <div className="estate-rows">
+                <div className="estate-row"><span className="estate-row-l"><span className="b-sev healthy">Healthy</span></span><strong>{summary?.connectors.healthy ?? '—'}</strong></div>
+                <div className="estate-row"><span className="estate-row-l"><span className="b-sev degraded">Degraded</span></span><strong>{summary?.connectors.degraded ?? '—'}</strong></div>
+                <div className="estate-row"><span className="estate-row-l"><span className="b-sev down">Down</span></span><strong>{summary?.connectors.down ?? '—'}</strong></div>
+              </div>
+              <div className="estate-sub">{summary ? `of ${summary.connectors.total} connectors · last ingest ${new Date(summary.latest_ingest || '').toLocaleString()}` : 'ingestion pipeline status'}</div>
+            </div>
+            <div className="estate-card">
+              <div className="estate-card-t">Assets under management</div>
+              <div className="estate-rows">
+                <div className="estate-row"><span className="estate-row-l">Applications</span><strong>{summary?.assets.apps ?? '—'}</strong></div>
+                <div className="estate-row"><span className="estate-row-l">Databases (monitored)</span><strong>{summary ? `${summary.assets.monitored_databases}/${summary.assets.databases}` : '—'}</strong></div>
+                <div className="estate-row"><span className="estate-row-l">API endpoints</span><strong>{summary?.assets.api_endpoints ?? '—'}</strong></div>
+                <div className="estate-row"><span className="estate-row-l">Agents / WAF blocks</span><strong>{summary ? `${summary.assets.agents} / ${summary.assets.waf_blocks}` : '—'}</strong></div>
+              </div>
+            </div>
+            <div className="estate-card estate-card-wide">
+              <div className="estate-card-t">Three-tier government tenancy</div>
+              <div className="estate-mandate">
+                <div><strong>{summary?.tenancy.departments ?? '—'}</strong><span>departments ({summary?.tenancy.provincial_departments ?? '—'} provincial)</span></div>
+                <div><strong>{summary?.tenancy.branches ?? '—'}</strong><span>organisational branches</span></div>
+                <div><strong>{summary?.tenancy.provinces ?? '—'}</strong><span>provinces</span></div>
+              </div>
+              <div className="estate-sub">
+                Every application and database is denormalised to its department and branch at write time, so a department-scoped login literally cannot see outside its assigned tenants.
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -321,13 +427,14 @@ export default function HomePage() {
           <div className="section-head">
             <div className="eyebrow"><span className="dot"></span>Role-based access control</div>
             <h2>Every role sees a different slice of the same truth</h2>
-            <p>No dashboard shows a role more than it's cleared for. This is the actual access matrix behind every login — not a marketing chart.</p>
+            <p>No dashboard shows a role more than it's cleared for. This is the actual access matrix behind every login, including the full delegated-admin and provincial personas — not a marketing chart.</p>
           </div>
           <div className="matrix-wrap">
             <table className="matrix">
               <thead>
                 <tr>
                   <th style={{ textAlign: 'left' }}>Role</th>
+                  <th style={{ textAlign: 'left' }}>Tenant scope</th>
                   {MATRIX_COLUMNS.map((col) => (
                     <th key={col}>{col}</th>
                   ))}
@@ -340,6 +447,7 @@ export default function HomePage() {
                       {row.role}
                       <span>{row.tag}</span>
                     </td>
+                    <td className="matrix-scope">{row.scope}</td>
                     {MATRIX_KEYS.map((key) => (
                       <td key={key}>
                         <span className={row[key] ? 'dot-on' : 'dot-off'}></span>
@@ -350,7 +458,7 @@ export default function HomePage() {
               </tbody>
             </table>
           </div>
-          <p className="matrix-note">Admin accounts see every column. Everyone else sees exactly their row — nothing scoped in, nothing leaked out.</p>
+          <p className="matrix-note">Admin accounts see every column. Everyone else sees exactly their row — nothing scoped in, nothing leaked out. Sign in as any persona above to see its scoped view.</p>
         </div>
       </section>
 
@@ -375,10 +483,10 @@ export default function HomePage() {
       <section className="cta-band">
         <div className="container">
           <h2>See your own view before rolling this out.</h2>
-          <p>Every role — from executive and compliance to delegated department and branch admins — is provisioned with live demo data. Sign in to explore your persona's dashboard — or talk to us about connecting your OEMs.</p>
+          <p>Every role — from executive and compliance to delegated department, branch, and provincial admins — is provisioned with live demo data. Sign in to explore your persona's dashboard — or talk to us about connecting your OEMs.</p>
           <div className="cta-row" style={{ justifyContent: 'center' }}>
             <button className="btn btn-flare" onClick={openModal}>Explore Live Dashboards</button>
-            <a href="#preview" className="btn btn-outline">Why the score moves</a>
+            <a href="#estate" className="btn btn-outline">View the live estate</a>
           </div>
         </div>
       </section>

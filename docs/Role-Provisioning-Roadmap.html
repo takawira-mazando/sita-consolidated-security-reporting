@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITA Platform — Role Provisioning: Full Path Schematic</title>
+<style>
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    line-height: 1.6;
+    color: #333333;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 40px;
+    background-color: #f4f7f6;
+  }
+  .doc-container {
+    background-color: #ffffff;
+    padding: 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border-top: 8px solid #2c3e50;
+  }
+  .header-title { font-size: 26px; font-weight: 800; margin-bottom: 5px; color: #2c3e50; letter-spacing: 1px; }
+  .sub-header { font-size: 18px; margin-bottom: 20px; color: #2980b9; font-weight: 600; }
+  .path-summary {
+    font-family: 'Consolas','Cascadia Mono',monospace;
+    background: #e8f4f8; border-left: 5px solid #c0392b;
+    padding: 12px 18px; border-radius: 6px; font-size: 14.5px; color: #2c3e50;
+    margin-bottom: 24px;
+  }
+  .path-summary b { color: #c0392b; }
+  .svg-wrap { text-align: center; margin-bottom: 10px; background: #fbfdfc; border: 1px solid #eaeaea; border-radius: 8px; padding: 18px 8px; }
+  svg { max-width: 100%; height: auto; }
+  .svg-note { font-size: 12.5px; color: #95a5a6; margin-top: 8px; }
+  .legend { display: flex; gap: 26px; flex-wrap: wrap; justify-content: center; font-size: 13px; color: #555; margin: 14px 0 6px; }
+  .legend span { display: flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 26px; height: 3px; border-radius: 2px; display: inline-block; }
+  .legend .sw.dashed { height: 0; border-top: 2px dashed #7f8c8d; }
+
+  /* Explanatory sections (invoice-style headers) */
+  .section { margin-top: 34px; }
+  .section h3 {
+    font-size: 14px; color: #34495e; text-transform: uppercase;
+    border-bottom: 2px solid #3498db; padding-bottom: 8px;
+    letter-spacing: 1px; margin-bottom: 16px;
+  }
+  .steps { list-style: none; padding: 0; }
+  .steps li {
+    display: flex; gap: 14px; align-items: flex-start;
+    background: #fdfdfd; border: 1px solid #eaeaea; border-radius: 6px;
+    padding: 13px 16px; margin-bottom: 10px; font-size: 13.5px;
+  }
+  .steps li .n {
+    flex: 0 0 26px; height: 26px; border-radius: 50%;
+    background: #2c3e50; color: #fff; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; font-size: 13px;
+  }
+  .steps li.spine .n { background: #c0392b; }
+  .steps li b { color: #2c3e50; }
+  .steps li code, .detail code { background: #eef2f5; border: 1px solid #e2e8ec; padding: 0 5px; border-radius: 4px; font-size: 12px; color: #2980b9; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 6px; }
+  th, td { border: 1px solid #e0e0e0; padding: 10px 13px; text-align: left; vertical-align: top; }
+  th { background-color: #2c3e50; color: #ffffff; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; font-size: 12px; }
+  tr:nth-child(even) td { background: #f8f9fa; }
+  td.role { font-weight: 600; white-space: nowrap; }
+  .ops { color: #2980b9; }
+  .footer { margin-top: 34px; text-align: center; font-size: 12px; color: #95a5a6; border-top: 1px solid #eaeaea; padding-top: 20px; }
+</style>
+</head>
+<body>
+<div class="doc-container">
+  <div class="header-title">SITA SECURITY INTELLIGENCE PLATFORM</div>
+  <div class="sub-header">Role Provisioning — Full Path Schematic &amp; Explanations</div>
+
+  <div class="path-summary">
+    FULL PATH &nbsp; <b>operator</b> &rarr; <b>admin</b> &rarr; <b>dept-admin</b> &rarr; <b>branch-admin</b> &rarr; <b>soc · appsec · dbsec</b> &nbsp;(finest branch scope)
+  </div>
+
+  <div class="svg-wrap">
+    <svg viewBox="0 0 1200 1160" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Role provisioning full path schematic">
+      <defs>
+        <marker id="arrR" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#c0392b"/>
+        </marker>
+        <marker id="arrB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#2980b9"/>
+        </marker>
+        <marker id="arrG" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#95a5a6"/>
+        </marker>
+      </defs>
+
+      <!-- Tier bands -->
+      <g>
+        <rect x="20" y="30"  width="1160" height="150" rx="10" fill="#ecf0f1" stroke="#d5dbdb"/>
+        <text x="32" y="50" font-size="14" font-weight="700" fill="#7f8c8d">T5 · MANAGED-SERVICE CREATOR</text>
+
+        <rect x="20" y="200" width="1160" height="170" rx="10" fill="#e8f4f8" stroke="#d0e6f2"/>
+        <text x="32" y="220" font-size="14" font-weight="700" fill="#2980b9">T4 · SITA SUPERUSER</text>
+
+        <rect x="20" y="390" width="1160" height="170" rx="10" fill="#f5f0fa" stroke="#e0d5ee"/>
+        <text x="32" y="410" font-size="14" font-weight="700" fill="#8e44ad">T3 · TRANSVERSAL SUPERADMIN</text>
+
+        <rect x="20" y="580" width="1160" height="170" rx="10" fill="#fdf6e7" stroke="#f0e2c0"/>
+        <text x="32" y="600" font-size="14" font-weight="700" fill="#b9770e">T2 · DEPARTMENT / PROVINCE SUPERUSER</text>
+
+        <rect x="20" y="770" width="1160" height="150" rx="10" fill="#eafaf1" stroke="#d0ecd9"/>
+        <text x="32" y="790" font-size="14" font-weight="700" fill="#1e8449">T1 · BRANCH SUPERUSER</text>
+
+        <rect x="20" y="940" width="1160" height="140" rx="10" fill="#f8f9fa" stroke="#e2e6ea"/>
+        <text x="32" y="960" font-size="14" font-weight="700" fill="#5d6d7e">T0 · OPERATIONAL — LOWEST TIER (leaf, no further grants)</text>
+      </g>
+
+      <!-- ═══ CONNECTORS ═══ -->
+      <g>
+        <!-- FULL PATH spine (red) -->
+        <line x1="260" y1="150" x2="260" y2="240" stroke="#c0392b" stroke-width="4" marker-end="url(#arrR)"/>
+        <line x1="260" y1="330" x2="260" y2="620" stroke="#c0392b" stroke-width="4" marker-end="url(#arrR)"/>
+        <line x1="260" y1="710" x2="260" y2="800" stroke="#c0392b" stroke-width="4" marker-end="url(#arrR)"/>
+        <line x1="260" y1="890" x2="260" y2="965" stroke="#c0392b" stroke-width="4" marker-end="url(#arrR)"/>
+        <text x="286" y="168" font-size="13" font-weight="700" fill="#c0392b">1 · creates the SITA SUPERUSER</text>
+        <text x="286" y="475" font-size="13" font-weight="700" fill="#c0392b">2 · creates DEPARTMENT SUPERUSER</text>
+        <text x="286" y="755" font-size="13" font-weight="700" fill="#c0392b">3 · creates BRANCH SUPERUSER</text>
+        <text x="286" y="927" font-size="13" font-weight="700" fill="#c0392b">4 · FINEST TIER — branch-scoped operational</text>
+
+        <!-- Step badges -->
+        <circle cx="260" cy="195" r="13" fill="#c0392b"/><text x="260" y="200" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">1</text>
+        <circle cx="260" cy="475" r="13" fill="#c0392b"/><text x="260" y="480" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">2</text>
+        <circle cx="260" cy="755" r="13" fill="#c0392b"/><text x="260" y="760" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">3</text>
+        <circle cx="260" cy="927" r="13" fill="#c0392b"/><text x="260" y="932" font-size="13" font-weight="700" fill="#fff" text-anchor="middle">4</text>
+
+        <!-- National dashboard access (blue) -->
+        <path d="M380,285 L500,285 L500,965 L560,965" fill="none" stroke="#2980b9" stroke-width="3" marker-end="url(#arrB)"/>
+        <path d="M380,285 L1050,285 L1050,965 L800,965" fill="none" stroke="#2980b9" stroke-width="3" marker-end="url(#arrB)"/>
+        <path d="M380,285 L1150,285 L1150,965 L1040,965" fill="none" stroke="#2980b9" stroke-width="3" marker-end="url(#arrB)"/>
+        <text x="1180" y="283" font-size="13" font-weight="700" fill="#2980b9" text-anchor="end">national dashboard access</text>
+
+        <!-- Gray grantable edges -->
+        <line x1="380" y1="285" x2="680" y2="430" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+        <line x1="380" y1="285" x2="680" y2="620" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+        <line x1="380" y1="285" x2="380" y2="845" stroke="#95a5a6" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#arrG)"/>
+        <line x1="380" y1="285" x2="380" y2="1010" stroke="#95a5a6" stroke-width="1.8" stroke-dasharray="5,4" marker-end="url(#arrG)"/>
+
+        <line x1="680" y1="475" x2="260" y2="620" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+        <line x1="680" y1="475" x2="260" y2="800" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+        <line x1="800" y1="520" x2="800" y2="620" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+        <line x1="680" y1="475" x2="260" y2="965" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+        <line x1="800" y1="520" x2="560" y2="965" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+        <line x1="800" y1="520" x2="800" y2="965" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+        <path d="M920,475 L930,475 L930,965 L1040,965" fill="none" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+
+        <line x1="400" y1="665" x2="400" y2="965" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+        <path d="M920,665 L920,1060 L380,1060 L380,965" fill="none" stroke="#95a5a6" stroke-width="1.8" marker-end="url(#arrG)"/>
+      </g>
+
+      <!-- ═══ NODES ═══ -->
+      <!-- operator -->
+      <g>
+        <rect x="140" y="60"  width="240" height="90" rx="10" fill="#fff" stroke="#c0392b" stroke-width="2.5"/>
+        <text x="260" y="86"  font-size="18" font-weight="800" fill="#2c3e50" text-anchor="middle">operator</text>
+        <text x="260" y="106" font-size="12" font-weight="700" fill="#c0392b" text-anchor="middle">TIER 5 · MANAGED-SERVICE CREATOR (Hosi Technologies)</text>
+        <text x="260" y="126" font-size="11.5" fill="#7f8c8d" text-anchor="middle">scope: national · grants: admin (+ peer operator)</text>
+      </g>
+      <!-- admin -->
+      <g>
+        <rect x="140" y="240" width="240" height="90" rx="10" fill="#fff" stroke="#8e44ad" stroke-width="2.5"/>
+        <text x="260" y="266" font-size="18" font-weight="800" fill="#2c3e50" text-anchor="middle">admin</text>
+        <text x="260" y="286" font-size="12" font-weight="700" fill="#8e44ad" text-anchor="middle">TIER 4 · SITA SUPERUSER</text>
+        <text x="260" y="306" font-size="11.5" fill="#7f8c8d" text-anchor="middle">creates dept superusers + national dashboards</text>
+      </g>
+      <!-- transversal-admin -->
+      <g>
+        <rect x="680" y="430" width="240" height="90" rx="10" fill="#fff" stroke="#8e44ad" stroke-width="2"/>
+        <text x="800" y="456" font-size="16" font-weight="700" fill="#2c3e50" text-anchor="middle">transversal-admin</text>
+        <text x="800" y="476" font-size="12" font-weight="700" fill="#8e44ad" text-anchor="middle">TIER 3 · TRANSVERSAL SUPERADMIN</text>
+        <text x="800" y="496" font-size="11.5" fill="#7f8c8d" text-anchor="middle">+ peer transversal-admin (rotation)</text>
+      </g>
+      <!-- dept-admin -->
+      <g>
+        <rect x="140" y="620" width="240" height="90" rx="10" fill="#fff" stroke="#b9770e" stroke-width="2.5"/>
+        <text x="260" y="646" font-size="18" font-weight="800" fill="#2c3e50" text-anchor="middle">dept-admin</text>
+        <text x="260" y="666" font-size="12" font-weight="700" fill="#b9770e" text-anchor="middle">TIER 2 · DEPARTMENT SUPERUSER</text>
+        <text x="260" y="686" font-size="11.5" fill="#7f8c8d" text-anchor="middle">scope: its own department</text>
+      </g>
+      <!-- province-dept-admin -->
+      <g>
+        <rect x="680" y="620" width="240" height="90" rx="10" fill="#fff" stroke="#b9770e" stroke-width="2"/>
+        <text x="800" y="646" font-size="15" font-weight="700" fill="#2c3e50" text-anchor="middle">province-dept-admin</text>
+        <text x="800" y="666" font-size="12" font-weight="700" fill="#b9770e" text-anchor="middle">TIER 2 · PROVINCIAL SUPERUSER</text>
+        <text x="800" y="686" font-size="11.5" fill="#7f8c8d" text-anchor="middle">scope: its province's departments</text>
+      </g>
+      <!-- branch-admin -->
+      <g>
+        <rect x="140" y="800" width="240" height="90" rx="10" fill="#fff" stroke="#1e8449" stroke-width="2.5"/>
+        <text x="260" y="826" font-size="18" font-weight="800" fill="#2c3e50" text-anchor="middle">branch-admin</text>
+        <text x="260" y="846" font-size="12" font-weight="700" fill="#1e8449" text-anchor="middle">TIER 1 · BRANCH SUPERUSER</text>
+        <text x="260" y="866" font-size="11.5" fill="#7f8c8d" text-anchor="middle">scope: one branch — finest admin node</text>
+      </g>
+      <!-- operational -->
+      <g>
+        <rect x="140" y="965" width="240" height="90" rx="10" fill="#fff" stroke="#1e8449" stroke-width="3"/>
+        <text x="260" y="989" font-size="16" font-weight="800" fill="#2c3e50" text-anchor="middle">soc · appsec · dbsec</text>
+        <text x="260" y="1009" font-size="12" font-weight="700" fill="#1e8449" text-anchor="middle">TIER 0 · OPERATIONAL (LOWEST)</text>
+        <text x="260" y="1029" font-size="11.5" fill="#7f8c8d" text-anchor="middle">+ province-soc-lead · local-appsec · scope: branch</text>
+      </g>
+      <!-- exec -->
+      <g>
+        <rect x="440" y="965" width="240" height="90" rx="10" fill="#fff" stroke="#2980b9" stroke-width="2"/>
+        <text x="560" y="1001" font-size="16" font-weight="700" fill="#2c3e50" text-anchor="middle">exec</text>
+        <text x="560" y="1023" font-size="11.5" fill="#7f8c8d" text-anchor="middle">T0 · NATIONAL DASHBOARD</text>
+      </g>
+      <!-- compliance -->
+      <g>
+        <rect x="680" y="965" width="240" height="90" rx="10" fill="#fff" stroke="#2980b9" stroke-width="2"/>
+        <text x="800" y="1001" font-size="16" font-weight="700" fill="#2c3e50" text-anchor="middle">compliance</text>
+        <text x="800" y="1023" font-size="11.5" fill="#7f8c8d" text-anchor="middle">T0 · NATIONAL DASHBOARD</text>
+      </g>
+      <!-- sre -->
+      <g>
+        <rect x="920" y="965" width="240" height="90" rx="10" fill="#fff" stroke="#2980b9" stroke-width="2"/>
+        <text x="1040" y="1001" font-size="16" font-weight="700" fill="#2c3e50" text-anchor="middle">sre</text>
+        <text x="1040" y="1023" font-size="11.5" fill="#7f8c8d" text-anchor="middle">T0 · NATIONAL OPS</text>
+      </g>
+    </svg>
+
+    <div class="legend">
+      <span><span class="sw" style="background:#c0392b"></span> Full path (numbered 1–4)</span>
+      <span><span class="sw" style="background:#2980b9"></span> National dashboard access</span>
+      <span><span class="sw" style="background:#95a5a6"></span> Other grantable edge</span>
+      <span><span class="sw dashed"></span> Direct grant (dashed)</span>
+      <span style="font-weight:600">✗ = no admin may create a role at/above its own tier</span>
+    </div>
+    <div class="svg-note">Arrows run strictly downward. Every edge is enforced by can_manage + scope_covers; every account is provisioned from the HR pool (person_id).</div>
+  </div>
+
+  <!-- ═══════ TENANCY ═══════ -->
+  <div class="section">
+    <h3>Tenancy — The Tree the Path Walks Down</h3>
+    <div class="svg-wrap">
+      <svg viewBox="0 0 1300 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Tenancy tree schematic">
+        <defs>
+          <marker id="arrT" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#95a5a6"/>
+          </marker>
+        </defs>
+
+        <!-- Root -->
+        <rect x="320" y="24" width="600" height="64" rx="10" fill="#2c3e50"/>
+        <text x="620" y="48" font-size="16" font-weight="800" fill="#fff" text-anchor="middle">NATIONAL ESTATE — root tenant</text>
+        <text x="620" y="70" font-size="11" fill="#bdc3c7" text-anchor="middle">whole-estate scope: operator (Hosi Technologies) · admin · transversal-admin · exec · compliance · sre</text>
+
+        <!-- Root connectors -->
+        <line x1="620" y1="88" x2="300" y2="132" stroke="#7f8c8d" stroke-width="1.8" marker-end="url(#arrT)"/>
+        <line x1="620" y1="88" x2="950" y2="132" stroke="#7f8c8d" stroke-width="1.8" marker-end="url(#arrT)"/>
+
+        <!-- Column dividers / headers -->
+        <line x1="760" y1="132" x2="760" y2="560" stroke="#d5dbdb" stroke-width="1.5" stroke-dasharray="6,5"/>
+
+        <rect x="160" y="132" width="280" height="40" rx="8" fill="#eafaf1" stroke="#d0ecd9"/>
+        <text x="300" y="159" font-size="13" font-weight="700" fill="#1e8449" text-anchor="middle">NATIONAL DEPARTMENTS</text>
+        <text x="300" y="182" font-size="10.5" fill="#7f8c8d" text-anchor="middle">43 departments · 347 branches</text>
+
+        <rect x="780" y="132" width="340" height="40" rx="8" fill="#f5f0fa" stroke="#e0d5ee"/>
+        <text x="950" y="159" font-size="13" font-weight="700" fill="#8e44ad" text-anchor="middle">PROVINCES</text>
+        <text x="950" y="182" font-size="10.5" fill="#7f8c8d" text-anchor="middle">9 provinces · 113 provincial departments</text>
+
+        <!-- Header → node connectors (national) -->
+        <line x1="300" y1="172" x2="300" y2="238" stroke="#95a5a6" stroke-width="1.6" marker-end="url(#arrT)"/>
+        <line x1="300" y1="172" x2="300" y2="328" stroke="#95a5a6" stroke-width="1.6" marker-end="url(#arrT)"/>
+        <line x1="300" y1="172" x2="300" y2="418" stroke="#95a5a6" stroke-width="1.6" marker-end="url(#arrT)"/>
+        <line x1="300" y1="172" x2="300" y2="508" stroke="#95a5a6" stroke-width="1.6" marker-end="url(#arrT)"/>
+
+        <!-- National departments -->
+        <rect x="185" y="238" width="230" height="54" rx="8" fill="#fff" stroke="#1e8449" stroke-width="2"/>
+        <text x="300" y="263" font-size="14" font-weight="700" fill="#2c3e50" text-anchor="middle">National Treasury</text>
+        <text x="300" y="282" font-size="10.5" fill="#7f8c8d" text-anchor="middle">treasury</text>
+        <text x="300" y="318" font-size="11" font-weight="600" fill="#b9770e" text-anchor="middle">&#9650; dept-admin scope — its department subtree</text>
+
+        <rect x="185" y="328" width="230" height="54" rx="8" fill="#fff" stroke="#1e8449" stroke-width="1.6"/>
+        <text x="300" y="353" font-size="13" font-weight="700" fill="#2c3e50" text-anchor="middle">Home Affairs Digital</text>
+        <text x="300" y="372" font-size="10.5" fill="#7f8c8d" text-anchor="middle">home-affairs-digital</text>
+
+        <rect x="185" y="418" width="230" height="54" rx="8" fill="#fff" stroke="#1e8449" stroke-width="1.6"/>
+        <text x="300" y="443" font-size="13" font-weight="700" fill="#2c3e50" text-anchor="middle">DPSA HR</text>
+        <text x="300" y="462" font-size="10.5" fill="#7f8c8d" text-anchor="middle">dpsa-hr</text>
+
+        <rect x="185" y="508" width="230" height="54" rx="8" fill="#fff" stroke="#1e8449" stroke-width="1.6"/>
+        <text x="300" y="533" font-size="13" font-weight="700" fill="#2c3e50" text-anchor="middle">Presidency</text>
+        <text x="300" y="552" font-size="10.5" fill="#7f8c8d" text-anchor="middle">presidency</text>
+
+        <!-- Branches -->
+        <line x1="415" y1="265" x2="470" y2="263" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+        <line x1="415" y1="265" x2="470" y2="303" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+        <line x1="415" y1="355" x2="470" y2="365" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+        <line x1="415" y1="445" x2="470" y2="455" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+        <line x1="415" y1="535" x2="470" y2="545" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+
+        <rect x="470" y="243" width="180" height="40" rx="8" fill="#fff" stroke="#c0392b" stroke-width="2.5"/>
+        <text x="560" y="268" font-size="12" font-weight="700" fill="#c0392b" text-anchor="middle">treasury-budget</text>
+        <text x="560" y="318" font-size="11" font-weight="600" fill="#c0392b" text-anchor="middle">&#9664; FULL PATH ENDS — branch-admin &#8594; soc/appsec/dbsec</text>
+
+        <rect x="470" y="283" width="180" height="40" rx="8" fill="#fff" stroke="#1e8449" stroke-width="1.4"/>
+        <text x="560" y="308" font-size="12" font-weight="700" fill="#2c3e50" text-anchor="middle">treasury-ict</text>
+
+        <rect x="470" y="345" width="180" height="40" rx="8" fill="#fff" stroke="#1e8449" stroke-width="1.4"/>
+        <text x="560" y="370" font-size="12" font-weight="700" fill="#2c3e50" text-anchor="middle">dha-digital</text>
+
+        <rect x="470" y="435" width="180" height="40" rx="8" fill="#fff" stroke="#1e8449" stroke-width="1.4"/>
+        <text x="560" y="460" font-size="12" font-weight="700" fill="#2c3e50" text-anchor="middle">dpsa-hr-ops</text>
+
+        <rect x="470" y="525" width="180" height="40" rx="8" fill="#fff" stroke="#1e8449" stroke-width="1.4"/>
+        <text x="560" y="550" font-size="12" font-weight="700" fill="#2c3e50" text-anchor="middle">presidency-cabinet</text>
+
+        <text x="300" y="598" font-size="10.5" font-style="italic" fill="#95a5a6" text-anchor="middle">&#8230; + 40 more national departments · 344 more branches</text>
+
+        <!-- Header → node connectors (provinces) -->
+        <line x1="950" y1="172" x2="950" y2="238" stroke="#95a5a6" stroke-width="1.6" marker-end="url(#arrT)"/>
+        <line x1="950" y1="172" x2="950" y2="328" stroke="#95a5a6" stroke-width="1.6" marker-end="url(#arrT)"/>
+        <line x1="950" y1="172" x2="950" y2="418" stroke="#95a5a6" stroke-width="1.6" marker-end="url(#arrT)"/>
+
+        <!-- Provinces -->
+        <rect x="835" y="238" width="230" height="54" rx="8" fill="#fff" stroke="#8e44ad" stroke-width="2"/>
+        <text x="950" y="263" font-size="14" font-weight="700" fill="#2c3e50" text-anchor="middle">Gauteng</text>
+        <text x="950" y="282" font-size="10.5" fill="#7f8c8d" text-anchor="middle">gp</text>
+        <text x="950" y="318" font-size="11" font-weight="600" fill="#8e44ad" text-anchor="middle">&#9650; province-dept-admin · province-soc-lead scope</text>
+
+        <rect x="835" y="328" width="230" height="54" rx="8" fill="#fff" stroke="#8e44ad" stroke-width="1.6"/>
+        <text x="950" y="353" font-size="13" font-weight="700" fill="#2c3e50" text-anchor="middle">Western Cape</text>
+        <text x="950" y="372" font-size="10.5" fill="#7f8c8d" text-anchor="middle">wc</text>
+
+        <rect x="835" y="418" width="230" height="54" rx="8" fill="#fff" stroke="#8e44ad" stroke-width="1.6"/>
+        <text x="950" y="443" font-size="13" font-weight="700" fill="#2c3e50" text-anchor="middle">KwaZulu-Natal</text>
+        <text x="950" y="462" font-size="10.5" fill="#7f8c8d" text-anchor="middle">kzn</text>
+
+        <!-- Provincial departments -->
+        <line x1="1065" y1="265" x2="1085" y2="240" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+        <line x1="1065" y1="265" x2="1085" y2="272" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+        <line x1="1065" y1="265" x2="1085" y2="304" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+        <line x1="1065" y1="355" x2="1085" y2="330" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+        <line x1="1065" y1="355" x2="1085" y2="362" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+        <line x1="1065" y1="445" x2="1085" y2="420" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+        <line x1="1065" y1="445" x2="1085" y2="452" stroke="#95a5a6" stroke-width="1.4" stroke-dasharray="4,3"/>
+
+        <rect x="1045" y="222" width="190" height="36" rx="7" fill="#fff" stroke="#8e44ad" stroke-width="1.4"/>
+        <text x="1140" y="246" font-size="11.5" font-weight="600" fill="#2c3e50" text-anchor="middle">gp-health</text>
+        <text x="1140" y="278" font-size="10.5" fill="#8e44ad" text-anchor="middle">local-appsec</text>
+
+        <rect x="1045" y="254" width="190" height="36" rx="7" fill="#fff" stroke="#8e44ad" stroke-width="1.4"/>
+        <text x="1140" y="278" font-size="11.5" font-weight="600" fill="#2c3e50" text-anchor="middle">gp-education</text>
+
+        <rect x="1045" y="286" width="190" height="36" rx="7" fill="#fff" stroke="#8e44ad" stroke-width="1.4"/>
+        <text x="1140" y="310" font-size="11.5" font-weight="600" fill="#2c3e50" text-anchor="middle">gp-treasury</text>
+
+        <rect x="1045" y="312" width="190" height="36" rx="7" fill="#fff" stroke="#8e44ad" stroke-width="1.4"/>
+        <text x="1140" y="336" font-size="11.5" font-weight="600" fill="#2c3e50" text-anchor="middle">wc-health</text>
+
+        <rect x="1045" y="344" width="190" height="36" rx="7" fill="#fff" stroke="#8e44ad" stroke-width="1.4"/>
+        <text x="1140" y="368" font-size="11.5" font-weight="600" fill="#2c3e50" text-anchor="middle">wc-education</text>
+
+        <rect x="1045" y="402" width="190" height="36" rx="7" fill="#fff" stroke="#8e44ad" stroke-width="1.4"/>
+        <text x="1140" y="426" font-size="11.5" font-weight="600" fill="#2c3e50" text-anchor="middle">kzn-health</text>
+
+        <rect x="1045" y="434" width="190" height="36" rx="7" fill="#fff" stroke="#8e44ad" stroke-width="1.4"/>
+        <text x="1140" y="458" font-size="11.5" font-weight="600" fill="#2c3e50" text-anchor="middle">kzn-education</text>
+
+        <text x="950" y="598" font-size="10.5" font-style="italic" fill="#95a5a6" text-anchor="middle">&#8230; 13 departments per province — premier, treasury, education, health, social development, &#8230;</text>
+      </svg>
+
+      <div class="legend">
+        <span><span class="sw" style="background:#1e8449"></span> National department / branch</span>
+        <span><span class="sw" style="background:#8e44ad"></span> Province / provincial department</span>
+        <span><span class="sw" style="background:#c0392b"></span> Full-path landing (finest scope)</span>
+        <span><span class="sw dashed"></span> Parent → child tenancy edge</span>
+      </div>
+    </div>
+
+    <table>
+      <tr><th>Role</th><th>Tenant scope (JWT)</th><th>Covers</th></tr>
+      <tr><td class="role">operator · admin · transversal-admin · exec · compliance · sre</td><td>empty (national)</td><td>whole estate — 43 national depts, 347 branches, 113 provincial depts</td></tr>
+      <tr><td class="role">dept-admin</td><td><code>department_ids</code> = [dept]</td><td>its assigned national department(s) + their branches</td></tr>
+      <tr><td class="role">branch-admin</td><td><code>department_ids</code> + <code>branch_ids</code></td><td>exactly one branch (e.g. <code>treasury-budget</code>)</td></tr>
+      <tr><td class="role">province-dept-admin · province-soc-lead · local-appsec</td><td><code>province_ids</code> = [gp]</td><td>all provincial departments in the province (expanded from the province)</td></tr>
+      <tr><td class="role">soc · appsec · dbsec</td><td><code>department_ids</code> + optional <code>branch_ids</code></td><td>the scope their granting admin set — down to a single branch</td></tr>
+    </table>
+
+    <div class="project-details" style="margin-top:16px;">
+      <b>How tenancy binds to the path:</b> the JWT carries <code>department_ids</code> / <code>branch_ids</code> / <code>province_ids</code>.
+      <code>scope_covers</code> requires the target scope to be a subset of the caller's scope, and <code>tenant_filter</code> turns that scope into
+      SQL filters on every data query — so a <b>branch-admin on <code>treasury-budget</code></b> can only create users inside <code>treasury-budget</code>,
+      and those users only ever see <code>treasury-budget</code> data. A province scope expands to the province's full department set on both
+      sides (<code>provincial_departments_for_province</code>), provincial departments (113) have no branch subtree, and a whole-estate
+      (empty) scope is reachable only via a nationwide role.
+    </div>
+  </div>
+
+  <!-- ═══════ EXPLANATIONS ═══════ -->
+  <div class="section">
+    <h3>The Full Path — Step by Step</h3>
+    <ol class="steps">
+      <li class="spine"><div class="n">1</div><div><b>operator</b> (managed-service creator — <b>Hosi Technologies</b>) creates the <b>SITA superuser</b> — role <code>admin</code>, scope <b>national</b>. It can also create a peer <code>operator</code> for rotation, and nothing else.</div></li>
+      <li class="spine"><div class="n">2</div><div><b>admin</b> (SITA superuser) creates the <b>department superusers</b> — <code>dept-admin</code> (scope: its department), <code>province-dept-admin</code> (scope: its province), <code>branch-admin</code>, <code>transversal-admin</code> — and provisions <b>national-level dashboard access</b> (<code>exec</code>, <code>compliance</code>, <code>sre</code>, blue arrows). It cannot create a peer <code>admin</code> or <code>operator</code>.</div></li>
+      <li class="spine"><div class="n">3</div><div><b>dept-admin</b> cascades inside its own department — creates <b>branch-admins</b> (<code>branch-admin</code>, scope: one branch) and the operational roles, all dept-scoped. It can never reach another department.</div></li>
+      <li class="spine"><div class="n">4</div><div><b>branch-admin</b> lands on the <b>finest / lowest tier</b> — creates the operational users (<code>soc · appsec · dbsec</code>, plus <code>province-soc-lead · local-appsec</code>) scoped to <b>exactly its branch</b>. These are leaves: they grant nothing further, and their dashboard data is tenant-filtered to the branch.</div></li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <h3>Grant Matrix — What Each Role May Create (Detailed)</h3>
+    <table>
+      <tr><th>Tier</th><th>Role</th><th>Owned by</th><th>Can create</th><th>Cannot create</th><th>Allowed scope</th><th>Example</th></tr>
+      <tr>
+        <td>T5</td>
+        <td class="role">operator</td>
+        <td>Hosi Technologies — the platform provider / creator</td>
+        <td>admin, operator (peer)</td>
+        <td>Everything else — no dashboards, no data grants, no bypass</td>
+        <td>National (whole estate)</td>
+        <td>Hosi signs in as <code>operator@example.com</code> &rarr; creates SITA's GRCI Executive as the <code>admin</code> superuser.</td>
+      </tr>
+      <tr>
+        <td>T4</td>
+        <td class="role">admin</td>
+        <td>SITA — the national superuser (GRCI Executive, e.g. <code>EMP-1001</code>)</td>
+        <td>transversal-admin, exec, compliance, sre, dept-admin, province-dept-admin, branch-admin, <span class="ops">soc, appsec, dbsec, province-soc-lead, local-appsec</span></td>
+        <td>Peer <code>admin</code> and <code>operator</code> (reserved to the operator)</td>
+        <td>National — may scope to any subtree (dept / branch / province)</td>
+        <td>Creates <code>dept-admin</code> for National Treasury; provisions <code>exec</code>, <code>compliance</code>, <code>sre</code> nationwide.</td>
+      </tr>
+      <tr>
+        <td>T3</td>
+        <td class="role">transversal-admin</td>
+        <td>SITA — delegated national superadmin</td>
+        <td>transversal-admin (peer), exec, compliance, sre, dept-admin, province-dept-admin, branch-admin, <span class="ops">soc, appsec, dbsec, province-soc-lead, local-appsec</span></td>
+        <td><code>admin</code>, <code>operator</code></td>
+        <td>Assigned scope — may be national, or only the departments/branches it was given</td>
+        <td>A transversal-admin scoped to <code>treasury</code> + <code>home-affairs-digital</code> manages only those subtrees.</td>
+      </tr>
+      <tr>
+        <td>T2</td>
+        <td class="role">dept-admin</td>
+        <td>SITA — the department's own superuser</td>
+        <td>branch-admin, <span class="ops">soc, appsec, dbsec, province-soc-lead, local-appsec</span></td>
+        <td>Peer <code>dept-admin</code>, province-dept-admin, transversal-admin, admin, operator — and any role outside its department</td>
+        <td>Its own department (incl. the department's branches)</td>
+        <td>Treasury <code>dept-admin</code> creates <code>branch-admin</code> on <code>treasury-budget</code>.</td>
+      </tr>
+      <tr>
+        <td>T2</td>
+        <td class="role">province-dept-admin</td>
+        <td>SITA — a province's departmental superuser</td>
+        <td><span class="ops">soc, appsec, dbsec, province-soc-lead, local-appsec</span></td>
+        <td>dept-admin, branch-admin, and anything outside its province</td>
+        <td>All provincial departments in its province (e.g. <code>gp-*</code>)</td>
+        <td>Gauteng province-dept-admin creates <code>local-appsec</code> on <code>gp-health</code>.</td>
+      </tr>
+      <tr>
+        <td>T1</td>
+        <td class="role">branch-admin</td>
+        <td>SITA — the branch's superuser (finest admin node)</td>
+        <td><span class="ops">soc, appsec, dbsec, province-soc-lead, local-appsec</span></td>
+        <td>Any admin tier, and anything dept-wide</td>
+        <td>Exactly one branch (e.g. <code>treasury-budget</code>)</td>
+        <td><code>treasury-budget</code> branch-admin creates <code>soc</code> (CSOC Analyst) on <code>treasury-budget</code>.</td>
+      </tr>
+      <tr>
+        <td>T0</td>
+        <td class="role">sre</td>
+        <td>SITA — service operations (national)</td>
+        <td><span class="ops">soc, appsec, dbsec, province-soc-lead, local-appsec</span></td>
+        <td>Any admin tier (dept-admin, branch-admin, admin, operator)</td>
+        <td>Estate-wide, but ops roles only</td>
+        <td>Nationwide <code>sre</code> provisions <code>soc</code>/<code>appsec</code>/<code>dbsec</code> anywhere in the estate.</td>
+      </tr>
+    </table>
+
+    <div class="project-details" style="margin-top:16px;">
+      <b>How to read this matrix:</b> delegation is <b>strictly one-way down the tenancy tree</b> — a tier can only create roles
+      <i>beneath</i> it and only <i>inside its own scope</i>. "Cannot create" is enforced by <code>can_manage</code>
+      (target role must be in the caller's <code>GRANTABLE_ROLES</code> and sit strictly below the caller's tier) plus
+      <code>scope_covers</code> (target scope must be a subset of the caller's scope). Three exceptions are explicit:
+      <code>operator &#8596; operator</code> and <code>transversal-admin &#8596; transversal-admin</code> peer rotation, and the
+      <code>sre</code> nationwide user-management path (ops users only). Every account created is provisioned from the HR pool
+      (<code>person_id</code>) with an email that must match the HR record.
+    </div>
+  </div>
+
+  <div class="section">
+    <h3>The Full User-Creation Path — End to End</h3>
+    <ol class="steps">
+      <li><div class="n">1</div><div><b>Admin signs in</b> with real credentials (<code>POST /auth/login</code>) &rarr; JWT carries <b>roles</b> + <b>tenant scope</b> (dept / branch / province ids). <span class="detail">backend/app/api/routers/auth.py · verify_token</span></div></li>
+      <li><div class="n">2</div><div><b>Users &amp; RBAC</b> opens (<code>GET /admin/users</code> — requires <code>admin_read</code>, filtered by <code>scope_covers</code> to the caller's subtree only). <span class="detail">frontend AdminUsersPage.tsx · backend/app/api/routers/admin.py</span></div></li>
+      <li><div class="n">3</div><div><b>Pick the HR employee</b> — search the HR pool (<code>GET /admin/persons</code>); accounts exist only for <code>hr.employees</code> linked to <code>identity.persons</code>. No external / free-form accounts.</div></li>
+      <li><div class="n">4</div><div><b>Choose roles + scope</b> — the modal only lists roles in <code>GRANTABLE_ROLES</code> for the caller's tier; the scope picker is limited to the caller's subtree.</div></li>
+      <li><div class="n">5</div><div><b>Create</b> — <code>POST /admin/users</code> enforces <code>_validate_scope</code> + <code>can_manage</code> (role &le; caller tier, role grantable, scope &sube; caller scope) &rarr; 403 otherwise. Email must equal the HR record's email.</div></li>
+      <li><div class="n">6</div><div><b>New user signs in</b> (<code>POST /auth/login</code>) &rarr; gets <b>its role's dashboard</b> (exec / soc / appsec / dbsec / compliance / sre).</div></li>
+      <li><div class="n">7</div><div><b>Tenant-filtered data</b> — every query runs through <code>tenant_filter(claims)</code>: a branch-scoped <b>soc</b> sees only its branch's findings / alerts / risks. Nothing else in the estate leaks in.</div></li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <h3>Invariants</h3>
+    <table>
+      <tr><th style="width:34%">Rule</th><th>Detail</th></tr>
+      <tr><td class="role">Strictly downward</td><td><code>operator &rarr; admin &rarr; transversal / dept &rarr; branch &rarr; ops</code>. No sideways, no upward grants.</td></tr>
+      <tr><td class="role">Superuser creation reserved</td><td>Only <code>operator</code> creates <code>admin</code>; only the tier above creates the tier below.</td></tr>
+      <tr><td class="role">Scope containment</td><td>Target scope &sube; caller scope (<code>scope_covers</code>); whole-estate targets are unreachable for scoped callers.</td></tr>
+      <tr><td class="role">HR-only identity</td><td>Every account is provisioned from the HR pool; the email must match the HR record.</td></tr>
+      <tr><td class="role">Self-protection</td><td>No user can deactivate or delete its own account.</td></tr>
+    </table>
+  </div>
+
+  <div class="footer">
+    SITA Security Intelligence Platform · Role Provisioning — Full Path Schematic &amp; Explanations
+  </div>
+</div>
+</body>
+</html>

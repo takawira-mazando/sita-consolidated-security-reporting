@@ -46,7 +46,7 @@ with provincial personas (`province-soc-lead`, `province-dept-admin`,
 `PROVINCIAL_DEPARTMENTS`, `PROVINCE_DEPARTMENTS` and `DEPARTMENT_TO_PROVINCE`.
 """
 
-NATIONWIDE_ROLES = {"exec", "compliance", "sre", "admin", "transversal-admin"}
+NATIONWIDE_ROLES = {"exec", "compliance", "sre", "admin", "transversal-admin", "operator"}
 PROVINCIAL_ROLES = {"province-soc-lead", "province-dept-admin", "local-appsec"}
 DEPARTMENT_ROLES = {
     "soc",
@@ -60,8 +60,14 @@ DEPARTMENT_ROLES = {
     "local-appsec",        # local application security engineer
 }
 
-# Admin tiers for delegated user management, aligned to the tenant tree:
-#   tier 4 = estate root (system `admin`, the national superadmin)
+# Admin tiers for delegated user management, aligned to the tenancy tree:
+#   tier 5 = managed-service creator (`operator`): the platform provider's own
+#            credentials. Creates the SITA superuser (`admin`) — and peer
+#            `operator` accounts for rotation — and nothing else.
+#   tier 4 = estate root (`admin`, the SITA superuser): provisions department
+#            superusers (`dept-admin`, `province-dept-admin`, `branch-admin`)
+#            and national-level dashboard access (exec/compliance/sre) across
+#            the whole estate; never a peer `admin`.
 #   tier 3 = transversal superadmin (`transversal-admin`): spans all-department
 #            reports when unscoped, or multiple departments/branches when assigned
 #   tier 2 = department node (`dept-admin`, national or provincial)
@@ -69,6 +75,7 @@ DEPARTMENT_ROLES = {
 # A tier's scope is exactly its node's subtree: estate -> transversal scope ->
 # departments -> branches. A tier can grant only roles at or beneath its node.
 ADMIN_TIERS = {
+    "operator": 5,
     "admin": 4,
     "transversal-admin": 3,
     "dept-admin": 2,
@@ -80,16 +87,30 @@ ADMIN_TIERS = {
 # these across their departments; a branch-admin within their branches.
 OPERATIONAL_DEPARTMENT_ROLES = DEPARTMENT_ROLES - set(ADMIN_TIERS)
 
-# Roles each non-system admin may grant, derived from the tenant role catalog:
-# a transversal-admin grants every operational department role plus the admin
-# tiers beneath it (`dept-admin`, `branch-admin`); a dept-admin grants every
-# operational department role plus the `branch-admin` tier beneath it; a
-# branch-admin grants the operational department roles only; a provincial
-# dept-admin grants the operational department roles within its province/
-# department scope. `admin` (system) may grant anything and is deliberately
-# absent here.
+# Roles each tier may grant, derived from the tenant role catalog. Delegation
+# is a strict one-way cascade down the tenancy tree:
+#   operator (creator)     -> creates the SITA superuser (`admin`) and peer
+#                             `operator` accounts only (rotation)
+#   admin (SITA superuser) -> creates department superusers (`dept-admin`,
+#                             `province-dept-admin`, `branch-admin`) and
+#                             provisions national-level dashboard access
+#                             (`exec`, `compliance`, `sre`) estate-wide
+#   transversal-admin      -> grants every operational department role plus the
+#                             admin tiers beneath it and the specialist
+#                             national roles across its scope
+#   dept-admin             -> grants the operational department roles plus
+#                             `branch-admin` within its department
+#   branch-admin           -> grants the operational department roles within
+#                             its branches
+#   sre                    -> whole-estate user management for the operational
+#                             department roles only; no admin-tier grants
 GRANTABLE_ROLES = {
-    "transversal-admin": OPERATIONAL_DEPARTMENT_ROLES | {"dept-admin", "branch-admin", "province-dept-admin"},
+    "operator": {"admin", "operator"},
+    "sre": OPERATIONAL_DEPARTMENT_ROLES,
+    "admin": OPERATIONAL_DEPARTMENT_ROLES
+        | {"transversal-admin", "dept-admin", "province-dept-admin", "branch-admin", "exec", "compliance", "sre"},
+    "transversal-admin": OPERATIONAL_DEPARTMENT_ROLES
+        | {"dept-admin", "branch-admin", "province-dept-admin", "transversal-admin", "sre", "exec", "compliance"},
     "dept-admin": OPERATIONAL_DEPARTMENT_ROLES | {"branch-admin"},
     "province-dept-admin": OPERATIONAL_DEPARTMENT_ROLES,
     "branch-admin": OPERATIONAL_DEPARTMENT_ROLES,

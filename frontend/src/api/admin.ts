@@ -35,9 +35,31 @@ export interface AdminUser {
   department_name?: string | null;
   province_ids?: string[];
   province_name?: string | null;
+  person_id?: string | null;
   is_active: boolean;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+export interface PersonRecord {
+  id: string;
+  employee_number?: string | null;
+  email?: string | null;
+  title?: string | null;
+  initials?: string | null;
+  surname?: string | null;
+  display_name?: string | null;
+  id_number?: string | null;
+  job_title?: string | null;
+  org_unit?: string | null;
+  department_id?: string | null;
+  department_name?: string | null;
+  branch_id?: string | null;
+  branch_name?: string | null;
+  manager_name?: string | null;
+  work_phone?: string | null;
+  location?: string | null;
+  employment_status?: string | null;
 }
 
 export interface UserPayload {
@@ -48,6 +70,7 @@ export interface UserPayload {
   department_ids?: string[];
   branch_ids?: string[];
   province_ids?: string[];
+  person_id?: string;
   is_active?: boolean;
 }
 
@@ -76,6 +99,13 @@ export async function fetchBranches(departmentId?: string): Promise<{ items: Bra
 
 export async function fetchUsers(): Promise<{ items: AdminUser[]; total: number }> {
   const { data } = await adminApi.get('/users', { params: { page: 1, size: 200 } });
+  return data;
+}
+
+export async function fetchPersons(q?: string): Promise<{ items: PersonRecord[]; total: number }> {
+  const { data } = await adminApi.get('/persons', {
+    params: { q, size: 200, employment_status: 'active' },
+  });
   return data;
 }
 

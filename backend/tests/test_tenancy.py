@@ -129,62 +129,99 @@ class TestProvinceScope:
         assert not can_manage(c, ["province-soc-lead"], ["gp-health"], [])
 
 
-class TestDemoScope:
-    def test_no_scope_returns_no_override(self):
-        assert auth_router._demo_scope(None, None) == ([], [])
+class TestResolveScope:
+    def test_no_override_returns_empty_lists(self):
+        assert auth_router._resolve_scope(None, None, None) == ([], [], [])
 
     def test_department_only(self):
-        assert auth_router._demo_scope("treasury", None) == (["treasury"], [])
+        assert auth_router._resolve_scope("treasury", None, None) == (["treasury"], [], [])
 
     def test_valid_department_and_branch(self):
-        assert auth_router._demo_scope("treasury", "treasury-ict") == (["treasury"], ["treasury-ict"])
+        assert auth_router._resolve_scope("treasury", "treasury-ict", None) == (
+            ["treasury"],
+            ["treasury-ict"],
+            [],
+        )
+
+    def test_province_only(self):
+        assert auth_router._resolve_scope(None, None, "gp") == ([], [], ["gp"])
+
+    def test_department_and_province_conflict_rejected(self):
+        with pytest.raises(HTTPException):
+            auth_router._resolve_scope("treasury", None, "gp")
+
+    def test_branch_without_department_rejected(self):
+        with pytest.raises(HTTPException):
+            auth_router._resolve_scope(None, "treasury-ict", None)
 
     def test_unknown_department_rejected(self):
         with pytest.raises(HTTPException):
-            auth_router._demo_scope("nope", None)
+            auth_router._resolve_scope("nope", None, None)
 
     def test_unknown_branch_rejected(self):
         with pytest.raises(HTTPException):
-            auth_router._demo_scope("treasury", "nope")
+            auth_router._resolve_scope("treasury", "nope", None)
+
+    def test_unknown_province_rejected(self):
+        with pytest.raises(HTTPException):
+            auth_router._resolve_scope(None, None, "nope")
 
     def test_branch_of_other_department_rejected(self):
         with pytest.raises(HTTPException):
-            auth_router._demo_scope("dpsa-hr", "treasury-ict")
+            auth_router._resolve_scope("dpsa-hr", "treasury-ict", None)
 
 
-class TestDemoNationwideRoles:
-    def _user(self, roles):
-        return auth_router.User(id="u1", email="u@example.com", roles=roles)
+class TestDemoEntitlement:
+    def _user(self, roles, department_ids=None, province_ids=None, branch_ids=None):
+        return auth_router.User(
+            id="u1",
+            email="u@example.com",
+            roles=roles,
+            department_ids=department_ids or [],
+            province_ids=province_ids or [],
+            branch_ids=branch_ids or [],
+        )
 
-    def test_department_role_gets_nationwide_role(self):
-        roles = auth_router._demo_nationwide_roles(self._user(["soc"]))
-        assert "exec" in roles
+    def test_department_scope_is_account_default(self):
+        user = self._user(["soc"], department_ids=["home-affairs-digital"])
+        assert auth_router._account_default_scope(user) == (
+            ["home-affairs-digital"],
+            [],
+            [],
+        )
 
-    def test_all_demo_roles_widened(self):
-        from app.api.routers.auth import DEMO_ACCOUNTS
-        for account in DEMO_ACCOUNTS:
-            roles = auth_router._demo_nationwide_roles(self._user(account["roles"]))
-            # Nationwide widening OR province-scoped persona (province keeps scope)
-            assert set(roles) & auth_router.NATIONWIDE_ROLES or set(roles) & auth_router.PROVINCIAL_ROLES
+    def test_nationwide_account_defaults_to_whole_estate(self):
+        user = self._user(["exec"])
+        assert auth_router._account_default_scope(user) == ([], [], [])
 
-    def test_provincial_persona_keeps_province_scope(self):
-        user = self._user(["province-soc-lead"])
-        user.province_ids = ["gp"]
-        assert auth_router._demo_nationwide_roles(user) == ["province-soc-lead"]
-        assert auth_router._demo_province_scope(user) == ["gp"]
+    def test_provincial_persona_defaults_to_province(self):
+        user = self._user(["province-soc-lead"], province_ids=["gp"])
+        assert auth_router._account_default_scope(user) == ([], [], ["gp"])
 
-    def test_non_provincial_persona_has_no_province_scope(self):
-        user = self._user(["soc"])
-        user.province_ids = []
-        assert auth_router._demo_province_scope(user) == []
+    def test_demo_override_within_entitlement_allowed(self):
+        from app.api.auth import scope_covers
+        user = self._user(["soc"], department_ids=["home-affairs-digital"])
+        claims = auth_router._scope_claims(user)
+        assert scope_covers(claims, ["home-affairs-digital"], [])
+        assert scope_covers(claims, ["home-affairs-digital"], ["dha-digital"])
+        assert not scope_covers(claims, ["treasury"], [])
+        assert not scope_covers(claims, [], [], province_ids=["gp"])
 
-    def test_nationwide_role_not_duplicated(self):
-        roles = auth_router._demo_nationwide_roles(self._user(["exec"]))
-        assert roles == ["exec"]
+    def test_nationwide_demo_override_anywhere(self):
+        from app.api.auth import scope_covers
+        user = self._user(["exec"])
+        claims = auth_router._scope_claims(user)
+        assert scope_covers(claims, ["treasury"], ["treasury-ict"])
+        assert scope_covers(claims, [], [], province_ids=["gp"])
 
-    def test_empty_scope_plus_nationwide_role_is_whole_estate(self):
-        c = _claims(auth_router._demo_nationwide_roles(self._user(["soc"])), [], [])
-        assert tenant_filter(c, Finding) is None
+    def test_province_demo_override_stays_in_province(self):
+        from app.api.auth import scope_covers
+        user = self._user(["province-soc-lead"], province_ids=["gp"])
+        claims = auth_router._scope_claims(user)
+        assert scope_covers(claims, ["gp-health"], [])
+        assert scope_covers(claims, [], [], province_ids=["gp"])
+        assert not scope_covers(claims, ["treasury"], [])
+        assert not scope_covers(claims, [], [], province_ids=["wc"])
 
 
 class TestAdminScopeValidation:
@@ -210,11 +247,14 @@ class TestAdminScopeValidation:
 
 
 class TestAdminDelegation:
-    def test_admin_grants_anything(self):
+    def test_admin_grants_within_governance(self):
         c = _claims(["admin"], [], [])
-        assert grantable_roles(c) is None
-        assert can_manage(c, ["admin"], [], [])
+        granted = grantable_roles(c)
+        assert "dept-admin" in granted and "exec" in granted and "compliance" in granted
+        assert "admin" not in granted and "operator" not in granted
         assert can_manage(c, ["dept-admin", "exec"], ["treasury"], ["treasury-ict"])
+        assert not can_manage(c, ["admin"], [], [])
+        assert not can_manage(c, ["operator"], [], [])
 
     def test_dept_admin_grantable(self):
         c = _claims(["dept-admin"], ["treasury"], [])
@@ -237,18 +277,26 @@ class TestAdminDelegation:
             tier_for_role,
         )
         assert OPERATIONAL_DEPARTMENT_ROLES == {"soc", "appsec", "dbsec", "province-soc-lead", "local-appsec"}
-        assert GRANTABLE_ROLES["transversal-admin"] == OPERATIONAL_DEPARTMENT_ROLES | {"dept-admin", "branch-admin", "province-dept-admin"}
+        assert GRANTABLE_ROLES["transversal-admin"] == set(DEPARTMENT_ROLES) | {"exec", "compliance", "sre", "transversal-admin"}
         assert GRANTABLE_ROLES["dept-admin"] == OPERATIONAL_DEPARTMENT_ROLES | {"branch-admin"}
         assert GRANTABLE_ROLES["province-dept-admin"] == OPERATIONAL_DEPARTMENT_ROLES
         assert GRANTABLE_ROLES["branch-admin"] == OPERATIONAL_DEPARTMENT_ROLES
-        assert GRANTABLE_ROLES["dept-admin"] | GRANTABLE_ROLES["branch-admin"] | GRANTABLE_ROLES["province-dept-admin"] | set(ADMIN_TIERS) == DEPARTMENT_ROLES | {"admin", "transversal-admin"}
-        assert tier_for_role("admin") > tier_for_role("transversal-admin") > tier_for_role("dept-admin") > tier_for_role("branch-admin") > tier_for_role("soc")
+        assert GRANTABLE_ROLES["sre"] == OPERATIONAL_DEPARTMENT_ROLES
+        assert GRANTABLE_ROLES["operator"] == {"admin", "operator"}
+        assert "admin" not in GRANTABLE_ROLES["admin"]
+        assert "operator" not in GRANTABLE_ROLES["admin"]
+        assert "admin" in GRANTABLE_ROLES["operator"] and "exec" not in GRANTABLE_ROLES["operator"]
+        assert GRANTABLE_ROLES["dept-admin"] | GRANTABLE_ROLES["branch-admin"] | GRANTABLE_ROLES["province-dept-admin"] | set(ADMIN_TIERS) == DEPARTMENT_ROLES | {"admin", "transversal-admin", "operator"}
+        assert tier_for_role("operator") > tier_for_role("admin") > tier_for_role("transversal-admin") > tier_for_role("dept-admin") > tier_for_role("branch-admin") > tier_for_role("soc")
 
-    def test_sre_nationwide_retains_full_user_management(self):
+    def test_sre_nationwide_manages_operational_users(self):
         c = _claims(["sre"], [], [])
-        assert grantable_roles(c) is None
-        assert can_manage(c, ["admin"], [], [])
-        assert can_manage(c, ["dept-admin"], ["treasury"], ["treasury-ict"])
+        from app.tenant import OPERATIONAL_DEPARTMENT_ROLES
+        assert grantable_roles(c) == OPERATIONAL_DEPARTMENT_ROLES
+        assert can_manage(c, ["soc"], ["treasury"], [])
+        assert can_manage(c, ["appsec"], ["treasury"], ["treasury-ict"])
+        assert not can_manage(c, ["admin"], [], [])
+        assert not can_manage(c, ["dept-admin"], ["treasury"], ["treasury-ict"])
 
     def test_transversal_admin_is_nationwide(self):
         from app.api.auth import is_nationwide
@@ -274,13 +322,20 @@ class TestAdminDelegation:
         assert not scope_covers(c, ["dpsa-hr"], [])
 
     def test_transversal_admin_grantable(self):
+        from app.tenant import GRANTABLE_ROLES
         c = _claims(["transversal-admin"], [], [])
-        assert grantable_roles(c) == {"soc", "appsec", "dbsec", "province-soc-lead", "local-appsec", "dept-admin", "branch-admin", "province-dept-admin"}
+        assert grantable_roles(c) == GRANTABLE_ROLES["transversal-admin"]
+        assert "exec" in grantable_roles(c)
+        assert "compliance" in grantable_roles(c)
+        assert "sre" in grantable_roles(c)
+        assert "transversal-admin" in grantable_roles(c)
+        assert "admin" not in grantable_roles(c)
 
-    def test_transversal_admin_cannot_grant_peer_or_superior(self):
+    def test_transversal_admin_cannot_grant_superior(self):
         c = _claims(["transversal-admin"], ["treasury"], [])
-        assert not can_manage(c, ["transversal-admin"], ["treasury"], [])
+        assert can_manage(c, ["transversal-admin"], ["treasury"], [])  # peers grantable
         assert not can_manage(c, ["admin"], [], [])
+        assert not can_manage(c, ["admin"], ["treasury"], [])  # even in-scope, superior stays out of reach
         assert not can_manage(c, ["dept-admin"], [], [])  # whole-estate scope out of reach
         assert can_manage(c, ["dept-admin"], ["treasury"], [])
         assert can_manage(c, ["branch-admin"], ["treasury"], ["treasury-ict"])
@@ -370,6 +425,44 @@ class TestAdminDelegation:
         from app.api.auth import is_department_scoped
         assert is_department_scoped(_claims(["dept-admin"], ["treasury"], []))
         assert is_department_scoped(_claims(["branch-admin"], ["treasury"], ["treasury-ict"]))
+
+
+class TestOperatorGovernance:
+    def test_operator_creates_sita_superuser(self):
+        c = _claims(["operator"], [], [])
+        assert grantable_roles(c) == {"admin", "operator"}
+        assert can_manage(c, ["admin"], [], [])
+        # The creator holds no dashboard/data grants and no bypass of the
+        # SITA superuser's own job: provisioning department superusers or
+        # national dashboards is the SITA superuser's (admin's) function.
+        assert not can_manage(c, ["dept-admin"], [], [])
+        assert not can_manage(c, ["exec"], [], [])
+        assert not can_manage(c, ["soc"], ["treasury"], [])
+
+    def test_operator_peer_rotation(self):
+        c = _claims(["operator"], [], [])
+        assert can_manage(c, ["operator"], [], [])
+
+    def test_operator_is_nationwide(self):
+        from app.api.auth import is_nationwide
+        from app.tenant import NATIONWIDE_ROLES
+        assert "operator" in NATIONWIDE_ROLES
+        assert is_nationwide(_claims(["operator"], [], []))
+        assert tenant_filter(_claims(["operator"], [], []), Finding) is None
+
+    def test_only_operator_can_grant_admin(self):
+        for roles, depts in [
+            (["transversal-admin"], []),
+            (["dept-admin"], ["treasury"]),
+            (["branch-admin"], ["treasury"]),
+            (["sre"], []),
+        ]:
+            c = _claims(roles, depts, [])
+            assert not can_manage(c, ["admin"], [], [])
+        assert can_manage(_claims(["operator"], [], []), ["admin"], [], [])
+        # Department superusers cannot even reach their own peer tier.
+        c = _claims(["dept-admin"], ["treasury"], [])
+        assert not can_manage(c, ["dept-admin"], ["treasury"], [])
 
 
 class TestMinistryClusterLookups:
@@ -488,3 +581,50 @@ class TestPersonIdentity:
     def test_user_has_person_link(self):
         from app.models.user import User
         assert "person_id" in User.__table__.columns
+
+    def test_user_create_requires_hr_person(self):
+        from app.api.routers.admin import UserCreate
+        from pydantic import ValidationError
+        with pytest.raises(ValidationError):
+            UserCreate(email="external@example.com", password="Secret123", roles=["soc"])
+        # Explicitly no free-form identity detail fields remain on the create payload.
+        assert "surname" not in UserCreate.model_fields
+        assert "title" not in UserCreate.model_fields
+
+    def test_sim_hr_row_maps_to_sync_record(self):
+        from app.api.routers.admin import HRSyncRecord, _sim_row_to_sync
+        row = {
+            "employee_number": "EMP-2001",
+            "id_number": "7802210812046",
+            "title": "Dr",
+            "initials": "EN",
+            "first_name": "Emma",
+            "surname": "Ncube",
+            "display_name": "Emma Ncube",
+            "email": "exec@example.com",
+            "job_title": "Executive Director",
+            "org_unit": "Cabinet Services",
+            "department_code": "presidency",
+            "branch_code": "presidency-cabinet",
+            "manager_employee_number": "EMP-1002",
+            "manager_name": "Naledi Khumalo",
+            "work_phone": "012 300 2001",
+            "location": "Union Buildings, Pretoria",
+            "employment_status": "active",
+            "clearance_level": "top-secret",
+        }
+        rec = _sim_row_to_sync(row)
+        assert rec.employee_number == "EMP-2001"
+        assert rec.department_id == "presidency"
+        assert rec.branch_id == "presidency-cabinet"
+        assert rec.surname == "Ncube"
+        assert rec.employment_status == "active"
+        # department_code / branch_code (HR slugs) map onto platform ids.
+        assert "department_code" not in HRSyncRecord.model_fields  # external-system naming stays external
+
+    def test_sim_hr_row_derives_display_name(self):
+        from app.api.routers.admin import _sim_row_to_sync
+        rec = _sim_row_to_sync(
+            {"employee_number": "EMP-9", "first_name": "Zanele", "display_name": None}
+        )
+        assert rec.display_name == "Zanele"

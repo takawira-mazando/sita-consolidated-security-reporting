@@ -17,6 +17,7 @@ from app.api.routers import (
     exports_ag,
     findings,
     metrics,
+    public_summary,
     risks,
 )
 from app.config import settings
@@ -41,7 +42,7 @@ async def lifespan(app: FastAPI):
                 created = await auth.seed_demo_users(session)
                 if created:
                     logger.info("Seeded %d demo users", created)
-            elif settings.bootstrap_admin_password == "admin123":
+            elif settings.bootstrap_admin_password == "admin123":  # nosec B105
                 logger.warning(
                     "Demo users disabled; set a strong BOOTSTRAP_ADMIN_PASSWORD for %s",
                     settings.bootstrap_admin_email,
@@ -74,6 +75,7 @@ app.include_router(metrics.router, prefix="/api/v1")
 app.include_router(exports.router, prefix="/api/v1")
 app.include_router(exports_ag.router, prefix="/api/v1")
 app.include_router(benchmark.router, prefix="/api/v1")
+app.include_router(public_summary.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/admin")
 
 register_exception_handlers(app)

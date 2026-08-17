@@ -33,7 +33,7 @@ def _extract_path(record: dict, path: str):
         return None
     current = record
     for token in path.lstrip("$.").replace(".[", ".").replace("[", ".").replace("]", "").split("."):
-        if token == "":
+        if token == "":  # nosec B105
             continue
         if isinstance(current, list):
             try:

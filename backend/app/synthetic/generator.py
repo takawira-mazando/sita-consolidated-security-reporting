@@ -48,7 +48,7 @@ COMPLIANCE_FRAMEWORKS = ["popia", "iso_27001"]
 
 
 def _rand(seq):
-    return random.choice(seq)
+    return random.choice(seq)  # nosec B311
 
 
 def _iso(dt: datetime) -> str:
@@ -59,7 +59,7 @@ class SyntheticOEMFeed:
     """Deterministic-seeded generator (set `seed` for reproducible fixtures)."""
 
     def __init__(self, seed: int | None = 42, now: datetime | None = None):
-        self.rng = random.Random(seed)
+        self.rng = random.Random(seed)  # nosec B311
         self.now = now or datetime.now(timezone.utc)
 
     def _id(self, prefix: str) -> str:

@@ -22,7 +22,7 @@ const DASHBOARDS: Record<string, { element: JSX.Element }> = {
 };
 
 export default function App() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, sessionNonce } = useAuth();
 
   if (isLoading) {
     return <div className="loading-screen">Loading SITA Platform...</div>;
@@ -40,13 +40,13 @@ export default function App() {
   const baseRoles = user.roles?.length ? user.roles : ALL_ROLES;
   const isAdmin = baseRoles.includes('admin');
   const allowedRoles = isAdmin ? ALL_ROLES : baseRoles;
-  const canManageUsers = allowedRoles.some((r) => ['sre', 'dept-admin', 'branch-admin', 'transversal-admin'].includes(r));
-  const defaultRole = isAdmin || allowedRoles.some((r) => ['dept-admin', 'branch-admin', 'transversal-admin'].includes(r))
+  const canManageUsers = allowedRoles.some((r) => ['sre', 'dept-admin', 'branch-admin', 'transversal-admin', 'operator'].includes(r));
+  const defaultRole = isAdmin || allowedRoles.some((r) => ['dept-admin', 'branch-admin', 'transversal-admin', 'operator'].includes(r))
     ? 'users'
     : allowedRoles[0];
 
   return (
-    <div className="app-wrapper">
+    <div className="app-wrapper" key={`${user.sub}:${sessionNonce}`}>
       <RoleNav />
       <Routes>
         <Route path="/login" element={<Navigate to={`/${defaultRole}`} />} />

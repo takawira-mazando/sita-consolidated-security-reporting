@@ -1,3 +1,5 @@
+import DOMPurify from 'dompurify';
+
 interface ExplainOverlayProps {
   open: boolean;
   title: string;
@@ -12,7 +14,7 @@ export default function ExplainOverlay({ open, title, body, onClose }: ExplainOv
       <div className="overlay-content" onClick={(e) => e.stopPropagation()}>
         <div className="overlay-close" onClick={onClose}>✕</div>
         <div className="overlay-title">{title}</div>
-        <div className="overlay-body" dangerouslySetInnerHTML={{ __html: body }} />
+        <div className="overlay-body" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(body) }} />
       </div>
     </div>
   );

@@ -16,8 +16,10 @@ export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   demoAccounts: DemoAccount[];
-  login: (email?: string, password?: string) => Promise<{ ok: boolean; error?: string }>;
+  sessionNonce: number;
+  login: (email?: string, password?: string, scope?: LoginScope) => Promise<{ ok: boolean; error?: string }>;
   loginDemo: (role: string, scope?: LoginScope) => Promise<{ ok: boolean; error?: string }>;
+  switchTenant: (scope: LoginScope) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
 }
 
@@ -31,6 +33,11 @@ export interface DemoAccount {
   email: string;
   label: string;
   role: string;
+  department_ids?: string[];
+  province_ids?: string[];
+  department_name?: string | null;
+  province_name?: string | null;
+  is_nationwide?: boolean;
 }
 
 export interface RiskScore {

@@ -12,7 +12,7 @@ class AlertDeduplicator:
 
     def _make_key(self, rule_id: str, source_id: str, target_id: str, severity: str) -> str:
         raw = f"{rule_id}:{source_id}:{target_id}:{severity}"
-        return hashlib.md5(raw.encode()).hexdigest()
+        return hashlib.md5(raw.encode(), usedforsecurity=False).hexdigest()
 
     async def is_suppressed(
         self,
