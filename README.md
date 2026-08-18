@@ -80,13 +80,17 @@ pip install -r requirements.txt
 Start the backend API:
 
 ```bash
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --host :: --port 8000
 ```
 
 The API will be available at:
 
 - http://127.0.0.1:8000
 - Health endpoint: http://127.0.0.1:8000/health
+
+> Use `--host ::` (dual-stack, accepts IPv4 + IPv6) so `http://localhost:8000`
+> works in the browser. `--host 0.0.0.0` binds IPv4 only and browsers that
+> resolve `localhost` to `::1` will get `ERR_CONNECTION_REFUSED`.
 
 ### 2. Frontend
 
@@ -95,12 +99,15 @@ From the repository root:
 ```bash
 cd frontend
 npm install
-npm run dev -- --host 0.0.0.0 --port 3000
+npm run dev -- --host :: --port 3000
 ```
 
 The frontend will be available at:
 
 - http://127.0.0.1:3000
+
+> `host: '::'` is also set in `frontend/vite.config.ts` so plain `npm run dev`
+> binds dual-stack (IPv4 + IPv6) and `http://localhost:3000` works in any browser.
 
 ### 3. Demo login
 
