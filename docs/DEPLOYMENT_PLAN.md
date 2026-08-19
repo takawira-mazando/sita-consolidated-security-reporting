@@ -51,6 +51,7 @@ What exists in the repo today:
 | `infrastructure/nginx/sita-http.conf` | HTTP entrypoint for first deploy (no TLS dependency) |
 | `infrastructure/scripts/init-db.sql`, `seed-hr-system.sql`, `seed-hr-system-branches.sql` | Schema + HR seed mounted into Postgres init |
 | `infrastructure/scripts/deploy-remote.ps1` | Windows-side bootstrap (clones, generates `.env`, pulls, up) |
+| `infrastructure/scripts/deploy-remote-linux.sh` | **Linux (primary) bootstrap** — installs Docker if missing, clones, generates strong `.env`, UFW, pulls GHCR images, up, health-check |
 | `.github/workflows/ci.yml`, `publish-ghcr.yml` | CI + publish images to GitHub Container Registry on `main` |
 | `docs/` | System documentation, role-provisioning roadmap |
 
@@ -65,13 +66,27 @@ docker pull ghcr.io/takawira-mazando/sita-frontend:latest
 
 ## 3. Target State (Stage A — Hosi Fourways Linux)
 
+**Confirmed target host** (inventory captured 19 Aug 2026):
+
+| Attribute | Value |
+|-----------|-------|
+| Hostname | `unified` |
+| IP | `192.168.101.20` (LAN `192.168.101.0/24`) |
+| OS | Ubuntu 26.04 LTS (GNU/Linux 7.0.0-30-generic x86_64) |
+| SSH user | `uni` |
+| Access path | Via `hosiai` tailnet node (`100.116.102.102`) → `ssh uni@192.168.101.20` (VPN / jump host required from `hosi`) |
+| Disk | 97.87 GB used 11.4% — ample |
+| Memory | ~1% used at inventory (plenty for the stack) |
+| Docker | To be installed by `deploy-remote-linux.sh` (script auto-installs if missing) |
+
 ```
 LAN users / VPN
    │ HTTP :80
    ▼
 ┌──────────────────────────────────────┐
 │  HOSI FOURWAYS LINUX SERVER          │
-│  (192.168.101.20, Ubuntu/Docker)     │
+│  hostname: unified (192.168.101.20)  │
+│  Ubuntu 26.04 LTS, user: uni         │
 │  • Docker Compose: sita stack        │
 │  • backend    :8000 (internal)       │
 │  • frontend   :80   (internal)       │
@@ -124,86 +139,81 @@ The current alternative — a Windows box reachable via AnyDesk (`Administrator`
 
 ## 6. Phased Plan
 
-### Phase 0 — Access & inventory (D −3 to D −1)
+### Phase 0 — Access & inventory ✅
 
-- [ ] Confirm VPN access to `192.168.101.0/24` for each dev team member (request via Arezoo / IT)
-- [ ] Verify SSH reachability: `ssh tk@192.168.101.20` (or provided user) from a VPN-connected jump host
-- [ ] Confirm target server has Docker + Compose: `docker --version && docker compose version`
-- [ ] Confirm GHCR images are pullable from the server (public, no auth needed)
-- [ ] Record server hostname, IP, available disk/memory
+Completed 19 Aug 2026. Confirmed:
 
-Decisions to lock:
+- [x] Server reachable via `hosiai` tailnet node: `ssh uni@192.168.101.20`
+- [x] Host inventory captured (see §3): Ubuntu 26.04 LTS, 97.87 GB disk, ample RAM
+- [x] GHCR images confirmed public / pullable without auth: `sita-backend:latest`, `sita-frontend:latest`
+- [x] VPN access to `192.168.101.0/24` being provisioned per individual (request via Arezoo/IT); jump access via `hosiai` works today
 
-| Decision | Options |
-|----------|---------|
-| Public/LAN URL | `http://192.168.101.20` vs internal DNS name |
-| TLS | Skip for Stage A; add Let's Encrypt / internal CA in Stage A+ |
+Decisions locked:
+
+| Decision | Chosen |
+|----------|--------|
+| Public/LAN URL | `http://192.168.101.20` (LAN, VPN-gated) |
+| TLS | Deferred — HTTP for Stage A; add Let's Encrypt/internal CA after sign-off |
 | Data | Fresh init + HR seed on first boot (no legacy data yet) |
-| Access model | VPN-only (LAN) vs public IP (not recommended for Stage A) |
-
-Deliverable: written access plan + owner list.
+| Access model | VPN-gated LAN only; no public exposure |
 
 ---
 
-### Phase 1 — Prepare Hosi Fourways Linux server
+### Phase 1 — Prepare host (`unified`) ✅ (script-driven)
 
-1. Apply OS updates: `sudo apt update && sudo apt upgrade -y`
-2. Create deploy user with SSH keys; disable password auth if possible.
-3. Ensure Docker Engine + Compose plugin installed (Docker 24+ / Compose v2).
-4. Prepare the deployment directory (clone once, or copy compose + scripts):
+The **`deploy-remote-linux.sh`** script performs everything in this phase automatically when run as `uni` (with sudo):
+
+1. Applies Docker install if missing (Docker Engine + Compose plugin, Ubuntu repo)
+2. Clones/pulls the repo to `/opt/sita/sita-platform`
+3. Generates `.env` with strong secrets (`openssl rand`) and `chmod 600`
+4. Prints the **bootstrap admin password** for secure capture
+5. Configures UFW: OpenSSH + 80
+
+Manual equivalents (if run by hand):
 
 ```bash
-sudo mkdir -p /opt/sita && sudo chown $USER /opt/sita
+sudo apt update && sudo apt upgrade -y
+sudo mkdir -p /opt/sita/sita-platform
 git clone --depth 1 https://github.com/takawira-mazando/sita-consolidated-security-reporting.git /opt/sita/sita-platform
-```
-
-5. Create `.env` in `infrastructure/` with strong secrets:
-
-```bash
 cd /opt/sita/sita-platform/infrastructure
-openssl rand -hex 32 | xargs -I{} echo "DB_PASSWORD={}"  >> .env
-openssl rand -hex 32 | xargs -I{} echo "REDIS_PASSWORD={}" >> .env
-openssl rand -hex 64 | xargs -I{} echo "JWT_SECRET={}"     >> .env
-openssl rand -hex 20 | xargs -I{} echo "BOOTSTRAP_ADMIN_PASSWORD={}" >> .env
-echo "BOOTSTRAP_ADMIN_EMAIL=admin@sita.local" >> .env
-echo "SEED_DEMO_USERS_ENABLED=false" >> .env
-echo "ENVIRONMENT=production" >> .env
-chmod 600 .env
-```
-
-6. Firewall:
-
-```bash
-sudo ufw default deny incoming
-sudo ufw default allow outgoing
+# write .env (see script for the openssl generation) then:
 sudo ufw allow OpenSSH
-sudo ufw allow 80/tcp    # nginx (Stage A; drop or TLS-gate later)
-sudo ufw enable
+sudo ufw allow 80/tcp
+sudo ufw --force enable
 ```
 
 ---
 
-### Phase 2 — Deploy the stack (Stage A)
+### Phase 2 — Deploy the stack (Stage A) 🔄 (execution started)
+
+**Primary command (one-shot):**
+
+```bash
+git clone --depth 1 https://github.com/takawira-mazando/sita-consolidated-security-reporting.git /opt/sita/sita-platform
+sudo bash /opt/sita/sita-platform/infrastructure/scripts/deploy-remote-linux.sh
+```
+
+Manual equivalent:
 
 ```bash
 cd /opt/sita/sita-platform/infrastructure
-docker compose -f docker-compose.remote.yml --env-file .env pull
-docker compose -f docker-compose.remote.yml --env-file .env up -d
-docker compose -f docker-compose.remote.yml --env-file .env ps
+sudo docker compose -f docker-compose.remote.yml --env-file .env pull
+sudo docker compose -f docker-compose.remote.yml --env-file .env up -d
+sudo docker compose -f docker-compose.remote.yml --env-file .env ps
 ```
 
-Smoke tests:
+Smoke tests (run after stack is up):
 
 1. `curl -s http://localhost:80/api/v1/public/summary` → JSON with findings/assets
 2. `curl -s http://localhost:80/api/v1/auth/demo-accounts` → 200 (demo accounts visible for login page)
 3. Browser: open `http://192.168.101.20` → login page renders
-4. Log in with bootstrap admin; verify tenant scope + dashboard access
+4. Log in with bootstrap admin (the password the script printed); verify tenant scope + dashboard access
 
 Verify seeds took effect (HR system present):
 
 ```bash
-docker compose exec -T postgres psql -U sita -d sita -c '\dn'
-docker compose exec -T postgres psql -U sita -d sita -c 'SELECT count(*) FROM hr.employees;'
+docker compose -f /opt/sita/sita-platform/infrastructure/docker-compose.remote.yml exec -T postgres psql -U sita -d sita -c '\dn'
+docker compose -f /opt/sita/sita-platform/infrastructure/docker-compose.remote.yml exec -T postgres psql -U sita -d sita -c 'SELECT count(*) FROM hr.employees;'
 ```
 
 ---
@@ -370,15 +380,15 @@ Rollback for a Stage B (SITA) deployment is defined in the runbook shipped with 
 
 ## 8. Security Checklist (Stage A)
 
-- [ ] UFW: only SSH + 80 (management via VPN; no public admin ports)
-- [ ] Strong unique `DB_PASSWORD`, `REDIS_PASSWORD`, `JWT_SECRET`, `BOOTSTRAP_ADMIN_PASSWORD`
-- [ ] `.env` never committed; `chmod 600` on the host
-- [ ] SSH key-only auth; password auth disabled
-- [ ] `SEED_DEMO_USERS_ENABLED=false` in production `.env`
-- [ ] Bootstrapped admin credentials distributed via secure channel, then rotated
-- [ ] Nightly Postgres dump + off-host copy
-- [ ] Docker log rotation (configured in compose)
-- [ ] VPN-only access to `192.168.101.0/24` per individual (IT request)
+- [x] Host reachable only via VPN/jump (`hosiai`); no public exposure during Stage A
+- [x] Strong secrets generated by `deploy-remote-linux.sh` (`openssl rand`); `.env` set to `chmod 600`
+- [ ] UFW set by script: only SSH + 80
+- [ ] `.env` never committed; confirm `git status` clean on host
+- [ ] SSH key-only auth (disable password) on `unified` — for `uni`, set up key and disable password
+- [x] `SEED_DEMO_USERS_ENABLED=false` in generated `.env`
+- [ ] Bootstrap admin password captured securely from script output, then rotated after first login
+- [ ] Nightly Postgres dump (`backup.sh` + cron) + off-host copy
+- [x] Docker log rotation (configured in compose: 10m x 3)
 - [ ] Shipping bundle: no secrets in compose/template; `.env.template` uses placeholders only
 - [ ] Air-gapped delivery: images verified via checksum/SBOM before `docker load`
 
@@ -386,60 +396,62 @@ Rollback for a Stage B (SITA) deployment is defined in the runbook shipped with 
 
 ## 9. Operational Commands (Stage A)
 
+All run on `unified` (`ssh uni@192.168.101.20` via `hosiai`), in `/opt/sita/sita-platform/infrastructure`:
+
 ```bash
 # Status
-docker compose -f docker-compose.remote.yml --env-file .env ps
+sudo docker compose -f docker-compose.remote.yml --env-file .env ps
 
 # Logs
-docker compose -f docker-compose.remote.yml --env-file .env logs -f --tail 100 backend
+sudo docker compose -f docker-compose.remote.yml --env-file .env logs -f --tail 100 backend
 
 # Redeploy after image update (pull latest GHCR tag)
-cd /opt/sita/sita-platform/infrastructure
-docker compose -f docker-compose.remote.yml --env-file .env pull
-docker compose -f docker-compose.remote.yml --env-file .env up -d
+sudo docker compose -f docker-compose.remote.yml --env-file .env pull
+sudo docker compose -f docker-compose.remote.yml --env-file .env up -d
 
 # Health
 curl -s http://localhost:80/api/v1/public/summary
 
 # Backup
-docker compose exec -T postgres pg_dump -U sita -Fc sita > /opt/sita/backups/sita_$(date +%F).dump
+sudo mkdir -p /opt/sita/backups
+sudo docker compose -f docker-compose.remote.yml exec -T postgres pg_dump -U sita -Fc sita > /opt/sita/backups/sita_$(date +%F).dump
 
 # Restore (disaster)
-docker compose exec -T postgres pg_restore -U sita -d sita --clean /opt/sita/backups/sita_YYYY-MM-DD.dump
+sudo docker compose -f docker-compose.remote.yml exec -T postgres pg_restore -U sita -d sita --clean /opt/sita/backups/sita_YYYY-MM-DD.dump
 
 # Prepare offline shipping bundle (air-gapped SITA environment)
 docker save ghcr.io/takawira-mazando/sita-backend:latest ghcr.io/takawira-mazando/sita-frontend:latest \
   | gzip > sita-images.tar.gz
 ```
 
----
-
 ## 10. Suggested Timeline
 
-| Day | Activity |
-|-----|----------|
-| D−3 | VPN access request to IT for `192.168.101.0/24` (per individual) |
-| D−2 | Confirm SSH + Docker on Hosi Fourways Linux; clone repo |
-| D−1 | Deploy stack from GHCR images; verify seeds + health |
-| D0 | Smoke test UI/API; sign-off by stakeholder |
-| D+1…D+7 | Hypercare; nightly backups verified |
-| D+8…D+30 | Assemble shipping bundle + runbook; agree SITA's preferred environment |
-| D+30+ | Deploy at SITA (Stage B) — and only if Hosi operates the cloud: AWS kickoff (Stage C) |
+| Day | Activity | Status |
+|-----|----------|--------|
+| D−3 | VPN access request to IT for `192.168.101.0/24` (per individual) | ✅ requested (Arezoo/IT) |
+| D−2 | Confirm SSH + host inventory on `unified`; GHCR pullability | ✅ done (19 Aug) |
+| D−1 | **Deploy stack from GHCR images; verify seeds + health** | 🔄 executing |
+| D0 | Smoke test UI/API; sign-off by stakeholder | ⬜ next |
+| D+1…D+7 | Hypercare; nightly backup cron verified (add `backup.sh` to cron) | ⬜ |
+| D+8…D+30 | Assemble shipping bundle + runbook; agree SITA's preferred environment | ⬜ |
+| D+30+ | Deploy at SITA (Stage B) — and only if Hosi operates the cloud: AWS kickoff (Stage C) | ⬜ |
 
 ---
 
-## 11. Open Decisions (fill before execution)
+## 11. Open Decisions
 
 | Item | Decision | Owner |
 |------|----------|-------|
-| Hosi server SSH user/credentials | | IT / Arezoo |
-| LAN URL vs DNS name | | |
-| TLS on Stage A (immediately vs later) | | |
-| **SITA's preferred environment** (on-prem / their cloud / third-party) | | Hosi + SITA |
-| **Delivery model** (Hosi-supported install vs SITA-run vs Hosi-managed cloud) | | Hosi + SITA |
-| Air-gapped delivery (media) vs online pull | | SITA |
-| AWS only if Hosi operates it — landing zone (account, region `af-south-1`, VPC), IaC tool | | Hosi (conditional) |
-| Sign-off owner + cutover date | | |
+| Host (Stage A) | **`unified` — `192.168.101.20`, user `uni`, Ubuntu 26.04** | ✅ resolved |
+| LAN URL | `http://192.168.101.20` | ✅ resolved |
+| TLS on Stage A | Deferred (HTTP first) | ✅ resolved |
+| Access | VPN-gated LAN; jump via `hosiai` tailnet | ✅ resolved |
+| Data | Fresh seed + HR system | ✅ resolved |
+| **SITA's preferred environment** (on-prem / their cloud / third-party) | ⬜ to be agreed | Hosi + SITA |
+| **Delivery model** (Hosi-supported install vs SITA-run vs Hosi-managed cloud) | ⬜ to be agreed | Hosi + SITA |
+| Air-gapped delivery (media) vs online pull | ⬜ depends on SITA network | SITA |
+| AWS only if Hosi operates it — landing zone (account, region `af-south-1`, VPC), IaC tool | ⬜ conditional on Stage C | Hosi |
+| Sign-off owner + cutover date | ⬜ | |
 
 ---
 
@@ -455,4 +467,4 @@ docker save ghcr.io/takawira-mazando/sita-backend:latest ghcr.io/takawira-mazand
 | HA/DR | None | Host-level backups | Per SITA's environment + runbook | Multi-AZ, PITR, autoscale |
 | Fit | Dev | **Now** — cost-effective, accessible | **The customer deliverable** — shipped to SITA | **Only if Hosi runs the cloud** — scale/HA/audit |
 
-**Recommendation:** deploy **now** to the Hosi Fourways Linux server from prebuilt GHCR images (Stage A) as the working reference. The real deliverable is **portable Docker containers** shipped to **SITA's preferred environment** (Stage B) with compose files, images, `.env.template`, and a runbook. **AWS (Stage C) is included only if Hosi Technologies operates the system as a cloud-based managed service**; otherwise it is out of scope and SITA's own environment is the deployment target. The Windows/AnyDesk option is excluded because its evaluation license expires in < 30 days, forcing a high-risk mid-flight re-license for no architectural benefit.
+**Recommendation:** deploy **now** to the Hosi Fourways Linux server from prebuilt GHCR images (Stage A) as the working reference. **Execution is underway** — host `unified` (`192.168.101.20`, user `uni`) is inventoried and the `deploy-remote-linux.sh` one-shot script is ready to run. The real deliverable is **portable Docker containers** shipped to **SITA's preferred environment** (Stage B) with compose files, images, `.env.template`, and a runbook. **AWS (Stage C) is included only if Hosi Technologies operates the system as a cloud-based managed service**; otherwise it is out of scope and SITA's own environment is the deployment target. The Windows/AnyDesk option is excluded because its evaluation license expires in < 30 days, forcing a high-risk mid-flight re-license for no architectural benefit.
