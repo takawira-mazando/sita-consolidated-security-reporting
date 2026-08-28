@@ -1,8 +1,9 @@
 from datetime import date
 from math import ceil
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import func, select
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import require_roles, tenant_filter
@@ -33,47 +34,52 @@ async def get_risks(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("risks")),
 ):
-    filters = []
-    scope = tenant_filter(claims, RiskScoreModel)
-    if scope is not None:
-        filters.append(scope)
-    if app:
-        filters.append(RiskScoreModel.app_name == app)
-    if bucket:
-        filters.append(RiskScoreModel.bucket == bucket)
-    if date_from:
-        filters.append(RiskScoreModel.score_date >= date_from)
-    if date_to:
-        filters.append(RiskScoreModel.score_date <= date_to)
+    try:
+        filters = []
+        scope = tenant_filter(claims, RiskScoreModel)
+        if scope is not None:
+            filters.append(scope)
+        if app:
+            filters.append(RiskScoreModel.app_name == app)
+        if bucket:
+            filters.append(RiskScoreModel.bucket == bucket)
+        if date_from:
+            filters.append(RiskScoreModel.score_date >= date_from)
+        if date_to:
+            filters.append(RiskScoreModel.score_date <= date_to)
 
-    q = select(RiskScoreModel).where(*filters).order_by(
-        RiskScoreModel.score_date.desc(), RiskScoreModel.app_name
-    )
-    q = q.offset((page - 1) * size).limit(size)
-    rows = (await session.execute(q)).scalars().all()
-
-    items = [
-        RiskScore(
-            app_name=r.app_name,
-            score_date=r.score_date,
-            fused_score=float(r.fused_score),
-            signal_appscan=float(r.signal_appscan) if r.signal_appscan is not None else None,
-            signal_imperva=float(r.signal_imperva) if r.signal_imperva is not None else None,
-            signal_api_exposure=float(r.signal_api_exposure) if r.signal_api_exposure is not None else None,
-            signal_compliance_penalty=float(r.signal_compliance_penalty) if r.signal_compliance_penalty is not None else None,
-            bucket=_bucket_value(r.bucket),
-            computed_at=r.computed_at,
+        q = select(RiskScoreModel).where(*filters).order_by(
+            RiskScoreModel.score_date.desc(), RiskScoreModel.app_name
         )
-        for r in rows
-    ]
-    total = len(items)
-    return {
-        "items": items,
-        "total": total,
-        "page": page,
-        "size": size,
-        "pages": ceil(total / size) if size else 0,
-    }
+        q = q.offset((page - 1) * size).limit(size)
+        rows = (await session.execute(q)).scalars().all()
+
+        items = [
+            RiskScore(
+                app_name=r.app_name,
+                score_date=r.score_date,
+                fused_score=float(r.fused_score),
+                signal_appscan=float(r.signal_appscan) if r.signal_appscan is not None else None,
+                signal_imperva=float(r.signal_imperva) if r.signal_imperva is not None else None,
+                signal_api_exposure=float(r.signal_api_exposure) if r.signal_api_exposure is not None else None,
+                signal_compliance_penalty=float(r.signal_compliance_penalty) if r.signal_compliance_penalty is not None else None,
+                bucket=_bucket_value(r.bucket),
+                computed_at=r.computed_at,
+            )
+            for r in rows
+        ]
+        total = len(items)
+        return {
+            "items": items,
+            "total": total,
+            "page": page,
+            "size": size,
+            "pages": ceil(total / size) if size else 0,
+        }
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
 @router.get("/risks/by-cluster")
@@ -89,42 +95,47 @@ async def get_risks_by_cluster(
     row's department_id; they never widen the tenant scope (tenant_filter still
     keys on department_id).
     """
-    filters = []
-    scope = tenant_filter(claims, RiskScoreModel)
-    if scope is not None:
-        filters.append(scope)
-    if date_from:
-        filters.append(RiskScoreModel.score_date >= date_from)
-    if date_to:
-        filters.append(RiskScoreModel.score_date <= date_to)
+    try:
+        filters = []
+        scope = tenant_filter(claims, RiskScoreModel)
+        if scope is not None:
+            filters.append(scope)
+        if date_from:
+            filters.append(RiskScoreModel.score_date >= date_from)
+        if date_to:
+            filters.append(RiskScoreModel.score_date <= date_to)
 
-    rows = (
-        await session.execute(
-            select(
-                RiskScoreModel.cluster_id,
-                func.avg(RiskScoreModel.fused_score).label("avg_risk"),
-                func.max(RiskScoreModel.fused_score).label("max_risk"),
-                func.count(func.distinct(RiskScoreModel.department_id)).label("departments"),
-                func.count().label("rows"),
+        rows = (
+            await session.execute(
+                select(
+                    RiskScoreModel.cluster_id,
+                    func.avg(RiskScoreModel.fused_score).label("avg_risk"),
+                    func.max(RiskScoreModel.fused_score).label("max_risk"),
+                    func.count(func.distinct(RiskScoreModel.department_id)).label("departments"),
+                    func.count().label("rows"),
+                )
+                .where(*filters)
+                .group_by(RiskScoreModel.cluster_id)
+                .order_by(func.avg(RiskScoreModel.fused_score).desc())
             )
-            .where(*filters)
-            .group_by(RiskScoreModel.cluster_id)
-            .order_by(func.avg(RiskScoreModel.fused_score).desc())
-        )
-    ).all()
-    return {
-        "items": [
-            {
-                "cluster_id": r.cluster_id,
-                "cluster_name": CLUSTERS.get(r.cluster_id) if r.cluster_id else None,
-                "avg_risk": round(float(r.avg_risk), 1) if r.avg_risk is not None else None,
-                "max_risk": round(float(r.max_risk), 1) if r.max_risk is not None else None,
-                "departments": int(r.departments),
-                "rows": int(r.rows),
-            }
-            for r in rows
-        ]
-    }
+        ).all()
+        return {
+            "items": [
+                {
+                    "cluster_id": r.cluster_id,
+                    "cluster_name": CLUSTERS.get(r.cluster_id) if r.cluster_id else None,
+                    "avg_risk": round(float(r.avg_risk), 1) if r.avg_risk is not None else None,
+                    "max_risk": round(float(r.max_risk), 1) if r.max_risk is not None else None,
+                    "departments": int(r.departments),
+                    "rows": int(r.rows),
+                }
+                for r in rows
+            ]
+        }
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
 @router.get("/risks/by-ministry")
@@ -136,45 +147,50 @@ async def get_risks_by_ministry(
     claims = Depends(require_roles("risks")),
 ):
     """Rank ministries by average fused risk (most vulnerable first)."""
-    filters = []
-    scope = tenant_filter(claims, RiskScoreModel)
-    if scope is not None:
-        filters.append(scope)
-    if cluster_id:
-        filters.append(RiskScoreModel.cluster_id == cluster_id)
-    if date_from:
-        filters.append(RiskScoreModel.score_date >= date_from)
-    if date_to:
-        filters.append(RiskScoreModel.score_date <= date_to)
+    try:
+        filters = []
+        scope = tenant_filter(claims, RiskScoreModel)
+        if scope is not None:
+            filters.append(scope)
+        if cluster_id:
+            filters.append(RiskScoreModel.cluster_id == cluster_id)
+        if date_from:
+            filters.append(RiskScoreModel.score_date >= date_from)
+        if date_to:
+            filters.append(RiskScoreModel.score_date <= date_to)
 
-    rows = (
-        await session.execute(
-            select(
-                RiskScoreModel.ministry_id,
-                func.avg(RiskScoreModel.fused_score).label("avg_risk"),
-                func.max(RiskScoreModel.fused_score).label("max_risk"),
-                func.count(func.distinct(RiskScoreModel.department_id)).label("departments"),
-                func.count().label("rows"),
+        rows = (
+            await session.execute(
+                select(
+                    RiskScoreModel.ministry_id,
+                    func.avg(RiskScoreModel.fused_score).label("avg_risk"),
+                    func.max(RiskScoreModel.fused_score).label("max_risk"),
+                    func.count(func.distinct(RiskScoreModel.department_id)).label("departments"),
+                    func.count().label("rows"),
+                )
+                .where(*filters)
+                .group_by(RiskScoreModel.ministry_id)
+                .order_by(func.avg(RiskScoreModel.fused_score).desc())
             )
-            .where(*filters)
-            .group_by(RiskScoreModel.ministry_id)
-            .order_by(func.avg(RiskScoreModel.fused_score).desc())
-        )
-    ).all()
-    return {
-        "items": [
-            {
-                "ministry_id": r.ministry_id,
-                "ministry_name": MINISTRIES.get(r.ministry_id) if r.ministry_id else None,
-                "cluster_id": MINISTRY_TO_CLUSTER.get(r.ministry_id) if r.ministry_id else None,
-                "avg_risk": round(float(r.avg_risk), 1) if r.avg_risk is not None else None,
-                "max_risk": round(float(r.max_risk), 1) if r.max_risk is not None else None,
-                "departments": int(r.departments),
-                "rows": int(r.rows),
-            }
-            for r in rows
-        ]
-    }
+        ).all()
+        return {
+            "items": [
+                {
+                    "ministry_id": r.ministry_id,
+                    "ministry_name": MINISTRIES.get(r.ministry_id) if r.ministry_id else None,
+                    "cluster_id": MINISTRY_TO_CLUSTER.get(r.ministry_id) if r.ministry_id else None,
+                    "avg_risk": round(float(r.avg_risk), 1) if r.avg_risk is not None else None,
+                    "max_risk": round(float(r.max_risk), 1) if r.max_risk is not None else None,
+                    "departments": int(r.departments),
+                    "rows": int(r.rows),
+                }
+                for r in rows
+            ]
+        }
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
 
 
 @router.get("/risks/{app_name}/trend", response_model=RiskTrend)
@@ -184,29 +200,34 @@ async def get_risk_trend(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("risks")),
 ):
-    from datetime import timedelta
-    cutoff = date.today() - timedelta(days=days)
-    q = select(RiskScoreModel).where(
-        RiskScoreModel.app_name == app_name, RiskScoreModel.score_date >= cutoff
-    )
-    scope = tenant_filter(claims, RiskScoreModel)
-    if scope is not None:
-        q = q.where(scope)
-    rows = (
-        await session.execute(q.order_by(RiskScoreModel.score_date))
-    ).scalars().all()
-    trend = [
-        RiskScore(
-            app_name=r.app_name,
-            score_date=r.score_date,
-            fused_score=float(r.fused_score),
-            signal_appscan=float(r.signal_appscan) if r.signal_appscan is not None else None,
-            signal_imperva=float(r.signal_imperva) if r.signal_imperva is not None else None,
-            signal_api_exposure=float(r.signal_api_exposure) if r.signal_api_exposure is not None else None,
-            signal_compliance_penalty=float(r.signal_compliance_penalty) if r.signal_compliance_penalty is not None else None,
-            bucket=_bucket_value(r.bucket),
-            computed_at=r.computed_at,
+    try:
+        from datetime import timedelta
+        cutoff = date.today() - timedelta(days=days)
+        q = select(RiskScoreModel).where(
+            RiskScoreModel.app_name == app_name, RiskScoreModel.score_date >= cutoff
         )
-        for r in rows
-    ]
-    return {"app_name": app_name, "trend": trend}
+        scope = tenant_filter(claims, RiskScoreModel)
+        if scope is not None:
+            q = q.where(scope)
+        rows = (
+            await session.execute(q.order_by(RiskScoreModel.score_date))
+        ).scalars().all()
+        trend = [
+            RiskScore(
+                app_name=r.app_name,
+                score_date=r.score_date,
+                fused_score=float(r.fused_score),
+                signal_appscan=float(r.signal_appscan) if r.signal_appscan is not None else None,
+                signal_imperva=float(r.signal_imperva) if r.signal_imperva is not None else None,
+                signal_api_exposure=float(r.signal_api_exposure) if r.signal_api_exposure is not None else None,
+                signal_compliance_penalty=float(r.signal_compliance_penalty) if r.signal_compliance_penalty is not None else None,
+                bucket=_bucket_value(r.bucket),
+                computed_at=r.computed_at,
+            )
+            for r in rows
+        ]
+        return {"app_name": app_name, "trend": trend}
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

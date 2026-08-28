@@ -350,6 +350,9 @@ async def demo_login(
 ):
     if not settings.seed_demo_users_enabled:
         raise HTTPException(status_code=404, detail="Demo login disabled")
+    # In production/demo mode, require password verification
+    if settings.environment.lower() not in ("dev", "development", "test", "testing"):
+        raise HTTPException(status_code=404, detail="Demo login not available in production")
     account = DEMO_ROLE_MAP.get(body.role)
     if account is None:
         raise HTTPException(status_code=404, detail="Unknown demo role")
@@ -377,8 +380,12 @@ async def demo_login(
 
 @router.get("/demo-accounts", response_model=list[DemoAccount])
 async def demo_accounts(
+    claims: JWTClaims = Depends(verify_token),
     session: AsyncSession = Depends(get_session),
 ):
+    # Require admin or transversal-admin role to enumerate demo accounts
+    if not any(r in claims.roles for r in ["admin", "transversal-admin", "operator"]):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
     if not settings.seed_demo_users_enabled:
         return []
     emails = [a["email"] for a in DEMO_ACCOUNTS]
@@ -407,11 +414,13 @@ async def demo_accounts(
 
 
 @router.get("/tenancy", response_model=TenancyResponse)
-async def tenancy_hierarchy():
-    """Public national + provincial hierarchy for the login page.
+async def tenancy_hierarchy(
+    claims: JWTClaims = Depends(verify_token),
+):
+    """National + provincial hierarchy for the login page.
 
     Department/branch/province names are public government information; this
-    endpoint exists so pre-authenticated users can pick the tenancy context to
+    endpoint exists so authenticated users can pick the tenancy context to
     sign into. Access control still happens on the data itself via tenant_filter.
     """
     departments = []
@@ -481,7 +490,15 @@ async def switch_tenant(
 
     The target must sit within the user's admin-set entitlement; an empty body
     resets to the account's default (stored) scope.
+
+    Only admin and transversal-admin roles can switch tenants.
     """
+    # Restrict tenant switching to admin/transversal-admin roles only
+    if not any(r in claims.roles for r in ["admin", "transversal-admin", "operator"]):
+        raise HTTPException(
+            status_code=403,
+            detail="Tenant switching restricted to admin and transversal-admin roles"
+        )
     user = (
         await session.execute(select(User).where(User.id == claims.sub))
     ).scalar_one_or_none()

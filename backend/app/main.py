@@ -2,8 +2,9 @@ import logging
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 
 from app.api.errors import register_exception_handlers
 from app.api.routers import (
@@ -28,6 +29,37 @@ logger = logging.getLogger(__name__)
 
 start_time = time.time()
 
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response: Response = await call_next(request)
+    # Security headers
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    # Hide server version
+    response.headers.pop("Server", None)
+    # HSTS only in production with HTTPS
+    if settings.environment.lower() not in ("dev", "development", "test", "testing"):
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    # Content Security Policy
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' data:; "
+        "connect-src 'self' https://*.auth0.com; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+    return response
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_metrics()
@@ -51,18 +83,39 @@ async def lifespan(app: FastAPI):
         logger.exception("Failed to initialize identity users")
     yield
 
-app = FastAPI(
-    title="SITA Security Intelligence Platform API",
-    version="1.0.0",
-    lifespan=lifespan,
-)
+# Disable Swagger/OpenAPI in production
+if settings.environment.lower() in ("dev", "development", "test", "testing"):
+    app = FastAPI(
+        title="SITA Security Intelligence Platform API",
+        version="1.0.0",
+        lifespan=lifespan,
+    )
+else:
+    app = FastAPI(
+        title="SITA Security Intelligence Platform API",
+        version="1.0.0",
+        lifespan=lifespan,
+        docs_url=None,
+        redoc_url=None,
+        openapi_url=None,
+    )
+
+# CORS configuration - restrict to trusted origins in production
+if settings.environment.lower() in ("dev", "development", "test", "testing"):
+    allowed_origins = ["*"]
+    allow_credentials = True
+else:
+    # In production, only allow the frontend origin
+    allowed_origins = ["http://192.168.101.20:8088", "https://sita.example.com"]
+    allow_credentials = False  # Don't allow credentials with wildcard origins
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=allow_credentials,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
+    max_age=600,
 )
 
 app.include_router(auth.router, prefix="/api/v1")
@@ -82,4 +135,9 @@ register_exception_handlers(app)
 
 @app.get("/health")
 async def health():
+    return {"status": "ok"}
+
+@app.get("/health/detailed")
+async def health_detailed():
+    """Detailed health check - restricted to internal use"""
     return {"status": "healthy", "db": "ok", "uptime": int(time.time() - start_time)}
