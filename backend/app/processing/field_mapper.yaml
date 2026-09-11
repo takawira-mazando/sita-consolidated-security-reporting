@@ -84,3 +84,18 @@ sources:
       first_seen: "$.due_date"
       last_seen: "$.due_date"
       status: "$.status"
+
+  thales:
+    severity_map:
+      "high": critical
+      "medium": high
+      "low": medium
+      "info": low
+    field_mappings:
+      external_id: "$._id.$oid"
+      app_name: "$.Keyspace Name"
+      title: "$.Objects and Verbs"
+      description: "$.Original SQL"
+      category: "$.Objects and Verbs Classifications.SQL Statement Type"
+      first_seen: "$.Period Start.$date"
+      last_seen: "$.Gateway Event Time.$date"

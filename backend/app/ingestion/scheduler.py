@@ -23,7 +23,16 @@ token_buckets: dict[str, TokenBucket] = {}
 producer: Producer | None = None
 
 CONNECTOR_CONFIGS = {
-    "appscan": {"poll_interval": 300, "rate_limit": 500, "base_url": "", "api_key": ""},
+    "appscan": {
+        "poll_interval": 300,
+        "rate_limit": 500,
+        "base_url": "https://cloud.appscan.com",
+        "api_key": "",
+        "account_id": "",
+        "application_id": "",
+        "page_size": 200,
+        "scope": "application",
+    },
     "imperva_dam": {"poll_interval": 120, "rate_limit": 30, "base_url": "", "api_key": "", "source_type": "dam"},
     "imperva_waf": {"poll_interval": 60, "rate_limit": 600, "base_url": "", "api_key": "", "source_type": "waf"},
     "apisec": {"poll_interval": 3600, "rate_limit": 60, "base_url": "", "api_key": ""},

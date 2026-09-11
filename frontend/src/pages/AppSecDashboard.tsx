@@ -8,13 +8,34 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useAppSecData } from '../hooks/useAppSecData';
+import type { TenancyTier } from '../types';
 
-export default function AppSecDashboard() {
+const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
+  sita: {
+    title: 'Application Security — SITA Command Center',
+    subtitle: 'Overarching · Republic-wide vulnerability exposure, transversal CVE triage across all organs of state',
+  },
+  national: {
+    title: 'Application Security — National Estate',
+    subtitle: 'Strategic · Top 20 vulnerabilities across all departments — estate posture',
+  },
+  dept: {
+    title: 'Application Security — Department',
+    subtitle: 'Tactical · Department vulnerability list, severity distribution and API exposure',
+  },
+  branch: {
+    title: 'Application Security — Branch',
+    subtitle: 'Granular · Branch application vulnerabilities and actionable remediation tasks',
+  },
+};
+
+export default function AppSecDashboard({ tier = 'dept' }: { tier?: TenancyTier }) {
+  const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useAppSecData();
 
   if (d.loading) {
-    return <div className="dash"><DashHeader title="Application Security" subtitle="Loading live data…" badge={{ label: 'appsec', color: 'var(--amber)', bg: 'var(--amber-dim)' }} consolidatedTag="AppScan · API Security · Imperva WAF" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
+    return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'appsec', color: 'var(--amber)', bg: 'var(--amber-dim)' }} consolidatedTag="AppScan · API Security · Imperva WAF" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
   }
 
   const facts: ExplainFacts = {
@@ -28,8 +49,8 @@ export default function AppSecDashboard() {
   return (
     <div className="dash">
       <DashHeader
-        title="Application Security"
-        subtitle="AppScan vulnerability management — application-level findings"
+        title={cfg.title}
+        subtitle={cfg.subtitle}
         badge={{ label: 'appsec', color: 'var(--amber)', bg: 'var(--amber-dim)' }}
         consolidatedTag="AppScan · API Security · Imperva WAF"
         onExplain={() => setOverlay('explain')}
@@ -81,7 +102,7 @@ export default function AppSecDashboard() {
           <table>
             <thead><tr><th>API Endpoint</th><th>Application</th><th>Method</th><th>Risk</th><th>Shadow</th></tr></thead>
             <tbody>
-              {d.apiExposure.length ? d.apiExposure.map((e, i) => (
+              {d.apiExposure.length ? d.apiExposure.map((e: { endpoint: string; app: string; method: string; risk: string; shadow: string }, i: number) => (
                 <tr key={i}>
                   <td><code>{e.endpoint}</code></td>
                   <td>{e.app}</td>
@@ -94,7 +115,7 @@ export default function AppSecDashboard() {
           </table>
         </Panel>
         <Panel title={<><span>WAF Block Summary</span> <OemTag source="imperva-waf" label="Imperva WAF" /></>}>
-          {d.wafByType.length ? d.wafByType.map((w) => (
+          {d.wafByType.length ? d.wafByType.map((w: { label: string; width: string; color: string; value: string }) => (
             <BarRow key={w.label} label={w.label} width={w.width} color={w.color} value={w.value} />
           )) : <div className="panel-empty">No WAF blocks recorded yet.</div>}
         </Panel>

@@ -1,6 +1,8 @@
 import { useApi } from './useApi';
+import { useDemoAwareFetcher } from '../api/demoApi';
 import { fetchCompliance, fetchGaps, fetchEvidence } from '../api/compliance';
 import { fetchComplianceTrend, fetchRegulatoryCalendar } from '../api/metrics';
+import { fetchDemoCompliance } from '../api/demoApi';
 import {
   toneForSeverity,
   toneForStatus,
@@ -9,12 +11,21 @@ import {
 import type { Tone } from '../data/mappers';
 
 export function useComplianceData() {
-  const popia = useApi(() => fetchCompliance('popia'));
-  const iso = useApi(() => fetchCompliance('iso_27001'));
-  const gaps = useApi(() => fetchGaps({ sort_by: 'due_date' }));
-  const evidence = useApi(() => fetchEvidence());
-  const trend = useApi(() => fetchComplianceTrend());
-  const calendar = useApi(() => fetchRegulatoryCalendar());
+  const popia = useApi(useDemoAwareFetcher(
+    () => fetchCompliance('popia'),
+    (branchId) => fetchDemoCompliance(branchId)
+  ));
+  const iso = useApi(useDemoAwareFetcher(
+    () => fetchCompliance('iso_27001'),
+    (branchId) => fetchDemoCompliance(branchId)
+  ));
+  const gaps = useApi(useDemoAwareFetcher(
+    () => fetchGaps({ sort_by: 'due_date' }),
+    (branchId) => fetchDemoCompliance(branchId)
+  ));
+  const evidence = useApi(() => fetchEvidence()); // No demo evidence yet
+  const trend = useApi(() => fetchComplianceTrend()); // No demo trend yet
+  const calendar = useApi(() => fetchRegulatoryCalendar()); // No demo calendar yet
 
   const loading = [popia, iso, gaps, evidence, trend, calendar].some((h) => h.loading);
   const error = [popia, iso, gaps, evidence, trend, calendar].find((h) => h.error)?.error || null;
@@ -22,8 +33,8 @@ export function useComplianceData() {
   const gapItems = gaps.data?.items || [];
 
   const today = new Date().toISOString().slice(0, 10);
-  const openGaps = gapItems.filter((g) => g.status !== 'closed' && g.status !== 'remediated');
-  const overdue = gapItems.filter((g) => g.due_date && g.due_date < today && g.status !== 'closed' && g.status !== 'remediated');
+  const openGaps = gapItems.filter((g: { status: string; due_date?: string }) => g.status !== 'closed' && g.status !== 'remediated');
+  const overdue = gapItems.filter((g: { status: string; due_date?: string }) => g.due_date && g.due_date < today && g.status !== 'closed' && g.status !== 'remediated');
 
   const statusCounts = gapStatusCounts(gapItems);
   const auditStatus = [
@@ -42,7 +53,7 @@ export function useComplianceData() {
   }
   const popiaByDomain = [...byDomain.values()];
 
-  const auditFindings = gapItems.slice(0, 20).map((g) => ({
+  const auditFindings = gapItems.slice(0, 20).map((g: { description: string; control_id?: string; framework?: string; owner?: string; severity: string; due_date?: string; status: string }) => ({
     finding: g.description,
     framework: g.control_id || g.framework,
     owner: g.owner || '—',

@@ -9,13 +9,34 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useComplianceData } from '../hooks/useComplianceData';
+import type { TenancyTier } from '../types';
 
-export default function ComplianceDashboard() {
+const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
+  sita: {
+    title: 'Compliance & Audit — SITA Command Center',
+    subtitle: 'Overarching · Auditor-General & POPIA statutory oversight across all organs of state and provinces',
+  },
+  national: {
+    title: 'Compliance & Audit — National Estate',
+    subtitle: 'Strategic · POPIA/ISO 27001 national posture, audit readiness and estate-wide control gaps',
+  },
+  dept: {
+    title: 'Compliance & Audit — Department',
+    subtitle: 'Tactical · Department compliance score, control gaps and regulatory calendar',
+  },
+  branch: {
+    title: 'Compliance & Audit — Branch',
+    subtitle: 'Granular · Branch compliance checklist, open findings and local audit items',
+  },
+};
+
+export default function ComplianceDashboard({ tier = 'national' }: { tier?: TenancyTier }) {
+  const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useComplianceData();
 
   if (d.loading) {
-    return <div className="dash"><DashHeader title="Compliance & Audit" subtitle="Loading live data…" badge={{ label: 'compliance', color: 'var(--violet)', bg: 'var(--violet-dim)' }} consolidatedTag="Internal · compliance tracking" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
+    return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'compliance', color: 'var(--violet)', bg: 'var(--violet-dim)' }} consolidatedTag="Internal · compliance tracking" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
   }
 
   const ev = d.evidence;
@@ -33,8 +54,8 @@ export default function ComplianceDashboard() {
   return (
     <div className="dash">
       <DashHeader
-        title="Compliance & Audit"
-        subtitle="POPIA · ISO 27001 · internal audit tracking"
+        title={cfg.title}
+        subtitle={cfg.subtitle}
         badge={{ label: 'compliance', color: 'var(--violet)', bg: 'var(--violet-dim)' }}
         consolidatedTag="Internal · compliance tracking"
         onExplain={() => setOverlay('explain')}
@@ -124,14 +145,14 @@ export default function ComplianceDashboard() {
         <table>
           <thead><tr><th>Finding</th><th>Framework</th><th>Owner</th><th>Severity</th><th>Due</th><th>Status</th></tr></thead>
           <tbody>
-            {d.auditFindings.length ? d.auditFindings.map((f, i) => (
+            {d.auditFindings.length ? d.auditFindings.map((f: { finding: string; framework: string; owner: string; sev: string; sevTone: string; due: string; dueColor: string; status: string; statusTone: string }, i: number) => (
               <tr key={i}>
                 <td>{f.finding}</td>
                 <td>{f.framework}</td>
                 <td>{f.owner}</td>
-                <td><Chip tone={f.sevTone}>{f.sev}</Chip></td>
+                <td><Chip tone={f.sevTone as 'ok' | 'high' | 'severe' | 'med' | 'closed' | 'open' | 'half'}>{f.sev}</Chip></td>
                 <td style={{ color: f.dueColor, fontFamily: 'var(--mono)' }}>{f.due}</td>
-                <td><Chip tone={f.statusTone}>{f.status}</Chip></td>
+                <td><Chip tone={f.statusTone as 'ok' | 'high' | 'severe' | 'med' | 'closed' | 'open' | 'half'}>{f.status}</Chip></td>
               </tr>
             )) : <tr><td colSpan={6}><div className="panel-empty">No compliance gaps yet.</div></td></tr>}
           </tbody>

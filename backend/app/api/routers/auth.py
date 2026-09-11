@@ -44,11 +44,20 @@ DEMO_ACCOUNTS = [
     {"email": "branchadmin@example.com", "password": "pass123", "roles": ["branch-admin"], "label": "Branch Admin", "role": "branch-admin", "department_ids": ["treasury"]},  # nosec B105
     {"email": "transversal@example.com", "password": "pass123", "roles": ["transversal-admin"], "label": "Transversal Admin", "role": "transversal-admin", "department_ids": []},  # nosec B105
     {"email": "provincesoc@example.com", "password": "pass123", "roles": ["province-soc-lead"], "label": "Provincial SOC Lead", "role": "province-soc-lead", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
+    {"email": "provdeptadmin@example.com", "password": "pass123", "roles": ["province-dept-admin"], "label": "Provincial Dept Admin", "role": "provdeptadmin", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
+    {"email": "localappsec@example.com", "password": "pass123", "roles": ["local-appsec"], "label": "Local AppSec", "role": "localappsec", "department_ids": ["gp-health"], "province_ids": ["gp"]},  # nosec B105
     {"email": "admin@example.com", "password": "admin123", "roles": ALL_ROLES, "label": "Admin", "role": "admin", "department_ids": []},  # nosec B105
     # Managed-service creator: the platform provider's own credential. Holds
     # no dashboard — its sole function is to create the SITA superuser
     # (`admin`) from the HR pool, plus peer operators for rotation.
     {"email": "operator@example.com", "password": "operator123", "roles": ["operator"], "label": "Platform Operator", "role": "operator", "department_ids": []},  # nosec B105
+
+    # Home Affairs department-scoped demo accounts
+    {"email": "soc-ha@example.com", "password": "pass123", "roles": ["soc"], "label": "SOC Analyst (Home Affairs)", "role": "soc-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "appsec-ha@example.com", "password": "pass123", "roles": ["appsec"], "label": "AppSec (Home Affairs)", "role": "appsec-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "dbsec-ha@example.com", "password": "pass123", "roles": ["dbsec"], "label": "DB Security (Home Affairs)", "role": "dbsec-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "deptadmin-ha@example.com", "password": "pass123", "roles": ["dept-admin"], "label": "Dept Admin (Home Affairs)", "role": "deptadmin-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "branchadmin-ha@example.com", "password": "pass123", "roles": ["branch-admin"], "label": "Branch Admin (Home Affairs)", "role": "branchadmin-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
 ]
 
 LOGIN_WINDOW_SECONDS = 60
@@ -169,7 +178,7 @@ async def seed_demo_users(session: AsyncSession) -> int:
                     display_name=account["label"],
                     roles=account["roles"],
                     department_ids=account["department_ids"],
-                    branch_ids=[],
+                    branch_ids=account.get("branch_ids", []),
                     province_ids=account.get("province_ids", []),
                     is_active=True,
                 )
@@ -177,6 +186,8 @@ async def seed_demo_users(session: AsyncSession) -> int:
             created += 1
         elif existing.department_ids in (None, []) and account["department_ids"]:
             existing.department_ids = account["department_ids"]
+            existing.branch_ids = account.get("branch_ids", [])
+            existing.province_ids = account.get("province_ids", [])
     if created or True:
         await session.commit()
     return created
@@ -380,12 +391,8 @@ async def demo_login(
 
 @router.get("/demo-accounts", response_model=list[DemoAccount])
 async def demo_accounts(
-    claims: JWTClaims = Depends(verify_token),
     session: AsyncSession = Depends(get_session),
 ):
-    # Require admin or transversal-admin role to enumerate demo accounts
-    if not any(r in claims.roles for r in ["admin", "transversal-admin", "operator"]):
-        raise HTTPException(status_code=403, detail="Insufficient permissions")
     if not settings.seed_demo_users_enabled:
         return []
     emails = [a["email"] for a in DEMO_ACCOUNTS]
@@ -413,10 +420,9 @@ async def demo_accounts(
     return accounts
 
 
+
 @router.get("/tenancy", response_model=TenancyResponse)
-async def tenancy_hierarchy(
-    claims: JWTClaims = Depends(verify_token),
-):
+async def tenancy_hierarchy():
     """National + provincial hierarchy for the login page.
 
     Department/branch/province names are public government information; this

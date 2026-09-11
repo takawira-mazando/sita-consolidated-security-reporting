@@ -1,9 +1,11 @@
 import { useApi } from './useApi';
+import { useDemoAwareFetcher } from '../api/demoApi';
 import { fetchDashboardSummary } from '../api/dashboard';
 import { fetchFindings } from '../api/findings';
 import { fetchRisks } from '../api/risks';
 import { fetchCompliance } from '../api/compliance';
 import { fetchAlerts } from '../api/alerts';
+import { fetchDemoFindings, fetchDemoRisks, fetchDemoCompliance, fetchDemoPublicSummary } from '../api/demoApi';
 import {
   severityCounts,
   findingsByAppSeverity,
@@ -18,12 +20,31 @@ import {
 import type { Tone } from '../data/mappers';
 
 export function useExecData() {
-  const summary = useApi(() => fetchDashboardSummary());
-  const findings = useApi(() => fetchFindings({ size: 200 }));
-  const risks = useApi(() => fetchRisks({ size: 100 }));
-  const popia = useApi(() => fetchCompliance('popia'));
-  const iso = useApi(() => fetchCompliance('iso_27001'));
-  const alerts = useApi(() => fetchAlerts({ size: 50 }));
+  const summary = useApi(useDemoAwareFetcher(
+    () => fetchDashboardSummary(),
+    (branchId) => fetchDemoPublicSummary(branchId)
+  ));
+  const findings = useApi(useDemoAwareFetcher(
+    () => fetchFindings({ size: 200 }),
+    (branchId) => fetchDemoFindings({ size: 200, branch_id: branchId })
+  ));
+  const risks = useApi(useDemoAwareFetcher(
+    () => fetchRisks({ size: 100 }),
+    (branchId) => fetchDemoRisks({ size: 100, branch_id: branchId })
+  ));
+  const popia = useApi(useDemoAwareFetcher(
+    () => fetchCompliance('popia'),
+    (branchId) => fetchDemoCompliance(branchId)
+  ));
+  const iso = useApi(useDemoAwareFetcher(
+    () => fetchCompliance('iso_27001'),
+    (branchId) => fetchDemoCompliance(branchId)
+  ));
+  const alerts = useApi(useDemoAwareFetcher(
+    () => fetchAlerts({ size: 50 }),
+    // No demo alerts yet - use real
+    () => fetchAlerts({ size: 50 })
+  ));
 
   const loading = [summary, findings, risks, popia, iso, alerts].some((h) => h.loading);
   const error = [summary, findings, risks, popia, iso, alerts].find((h) => h.error)?.error || null;

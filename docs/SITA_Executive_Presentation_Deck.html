@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SITA Consolidated Security Reporting Platform — Executive Briefing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0a0f18;
+      --bg-card: rgba(18, 26, 41, 0.75);
+      --bg-card-hover: rgba(28, 40, 62, 0.85);
+      --border-dim: rgba(255, 255, 255, 0.1);
+      --border-accent: rgba(245, 158, 11, 0.4);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --gold: #f59e0b;
+      --gold-glow: rgba(245, 158, 11, 0.25);
+      --cyan: #06b6d4;
+      --emerald: #10b981;
+      --sapphire: #3b82f6;
+      --crimson: #ef4444;
+      --font-main: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(245, 158, 11, 0.09) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.05) 0%, transparent 60%);
+      color: var(--text-main);
+      font-family: var(--font-main);
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+    }
+
+    /* Deck Header */
+    header.deck-bar {
+      height: 56px;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border-dim);
+      background: rgba(10, 15, 24, 0.8);
+      backdrop-filter: blur(12px);
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .flag-badge {
+      font-size: 1.3rem;
+      filter: drop-shadow(0 0 8px rgba(16, 185, 129, 0.4));
+    }
+    .brand-title {
+      font-weight: 700;
+      font-size: 1rem;
+      letter-spacing: -0.01em;
+      color: #fff;
+    }
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--gold);
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 600;
+      margin-left: 0.5rem;
+    }
+
+    .deck-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-ctrl {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-dim);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      font-family: inherit;
+      font-weight: 600;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .btn-ctrl:hover {
+      background: rgba(255, 255, 255, 0.12);
+      border-color: var(--gold);
+      color: var(--gold);
+    }
+
+    /* Main Slide Viewport */
+    main.deck-stage {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 2rem 3rem;
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.97) translateY(12px);
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      max-width: 1300px;
+      margin: 0 auto;
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+      transform: scale(1) translateY(0);
+      z-index: 10;
+    }
+
+    /* Slide Content Typography */
+    .slide-tag {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .slide-tag::before {
+      content: '';
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 10px var(--gold);
+    }
+
+    .slide-title {
+      font-size: 2.35rem;
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.75rem;
+      color: #fff;
+    }
+    .slide-title span.hl-gold { color: var(--gold); }
+    .slide-title span.hl-cyan { color: var(--cyan); }
+    .slide-title span.hl-emerald { color: var(--emerald); }
+
+    .slide-desc {
+      font-size: 1.05rem;
+      line-height: 1.6;
+      color: var(--text-muted);
+      max-width: 900px;
+      margin-bottom: 1.75rem;
+    }
+
+    /* Grid Layouts */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+
+    /* Glass Cards */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dim);
+      border-radius: 14px;
+      padding: 1.4rem;
+      backdrop-filter: blur(16px);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+      transition: all 0.25s ease;
+      position: relative;
+      overflow: hidden;
+    }
+    .card:hover {
+      border-color: rgba(245, 158, 11, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+    }
+    .card.accent-gold { border-top: 3px solid var(--gold); }
+    .card.accent-cyan { border-top: 3px solid var(--cyan); }
+    .card.accent-emerald { border-top: 3px solid var(--emerald); }
+    .card.accent-sapphire { border-top: 3px solid var(--sapphire); }
+
+    .card-num {
+      font-family: var(--font-mono);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--gold);
+      margin-bottom: 0.35rem;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+    .card-body {
+      font-size: 0.88rem;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+    .card-body strong { color: #fff; }
+
+    /* Stat Callout */
+    .stat-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px;
+      padding: 1.2rem;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 2.2rem;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      color: var(--gold);
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+    .stat-val.val-emerald { color: var(--emerald); }
+    .stat-val.val-cyan { color: var(--cyan); }
+    .stat-lbl {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    /* Comparison Table */
+    .slide-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      background: var(--bg-card);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border-dim);
+    }
+    .slide-table th {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--gold);
+      text-align: left;
+      padding: 0.75rem 1rem;
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-dim);
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+    .slide-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
+    .slide-table tr:last-child td { border-bottom: none; }
+    .slide-table tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+    .tag-pill {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    .tag-emerald { background: rgba(16, 185, 129, 0.15); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .tag-gold { background: rgba(245, 158, 11, 0.15); color: var(--gold); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .tag-sapphire { background: rgba(59, 130, 246, 0.15); color: var(--sapphire); border: 1px solid rgba(59, 130, 246, 0.3); }
+
+    /* Hierarchy Tree Box */
+    .tier-box {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+    .tier-level {
+      background: var(--bg-card);
+      border: 1px solid var(--border-dim);
+      border-radius: 10px;
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-left: 4px solid var(--sapphire);
+    }
+    .tier-level.tier-4 { border-left-color: var(--gold); background: linear-gradient(90deg, rgba(245,158,11,0.08), var(--bg-card)); }
+    .tier-level.tier-3 { border-left-color: var(--cyan); }
+    .tier-level.tier-2 { border-left-color: var(--emerald); }
+    .tier-level.tier-1 { border-left-color: var(--sapphire); }
+
+    .tier-meta h4 { font-size: 0.95rem; font-weight: 700; color: #fff; margin-bottom: 2px; }
+    .tier-meta p { font-size: 0.78rem; color: var(--text-muted); }
+
+    /* Progress & Footer */
+    footer.deck-foot {
+      height: 48px;
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px solid var(--border-dim);
+      background: rgba(10, 15, 24, 0.9);
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .slide-progress {
+      flex: 1;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      margin: 0 1.5rem;
+      overflow: hidden;
+      position: relative;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--sapphire), var(--gold));
+      width: 8.3%;
+      transition: width 0.3s ease;
+    }
+
+    .slide-counter {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    /* Keybinds Helper Modal */
+    .key-badge {
+      display: inline-block;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-dim);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--gold);
+    }
+
+    @media (max-width: 1024px) {
+      .grid-3, .grid-4 { grid-template-columns: 1fr 1fr; }
+      .slide-title { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="deck-bar">
+    <div class="brand">
+      <span class="flag-badge">🇿🇦</span>
+      <span class="brand-title">SITA National Security Command Center</span>
+      <span class="brand-subtitle">Executive Board Briefing</span>
+    </div>
+    <div class="deck-controls">
+      <button class="btn-ctrl" id="btnPrev" title="Previous Slide (Left Arrow)">◀ Prev</button>
+      <button class="btn-ctrl" id="btnNext" title="Next Slide (Right Arrow, Space)">Next ▶</button>
+      <button class="btn-ctrl" id="btnFullscreen" title="Toggle Fullscreen (F)">⛶ Fullscreen</button>
+      <a href="http://localhost:3000" target="_blank" class="btn-ctrl" style="border-color: var(--emerald); color: var(--emerald);">Launch Live Platform ↗</a>
+    </div>
+  </header>
+
+  <main class="deck-stage">
+
+    <!-- SLIDE 1: TITLE SLIDE -->
+    <div class="slide active" data-index="1">
+      <div class="slide-tag">State Information Technology Agency (SITA) · Board & Stakeholder Presentation</div>
+      <h1 class="slide-title">Consolidated Cyber Security<br><span class="hl-gold">Reporting & Intelligence Platform</span></h1>
+      <p class="slide-desc">
+        A unified, multi-tiered security reporting authority securing the whole of the South African Government.
+        Proven via the <strong>Department of Home Affairs (DHA)</strong> Proof of Concept testbed with live HCL AppScan & Thales DAM telemetry.
+      </p>
+      <div class="grid-4" style="margin-top: 1rem;">
+        <div class="stat-box">
+          <div class="stat-val">173</div>
+          <div class="stat-lbl">National Departments</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val val-emerald">9</div>
+          <div class="stat-lbl">Provincial Administrations</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val val-cyan">347</div>
+          <div class="stat-lbl">Operational DDG Branches</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">100%</div>
+          <div class="stat-lbl">PoC Automated Test Pass</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: THE MANDATE & PROBLEM -->
+    <div class="slide" data-index="2">
+      <div class="slide-tag">Strategic Context & National Mandate</div>
+      <h2 class="slide-title">The Challenge: <span class="hl-gold">Fragmented Telemetry & Audit Overhead</span></h2>
+      <p class="slide-desc">
+        Before this platform, government cybersecurity data was siloed across multiple tools, proprietary consoles, and independent department networks, creating critical blind spots for national leadership.
+      </p>
+      <div class="grid-3">
+        <div class="card accent-gold">
+          <div class="card-num">CHALLENGE 01</div>
+          <h3 class="card-title">Siloed OEM Security Tools</h3>
+          <p class="card-body">
+            AppScan SAST/DAST, Imperva WAF, and Imperva/Thales DAM generated distinct data models with zero cross-correlation, preventing holistic risk posture calculation.
+          </p>
+        </div>
+        <div class="card accent-cyan">
+          <div class="card-num">CHALLENGE 02</div>
+          <h3 class="card-title">Cross-Tenant Leakage Risk</h3>
+          <p class="card-body">
+            Multi-department sharing was blocked by POPIA and sensitive state data restrictions. No architectural mechanism existed to allow provincial benchmarking without exposing raw asset logs.
+          </p>
+        </div>
+        <div class="card accent-emerald">
+          <div class="card-num">CHALLENGE 03</div>
+          <h3 class="card-title">Auditor-General Compliance Burden</h3>
+          <p class="card-body">
+            Manual audit attestation packs required hundreds of hours per department. No tamper-evident cryptographic verification was available to validate historical compliance claims.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: 4-TIER TENANCY ARCHITECTURE -->
+    <div class="slide" data-index="3">
+      <div class="slide-tag">Governance & Multi-Tenancy Architecture</div>
+      <h2 class="slide-title">The 4-Tier Hierarchy: <span class="hl-cyan">SITA Overarching Authority</span></h2>
+      <p class="slide-desc">
+        SITA operates at Tier 4 as the platform authority, governing the downward cascade of visibility and delegated authority across all organs of state.
+      </p>
+      <div class="tier-box">
+        <div class="tier-level tier-4">
+          <div class="tier-meta">
+            <h4>🇿🇦 Tier 4 · SITA National Security Command Center (Platform Provider)</h4>
+            <p>Personas: <code>admin@example.com</code>, <code>operator@example.com</code> · Transversal visibility over all 173 departments and 9 provinces.</p>
+          </div>
+          <span class="tag-pill tag-gold">Transversal Superadmin</span>
+        </div>
+        <div class="tier-level tier-3">
+          <div class="tier-meta">
+            <h4>🏛️ Tier 3 · National & Transversal Estate</h4>
+            <p>Personas: <code>transversal@example.com</code>, <code>exec@</code>, <code>compliance@</code>, <code>sre@</code> · Whole-of-government fused score (0–100) & AG attestation export.</p>
+          </div>
+          <span class="tag-pill tag-cyan">Strategic Oversight</span>
+        </div>
+        <div class="tier-level tier-2">
+          <div class="tier-meta">
+            <h4>🏢 Tier 2 · Departmental & Provincial Tier</h4>
+            <p>Personas: <code>deptadmin-ha@example.com</code> (DHA), <code>provincesoc@</code> (Gauteng) · Department-specific threat posture & provincial peer blinding.</p>
+          </div>
+          <span class="tag-pill tag-emerald">Tactical / Organs of State</span>
+        </div>
+        <div class="tier-level tier-1">
+          <div class="tier-meta">
+            <h4>📍 Tier 1 · Operational Branch Tier</h4>
+            <p>Personas: <code>branchadmin-ha@</code>, <code>soc-ha@</code>, <code>appsec-ha@</code>, <code>dbsec-ha@</code> · Scoped strictly to assigned DDG branch (e.g. <code>dha-digital</code>).</p>
+          </div>
+          <span class="tag-pill tag-sapphire">Granular Remediation</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: SUPERADMIN PROVISIONING CASCADE -->
+    <div class="slide" data-index="4">
+      <div class="slide-tag">Identity & Anti-Elevation Governance</div>
+      <h2 class="slide-title">Superadmin Delegation: <span class="hl-emerald">Strict Ceilings & Isolation</span></h2>
+      <p class="slide-desc">
+        SITA possesses overarching transversal authority to provision superusers down the entire tiers cascade, while subordinates are barred from privilege escalation.
+      </p>
+      <table class="slide-table">
+        <thead>
+          <tr>
+            <th>Tenancy Tier</th>
+            <th>Role Persona</th>
+            <th>Authorized Dashboards</th>
+            <th>Superadmin Provisioning Authority</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Tier 4 · SITA Command Center</strong></td>
+            <td><code>admin@</code>, <code>operator@</code></td>
+            <td>/sita/*, /national/*, /dept/*, /branch/*</td>
+            <td><span class="tag-pill tag-gold">Unrestricted</span> Can provision superadmins and specialists at <strong>all tiers</strong>.</td>
+          </tr>
+          <tr>
+            <td><strong>Tier 3 · National Superadmin</strong></td>
+            <td><code>transversal@</code></td>
+            <td>/national/*</td>
+            <td>Can provision Department Superadmins (<code>dept-admin</code>), Provincial Admins, and Branch Admins.</td>
+          </tr>
+          <tr>
+            <td><strong>Tier 2 · Department Superadmin</strong></td>
+            <td><code>deptadmin-ha@</code></td>
+            <td>/dept/*, /branch/* (DHA Scope)</td>
+            <td>Can provision Branch Admins (<code>branch-admin</code>) and local specialists strictly within DHA. <strong>Cannot elevate</strong>.</td>
+          </tr>
+          <tr>
+            <td><strong>Tier 1 · Branch Superadmin</strong></td>
+            <td><code>branchadmin-ha@</code></td>
+            <td>/branch/* (Single Branch Scope)</td>
+            <td>Can provision local operational analysts strictly within the assigned branch. <strong>Cannot cross branches</strong>.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SLIDE 5: DHA PROOF OF CONCEPT -->
+    <div class="slide" data-index="5">
+      <div class="slide-tag">Proof of Concept Demonstration</div>
+      <h2 class="slide-title">The DHA Testbed: <span class="hl-gold">Department of Home Affairs</span></h2>
+      <p class="slide-desc">
+        DHA (<code>home-affairs-digital</code>) serves as the primary live demonstration organ of state, validating complete data isolation across its 8 real DDG branches.
+      </p>
+      <div class="grid-2">
+        <div class="card accent-gold">
+          <h3 class="card-title">8 DDG Operational Branches</h3>
+          <div class="grid-2" style="margin-top: 0.75rem; gap: 0.6rem;">
+            <div style="font-size: 0.8rem; color: #fff;">• <code>dha-civic</code> (Civic Services)</div>
+            <div style="font-size: 0.8rem; color: #fff;">• <code>dha-digital</code> (CIO / Digital ID)</div>
+            <div style="font-size: 0.8rem; color: #fff;">• <code>dha-immigration</code> (Border/Visa)</div>
+            <div style="font-size: 0.8rem; color: #fff;">• <code>dha-operations</code> (Front Offices)</div>
+            <div style="font-size: 0.8rem; color: #fff;">• <code>dha-hrmd</code> (Human Resources)</div>
+            <div style="font-size: 0.8rem; color: #fff;">• <code>dha-ccss</code> (Counter Corruption)</div>
+            <div style="font-size: 0.8rem; color: #fff;">• <code>dha-finance</code> (Supply Chain)</div>
+            <div style="font-size: 0.8rem; color: #fff;">• <code>dha-planning</code> (Strategy)</div>
+          </div>
+        </div>
+        <div class="card accent-emerald">
+          <h3 class="card-title">Verified Proofs in DHA Scoping</h3>
+          <ul style="padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.7; margin-top: 0.5rem;">
+            <li><strong>Zero Leakage</strong>: 50/50 findings returned for DHA analysts belong 100% to DHA software assets (sita-portal, civic-api). 0 items from Treasury or DPSA.</li>
+            <li><strong>Subtree User Scoping</strong>: DHA Dept Admin views strictly the 6 DHA accounts; the other 14 accounts in the government estate are completely hidden.</li>
+            <li><strong>Context Switching</strong>: Branch-level switching dynamically updates JWT claims without requiring credential re-entry.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: REAL OEM INGESTION -->
+    <div class="slide" data-index="6">
+      <div class="slide-tag">Data Lake & OEM Connectors</div>
+      <h2 class="slide-title">Real OEM Telemetry: <span class="hl-cyan">AppScan & Thales DAM</span></h2>
+      <p class="slide-desc">
+        The platform rejects synthetic mockups in favour of normalized, production-grade OEM telemetry mapped directly to the Common Finding Schema.
+      </p>
+      <div class="grid-2">
+        <div class="card accent-cyan">
+          <div class="card-num">APPSCAN CLOUD (SAST/DAST)</div>
+          <h3 class="card-title">83 Live Normalized CVE Findings</h3>
+          <p class="card-body">
+            Directly parsed from <code>appscan_real_issues.json</code> into PostgreSQL warehouse:
+          </p>
+          <ul style="padding-left: 1.2rem; font-size: 0.82rem; color: #fff; margin-top: 0.6rem; line-height: 1.6;">
+            <li><strong style="color: var(--crimson);">Critical (CVSS 9.8)</strong>: SQL Injection on <code>/bank/showtransactions</code> (CWE-89)</li>
+            <li><strong style="color: var(--gold);">High (CVSS 7.1)</strong>: Reflected XSS on <code>/search.jsp</code> & <code>/sendfeedback</code> (CWE-79)</li>
+            <li><strong style="color: var(--gold);">High (CVSS 7.5)</strong>: Integer Overflow / Insecure Design on <code>/bank/dotransfer</code></li>
+            <li><strong style="color: var(--cyan);">Medium (CVSS 6.1)</strong>: Open Redirect on <code>/bank/customize.jsp</code></li>
+          </ul>
+        </div>
+        <div class="card accent-emerald">
+          <div class="card-num">THALES DAM (DATABASE SECURITY)</div>
+          <h3 class="card-title">66 Monitored Database Clusters</h3>
+          <p class="card-body">
+            Live ingestion of Cassandra and relational telemetry for sensitive government citizen records:
+          </p>
+          <ul style="padding-left: 1.2rem; font-size: 0.82rem; color: #fff; margin-top: 0.6rem; line-height: 1.6;">
+            <li><strong>Clusters Monitored</strong>: <code>AUDIT_KEYSPACE</code>, <code>FLORENCE_CASSANDRA</code>, <code>USER_KEYSPACE</code></li>
+            <li><strong>Security Violations</strong>: Out-of-window DDL <code>TRUNCATE</code> alerts & privileged user abuse</li>
+            <li><strong>Query Anomaly Detection</strong>: Unindexed CQL full-table scan spike tracking</li>
+            <li><strong>Attribution</strong>: Tagged with <code>&lt;OemTag source="thales" label="Thales DAM" /&gt;</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: PERSONA-SPECIFIC DASHBOARDS -->
+    <div class="slide" data-index="7">
+      <div class="slide-tag">Operational Experience & RBAC</div>
+      <h2 class="slide-title">21 RBAC Views: <span class="hl-gold">Tailored to Each Operational Persona</span></h2>
+      <p class="slide-desc">
+        Every user lands on a specialized dashboard matching their precise responsibilities, tier elevation, and security clearance.
+      </p>
+      <div class="grid-3">
+        <div class="card">
+          <h3 class="card-title">📊 Executive Posture (/exec)</h3>
+          <p class="card-body">Strategic 0–100 Fused Risk score, 30-day posture trendlines, Top 5 vulnerable applications, and budget impact indicators.</p>
+        </div>
+        <div class="card">
+          <h3 class="card-title">🛡️ SOC Incident Triage (/soc)</h3>
+          <p class="card-body">Unified 47-alert live queue, MTTD/MTTR SLO metrics, and incident status transitions (New → Investigating → Resolved).</p>
+        </div>
+        <div class="card">
+          <h3 class="card-title">🔍 AppSec Vulnerabilities (/appsec)</h3>
+          <p class="card-body">OWASP Top 10 breakdown, 30-day remediation fix rate, and critical CVE tabular drilldown for Home Affairs codebases.</p>
+        </div>
+        <div class="card">
+          <h3 class="card-title">🗄️ Database Security (/dbsec)</h3>
+          <p class="card-body">Inventory of 66 monitored databases, Thales DAM exfiltration alerts, and sensitive table access audit streams.</p>
+        </div>
+        <div class="card">
+          <h3 class="card-title">📜 Regulatory Compliance (/compliance)</h3>
+          <p class="card-body">POPIA & ISO 27001 control tracking (82.9% pass rate), 360-point historical snapshot graph, and AG attestation pack.</p>
+        </div>
+        <div class="card">
+          <h3 class="card-title">⚙️ Service Operations (/sre)</h3>
+          <p class="card-body">Real-time health of OEM connectors (AppScan, Imperva WAF/DAM), circuit-breaker status, and pipeline throughput.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: AUDITOR-GENERAL & POPIA -->
+    <div class="slide" data-index="8">
+      <div class="slide-tag">Regulatory Integrity & Attestation</div>
+      <h2 class="slide-title">Auditor-General (AG) Export: <span class="hl-emerald">Cryptographic Proof</span></h2>
+      <p class="slide-desc">
+        Eliminating audit manual overhead with verifiable SHA-256 integrity hash chaining and automated POPIA PII stripping.
+      </p>
+      <div class="grid-2">
+        <div class="card accent-emerald">
+          <h3 class="card-title">SHA-256 Hash Verification</h3>
+          <p class="card-body">
+            Every attestation generated by <code>/api/v1/exports/ag-compliance</code> produces an immutable cryptographic hash chain stored in PostgreSQL:
+          </p>
+          <div style="background: rgba(0,0,0,0.4); padding: 0.8rem; border-radius: 8px; margin-top: 0.8rem; font-family: var(--font-mono); font-size: 0.72rem; color: var(--gold);">
+            {<br>
+            &nbsp;&nbsp;"actor": "compliance@example.com",<br>
+            &nbsp;&nbsp;"scope": "home-affairs-digital",<br>
+            &nbsp;&nbsp;"sha256": "4f9a2c88e7b10...d3e1",<br>
+            &nbsp;&nbsp;"valid": true<br>
+            }
+          </div>
+          <p class="card-body" style="margin-top: 0.75rem;">
+            Verifiable on demand via <code>GET /api/v1/exports/ag-compliance/verify/{hash}</code>.
+          </p>
+        </div>
+        <div class="card accent-cyan">
+          <h3 class="card-title">POPIA & Privacy Safeguards</h3>
+          <ul style="padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.7; margin-top: 0.5rem;">
+            <li><strong>Automated PII Redaction</strong>: Citizen ID numbers, personal email addresses, and employee names are stripped from public exports.</li>
+            <li><strong>Aggregation-Only Control Scores</strong>: External audit packs receive pass/fail compliance percentages rather than raw exploit payloads.</li>
+            <li><strong>Immutable Action Audit Log</strong>: Every export request, tenant switch, and administrative update writes to the <code>audit.action_audit</code> warehouse ledger.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 9: PROVINCIAL PEER BLINDING -->
+    <div class="slide" data-index="9">
+      <div class="slide-tag">Inter-Governmental Analytics</div>
+      <h2 class="slide-title">Provincial Peer Blinding: <span class="hl-sapphire">Collaborative Posture</span></h2>
+      <p class="slide-desc">
+        Enabling the 9 Provincial Administrations to benchmark cybersecurity posture against national averages without exposing confidential operational data.
+      </p>
+      <div class="grid-2">
+        <div class="card accent-sapphire">
+          <h3 class="card-title">Caller Province (Unblinded)</h3>
+          <p class="card-body">
+            Gauteng Provincial SOC Lead (<code>provincesoc@example.com</code>) receives granular, unblinded risk telemetry for Gauteng departments:
+          </p>
+          <ul style="padding-left: 1.2rem; font-size: 0.82rem; color: #fff; margin-top: 0.6rem; line-height: 1.6;">
+            <li>Department-level drill-down for Gauteng Health, Education, Roads.</li>
+            <li>Specific application counts, critical vulnerability drivers, and local remediation backlogs.</li>
+          </ul>
+        </div>
+        <div class="card accent-gold">
+          <h3 class="card-title">Peer Provinces (Cryptographically Blinded)</h3>
+          <p class="card-body">
+            Peer provinces (Western Cape, KwaZulu-Natal, Eastern Cape) are anonymised into blind comparative cohorts:
+          </p>
+          <ul style="padding-left: 1.2rem; font-size: 0.82rem; color: #fff; margin-top: 0.6rem; line-height: 1.6;">
+            <li>Anonymised IDs: <code>Peer-Province-A</code>, <code>Peer-Province-B</code>.</li>
+            <li>Exposes aggregate fused risk scores only; <strong>zero</strong> asset names, IP addresses, or vulnerability counts are accessible.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 10: QUALITY GATES & TEST METRICS -->
+    <div class="slide" data-index="10">
+      <div class="slide-tag">Quality Assurance & Certification</div>
+      <h2 class="slide-title">Test Exit Criteria (TEC): <span class="hl-emerald">100% Quality Gate Pass</span></h2>
+      <p class="slide-desc">
+        The platform has cleared all quantitative and qualitative Quality Gates specified in the formal release criteria.
+      </p>
+      <div class="grid-4" style="margin-bottom: 1.25rem;">
+        <div class="stat-box">
+          <div class="stat-val val-emerald">144/144</div>
+          <div class="stat-lbl">Backend Unit Tests</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val val-emerald">84/84</div>
+          <div class="stat-lbl">Tenancy RBAC Tests</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val val-emerald">20/20</div>
+          <div class="stat-lbl">Automated API Endpoints</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val val-emerald">0</div>
+          <div class="stat-lbl">TypeScript Errors</div>
+        </div>
+      </div>
+      <table class="slide-table">
+        <thead>
+          <tr>
+            <th>Quality Gate</th>
+            <th>Standard Required</th>
+            <th>Measured Outcome</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>QG-01: Cross-Tenant Isolation</strong></td>
+            <td>0 cross-tenant data leakage</td>
+            <td>Zero leaks across 50 DHA findings & 8 branches</td>
+            <td><span class="tag-pill tag-emerald">PASS</span></td>
+          </tr>
+          <tr>
+            <td><strong>QG-02: Compliance Snapshots</strong></td>
+            <td>Continuous historical trend</td>
+            <td>360 snapshots loaded across POPIA / ISO 27001</td>
+            <td><span class="tag-pill tag-emerald">PASS</span></td>
+          </tr>
+          <tr>
+            <td><strong>QG-03: Defect Thresholds</strong></td>
+            <td>S1 (Blocker) = 0 · S2 (High) = 0</td>
+            <td>0 unresolved S1/S2 defects</td>
+            <td><span class="tag-pill tag-emerald">PASS</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SLIDE 11: PRODUCTION ROADMAP -->
+    <div class="slide" data-index="11">
+      <div class="slide-tag">Execution Strategy & Next Phases</div>
+      <h2 class="slide-title">National Rollout Plan: <span class="hl-gold">Phase 1 to Phase 3</span></h2>
+      <p class="slide-desc">
+        A structured, secure expansion leveraging the proven Department of Home Affairs template across the Government of South Africa.
+      </p>
+      <div class="grid-3">
+        <div class="card accent-gold">
+          <div class="card-num">PHASE 1 (COMPLETED)</div>
+          <h3 class="card-title">DHA PoC & SITA Apex</h3>
+          <p class="card-body">
+            • 4-tier tenancy architecture implemented.<br>
+            • Real AppScan & Thales DAM telemetry mapped.<br>
+            • DHA 8-branch isolation and AG attestation export operational.
+          </p>
+        </div>
+        <div class="card accent-cyan">
+          <div class="card-num">PHASE 2 (NEXT 90 DAYS)</div>
+          <h3 class="card-title">Core Cluster Onboarding</h3>
+          <p class="card-body">
+            • Onboard <strong>National Treasury</strong> and <strong>DPSA</strong>.<br>
+            • Expand provincial telemetry to Western Cape & KZN.<br>
+            • Enable automated daily AG attestation archival.
+          </p>
+        </div>
+        <div class="card accent-emerald">
+          <div class="card-num">PHASE 3 (NEXT 180 DAYS)</div>
+          <h3 class="card-title">Whole-of-Government</h3>
+          <p class="card-body">
+            • Deploy across remaining 170 national departments.<br>
+            • Full GPCE cloud connector integrations.<br>
+            • Real-time automated SOC dispatch to national CSIRT.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 12: BOARD DECISION REQUEST -->
+    <div class="slide" data-index="12">
+      <div class="slide-tag">Decision & Governance Sign-Off</div>
+      <h2 class="slide-title">Board Recommendation: <span class="hl-emerald">Accept PoC & Advance to Production</span></h2>
+      <p class="slide-desc">
+        The technical evaluation confirms that the SITA Consolidated Security Reporting Platform exceeds all functional, security, and performance criteria.
+      </p>
+      <div class="grid-2" style="margin-bottom: 1.5rem;">
+        <div class="card accent-emerald">
+          <h3 class="card-title">Formal Decisions Requested</h3>
+          <ol style="padding-left: 1.2rem; font-size: 0.88rem; color: #fff; line-height: 1.8; margin-top: 0.5rem;">
+            <li><strong>Formal Certification</strong> of the Department of Home Affairs (DHA) Proof of Concept as complete and successful.</li>
+            <li><strong>Approval of 4-Tier Architecture</strong> designating SITA National Security Command Center as the overarching authority for government cybersecurity reporting.</li>
+            <li><strong>Authorization to Proceed</strong> with Phase 2 Core Cluster onboarding (National Treasury & DPSA).</li>
+          </ol>
+        </div>
+        <div class="card accent-gold">
+          <h3 class="card-title">Key Stakeholder Sign-Offs</h3>
+          <div style="display: flex; flex-direction: column; gap: 0.6rem; font-size: 0.82rem; margin-top: 0.6rem;">
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">
+              <span>Lead Security Architect:</span> <strong style="color: var(--emerald);">APPROVED</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">
+              <span>QA & Testing Lead:</span> <strong style="color: var(--emerald);">APPROVED (100% TEC)</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.06); padding-bottom: 4px;">
+              <span>DHA Tenant Representative:</span> <strong style="color: var(--emerald);">ACCEPTED (PoC Passed)</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding-bottom: 4px;">
+              <span>SITA Managing Authority:</span> <strong style="color: var(--gold);">RECOMMENDED FOR ADOPTION</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="text-align: center;">
+        <a href="http://localhost:3000" target="_blank" class="btn-ctrl" style="display: inline-flex; font-size: 1rem; padding: 10px 24px; border-color: var(--gold); color: var(--gold); background: rgba(245,158,11,0.15);">
+          Launch Live SITA Security Platform ➔
+        </a>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="deck-foot">
+    <div>
+      <span>Keys: <span class="key-badge">◀</span> / <span class="key-badge">▶</span> Navigate &middot; <span class="key-badge">Space</span> Next &middot; <span class="key-badge">F</span> Fullscreen</span>
+    </div>
+    <div class="slide-progress">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+    <div class="slide-counter">
+      Slide <span id="currentSlideNum">1</span> / <span id="totalSlideNum">12</span>
+    </div>
+  </footer>
+
+  <script>
+    (function() {
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const total = slides.length;
+      let current = 0;
+
+      const progressFill = document.getElementById('progressFill');
+      const currentSlideNum = document.getElementById('currentSlideNum');
+      const totalSlideNum = document.getElementById('totalSlideNum');
+      const btnPrev = document.getElementById('btnPrev');
+      const btnNext = document.getElementById('btnNext');
+      const btnFullscreen = document.getElementById('btnFullscreen');
+
+      totalSlideNum.textContent = total;
+
+      function updateSlide(idx) {
+        if (idx < 0) idx = 0;
+        if (idx >= total) idx = total - 1;
+        current = idx;
+
+        slides.forEach((s, i) => {
+          s.classList.toggle('active', i === current);
+        });
+
+        currentSlideNum.textContent = current + 1;
+        progressFill.style.width = ((current + 1) / total * 100) + '%';
+      }
+
+      function nextSlide() { updateSlide(current + 1); }
+      function prevSlide() { updateSlide(current - 1); }
+
+      btnNext.addEventListener('click', nextSlide);
+      btnPrev.addEventListener('click', prevSlide);
+
+      btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+          e.preventDefault();
+          nextSlide();
+        } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+          e.preventDefault();
+          prevSlide();
+        } else if (e.key === 'Home') {
+          e.preventDefault();
+          updateSlide(0);
+        } else if (e.key === 'End') {
+          e.preventDefault();
+          updateSlide(total - 1);
+        } else if (e.key.toLowerCase() === 'f') {
+          btnFullscreen.click();
+        }
+      });
+
+      // Touch / Swipe Support
+      let touchStartX = 0;
+      window.addEventListener('touchstart', (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+      }, { passive: true });
+
+      window.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].screenX;
+        if (touchEndX < touchStartX - 50) nextSlide();
+        if (touchEndX > touchStartX + 50) prevSlide();
+      }, { passive: true });
+    })();
+  </script>
+</body>
+</html>

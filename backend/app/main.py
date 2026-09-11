@@ -30,36 +30,6 @@ logger = logging.getLogger(__name__)
 start_time = time.time()
 
 
-# Security headers middleware
-@app.middleware("http")
-async def add_security_headers(request: Request, call_next):
-    response: Response = await call_next(request)
-    # Security headers
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-    # Hide server version
-    response.headers.pop("Server", None)
-    # HSTS only in production with HTTPS
-    if settings.environment.lower() not in ("dev", "development", "test", "testing"):
-        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
-    # Content Security Policy
-    response.headers["Content-Security-Policy"] = (
-        "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-        "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data: https:; "
-        "font-src 'self' data:; "
-        "connect-src 'self' https://*.auth0.com; "
-        "frame-ancestors 'none'; "
-        "base-uri 'self'; "
-        "form-action 'self'"
-    )
-    return response
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_metrics()
@@ -99,6 +69,37 @@ else:
         redoc_url=None,
         openapi_url=None,
     )
+
+# Security headers middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response: Response = await call_next(request)
+    # Security headers
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    # Hide server version
+    if "Server" in response.headers:
+        del response.headers["Server"]
+    # HSTS only in production with HTTPS
+    if settings.environment.lower() not in ("dev", "development", "test", "testing"):
+        response.headers["Strict-Transport-Security"] = "max-age=63072000; includeSubDomains; preload"
+    # Content Security Policy
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data: https:; "
+        "font-src 'self' data:; "
+        "connect-src 'self' https://*.auth0.com; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+    return response
+
 
 # CORS configuration - restrict to trusted origins in production
 if settings.environment.lower() in ("dev", "development", "test", "testing"):

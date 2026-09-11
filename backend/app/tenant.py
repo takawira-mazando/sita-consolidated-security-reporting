@@ -752,6 +752,42 @@ _CURATED_APP_DEPARTMENTS = {
     "document-svc": "justice-document",
     "legacy-api": "health-legacy",
     "internal-hr": "dpsa-hr",
+    "xyz application": "home-affairs-digital",
+    # DHA branch-specific AppScan demo apps
+    "civic-services-portal": "home-affairs-digital",
+    "national-population-register": "home-affairs-digital",
+    "identity-document-system": "home-affairs-digital",
+    "birth-registration-system": "home-affairs-digital",
+    "ehomeaffairs-portal": "home-affairs-digital",
+    "sita-api-gateway": "home-affairs-digital",
+    "digital-identity-platform": "home-affairs-digital",
+    "online-services-gateway": "home-affairs-digital",
+    "movement-control-system": "home-affairs-digital",
+    "visa-processing-system": "home-affairs-digital",
+    "refugee-management-system": "home-affairs-digital",
+    "border-control-system": "home-affairs-digital",
+    "operations-management-system": "home-affairs-digital",
+    "service-delivery-platform": "home-affairs-digital",
+    "queue-management-system": "home-affairs-digital",
+    "document-tracking-system": "home-affairs-digital",
+    "hr-management-system": "home-affairs-digital",
+    "payroll-system": "home-affairs-digital",
+    "learning-management-system": "home-affairs-digital",
+    "performance-management": "home-affairs-digital",
+    "security-incident-system": "home-affairs-digital",
+    "counter-corruption-portal": "home-affairs-digital",
+    "vetting-system": "home-affairs-digital",
+    "compliance-tracker": "home-affairs-digital",
+    "finance-management-system": "home-affairs-digital",
+    "supply-chain-portal": "home-affairs-digital",
+    "asset-management-system": "home-affairs-digital",
+    "revenue-collection-system": "home-affairs-digital",
+    "strategic-planning-system": "home-affairs-digital",
+    "monitoring-evaluation": "home-affairs-digital",
+    "reporting-dashboard": "home-affairs-digital",
+    "policy-management-system": "home-affairs-digital",
+    # AppScan demo test app
+    "demo.testfire.net": "home-affairs-digital",
 }
 
 _CURATED_APP_BRANCHES = {
@@ -760,6 +796,42 @@ _CURATED_APP_BRANCHES = {
     "document-svc": "doj-ict",
     "legacy-api": "doh-hospitals",
     "internal-hr": "dpsa-hr-ops",
+    "xyz application": "dha-digital",
+    # DHA branch-specific AppScan demo apps - distributed across 8 branches
+    "civic-services-portal": "dha-civic",
+    "national-population-register": "dha-civic",
+    "identity-document-system": "dha-civic",
+    "birth-registration-system": "dha-civic",
+    "ehomeaffairs-portal": "dha-digital",
+    "sita-api-gateway": "dha-digital",
+    "digital-identity-platform": "dha-digital",
+    "online-services-gateway": "dha-digital",
+    "movement-control-system": "dha-immigration",
+    "visa-processing-system": "dha-immigration",
+    "refugee-management-system": "dha-immigration",
+    "border-control-system": "dha-immigration",
+    "operations-management-system": "dha-operations",
+    "service-delivery-platform": "dha-operations",
+    "queue-management-system": "dha-operations",
+    "document-tracking-system": "dha-operations",
+    "hr-management-system": "dha-hrmd",
+    "payroll-system": "dha-hrmd",
+    "learning-management-system": "dha-hrmd",
+    "performance-management": "dha-hrmd",
+    "security-incident-system": "dha-ccss",
+    "counter-corruption-portal": "dha-ccss",
+    "vetting-system": "dha-ccss",
+    "compliance-tracker": "dha-ccss",
+    "finance-management-system": "dha-finance",
+    "supply-chain-portal": "dha-finance",
+    "asset-management-system": "dha-finance",
+    "revenue-collection-system": "dha-finance",
+    "strategic-planning-system": "dha-planning",
+    "monitoring-evaluation": "dha-planning",
+    "reporting-dashboard": "dha-planning",
+    "policy-management-system": "dha-planning",
+    # AppScan demo test app - maps to digital branch
+    "demo.testfire.net": "dha-digital",
 }
 
 _CURATED_DB_TO_DEPARTMENT = {
@@ -768,6 +840,21 @@ _CURATED_DB_TO_DEPARTMENT = {
     "DB-CUST-02": "home-affairs-digital",
     "DB-DOC-01": "justice-document",
     "DB-HR-01": "dpsa-hr",
+    # Thales demo identifiers from OEM sample logs - distributed across DHA branches
+    "FLORENCECASSANDRACLUSTER": "home-affairs-digital",
+    "CASSANDRAVER401": "home-affairs-digital",
+    "SELECT_KEYSPACE": "home-affairs-digital",
+    "USER_KEYSPACE": "home-affairs-digital",
+    "AUDIT_KEYSPACE": "home-affairs-digital",
+    "CONFIG_KEYSPACE": "home-affairs-digital",
+    # Additional Cassandra clusters for other DHA branches
+    "CIVIC-CASSANDRA-CLUSTER": "home-affairs-digital",
+    "IMMIGRATION-CASSANDRA-CLUSTER": "home-affairs-digital",
+    "OPERATIONS-CASSANDRA-CLUSTER": "home-affairs-digital",
+    "HRMD-CASSANDRA-CLUSTER": "home-affairs-digital",
+    "CCSS-CASSANDRA-CLUSTER": "home-affairs-digital",
+    "FINANCE-CASSANDRA-CLUSTER": "home-affairs-digital",
+    "PLANNING-CASSANDRA-CLUSTER": "home-affairs-digital",
 }
 
 _CURATED_DB_TO_BRANCH = {
@@ -776,6 +863,89 @@ _CURATED_DB_TO_BRANCH = {
     "DB-CUST-02": "dha-digital",
     "DB-DOC-01": "doj-ict",
     "DB-HR-01": "dpsa-hr-ops",
+    # Thales demo identifiers from OEM sample logs - distributed across DHA branches
+    "FLORENCECASSANDRACLUSTER": "dha-digital",
+    "CASSANDRAVER401": "dha-digital",
+    "SELECT_KEYSPACE": "dha-digital",
+    "USER_KEYSPACE": "dha-digital",
+    "AUDIT_KEYSPACE": "dha-digital",
+    "CONFIG_KEYSPACE": "dha-digital",
+    # Additional Cassandra clusters for other DHA branches
+    "CIVIC-CASSANDRA-CLUSTER": "dha-civic",
+    "IMMIGRATION-CASSANDRA-CLUSTER": "dha-immigration",
+    "OPERATIONS-CASSANDRA-CLUSTER": "dha-operations",
+    "HRMD-CASSANDRA-CLUSTER": "dha-hrmd",
+    "CCSS-CASSANDRA-CLUSTER": "dha-ccss",
+    "FINANCE-CASSANDRA-CLUSTER": "dha-finance",
+    "PLANNING-CASSANDRA-CLUSTER": "dha-planning",
+}
+
+
+# DHA branch-specific app mappings for demo data distribution
+# Used by synthetic generator and demo ingestion to distribute findings across branches
+DHA_BRANCH_APPS: dict[str, list[str]] = {
+    "dha-civic": [
+        "civic-services-portal",
+        "national-population-register",
+        "identity-document-system",
+        "birth-registration-system",
+    ],
+    "dha-digital": [
+        "ehomeaffairs-portal",
+        "sita-api-gateway",
+        "digital-identity-platform",
+        "online-services-gateway",
+        "customer-portal",
+        "xyz application",
+    ],
+    "dha-immigration": [
+        "movement-control-system",
+        "visa-processing-system",
+        "refugee-management-system",
+        "border-control-system",
+    ],
+    "dha-operations": [
+        "operations-management-system",
+        "service-delivery-platform",
+        "queue-management-system",
+        "document-tracking-system",
+    ],
+    "dha-hrmd": [
+        "hr-management-system",
+        "payroll-system",
+        "learning-management-system",
+        "performance-management",
+    ],
+    "dha-ccss": [
+        "security-incident-system",
+        "counter-corruption-portal",
+        "vetting-system",
+        "compliance-tracker",
+    ],
+    "dha-finance": [
+        "finance-management-system",
+        "supply-chain-portal",
+        "asset-management-system",
+        "revenue-collection-system",
+    ],
+    "dha-planning": [
+        "strategic-planning-system",
+        "monitoring-evaluation",
+        "reporting-dashboard",
+        "policy-management-system",
+    ],
+}
+
+# DHA branch-specific Cassandra clusters for Thales DAM demo data
+DHA_BRANCH_CASSANDRA_CLUSTERS: dict[str, list[str]] = {
+    "dha-digital": ["FlorenceCassandraCluster", "CASSANDRAVER401"],
+    "dha-civic": ["CIVIC-CASSANDRA-CLUSTER"],
+    "dha-immigration": ["IMMIGRATION-CASSANDRA-CLUSTER"],
+    "dha-operations": ["OPERATIONS-CASSANDRA-CLUSTER"],
+    "dha-hrmd": ["HRMD-CASSANDRA-CLUSTER"],
+    "dha-ccss": ["CCSS-CASSANDRA-CLUSTER"],
+    "dha-finance": ["FINANCE-CASSANDRA-CLUSTER"],
+    "dha-planning": ["PLANNING-CASSANDRA-CLUSTER"],
 }
 
 

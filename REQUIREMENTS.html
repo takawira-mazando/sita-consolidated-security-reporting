@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SITA Consolidated Security Reporting - Project Requirements</title>
+<style>
+body { font-family: Calibri, Arial, sans-serif; max-width: 900px; margin: 40px auto; padding: 0 20px; line-height: 1.5; color: #222; }
+h1 { color: #0b3d66; border-bottom: 3px solid #0b3d66; padding-bottom: 8px; }
+h2 { color: #0b3d66; border-bottom: 1px solid #ccc; padding-bottom: 4px; margin-top: 32px; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; vertical-align: top; }
+th { background: #0b3d66; color: #fff; }
+tr:nth-child(even) { background: #f4f6f8; }
+code { background: #eef1f4; padding: 2px 5px; border-radius: 3px; font-family: Consolas, monospace; }
+li { margin: 4px 0; }
+</style>
+</head>
+<body>
+<h1>SITA Consolidated Security Reporting — Project Requirements</h1>
+<p>This document defines the functional and non-functional requirements for the SITA Consolidated Security Reporting platform. It is derived from the implemented system and serves as the reference specification for development, testing, and acceptance.</p>
+<h2>1. Purpose and scope</h2>
+<p>The platform is a full-stack security intelligence solution that unifies application security, database security, SOC operations, compliance, and executive reporting into a single experience. It provides:</p>
+<ul>
+<li>Multi-domain alert and finding ingestion and correlation</li>
+<li>Risk scoring, compliance assessment, and executive-level summaries</li>
+<li>Role-based dashboards for executive, SOC, appsec, DBsec, and compliance stakeholders</li>
+<li>Automated dispatch and notification to downstream systems</li>
+<li>Multi-tenant scoping by province, department, and branch</li>
+<li>Provincial peer benchmarking and Auditor-General (AG) compliance export</li>
+</ul>
+<h2>2. Functional requirements</h2>
+<h3>2.1 Authentication and identity (FR-AUTH)</h3>
+<ul>
+<li>FR-AUTH-01: The platform MUST support JWT-based authentication with configurable token TTL (default 12 hours).</li>
+<li>FR-AUTH-02: A bootstrap superadmin account MUST be created on first startup and its default password MUST be overridable via environment configuration.</li>
+<li>FR-AUTH-03: Demo role accounts MUST be seedable for local exploration (exec, soc, appsec, dbsec, compliance, transversal, province soc, admin).</li>
+<li>FR-AUTH-04: Demo users MUST be disabled by default in non-development environments.</li>
+<li>FR-AUTH-05: The system MUST support Auth0 integration (domain, audience, RS256 algorithms) when configured.</li>
+<li>FR-AUTH-06: Login MUST support a tenancy-scope override (province, department, or branch) so users can sign in under a specific scope.</li>
+</ul>
+<h3>2.2 Role-based access (FR-RBAC)</h3>
+<ul>
+<li>FR-RBAC-01: The system MUST expose role-aware navigation and dashboards for executive, SOC, appsec, DBsec, compliance, transversal, and provincial SOC personas.</li>
+<li>FR-RBAC-02: A transversal superadmin role MUST span all-department reports and multiple departments.</li>
+<li>FR-RBAC-03: A provincial SOC lead role MUST be scoped to a province's departments (e.g., Gauteng).</li>
+<li>FR-RBAC-04: Tenancy scoping MUST filter data access to the selected province, department, or branch; province scope expands to every department in the province.</li>
+</ul>
+<h3>2.3 Data ingestion and processing (FR-INGEST)</h3>
+<ul>
+<li>FR-INGEST-01: The system MUST ingest alerts and findings from multiple security domains.</li>
+<li>FR-INGEST-02: Ingestion MUST support rate limiting (token bucket), scheduling, retries, a dead-letter queue, and a circuit breaker.</li>
+<li>FR-INGEST-03: Incoming data MUST be normalised into a common structure for downstream analysis.</li>
+<li>FR-INGEST-04: Ingested findings MUST feed the processing pipeline (risk engine, compliance, alert engine, alert enrichment, alert dedup).</li>
+</ul>
+<h3>2.4 Risk and compliance (FR-RISK)</h3>
+<ul>
+<li>FR-RISK-01: The system MUST compute risk scores per finding and aggregate them (risk aggregation).</li>
+<li>FR-RISK-02: Compliance posture MUST be assessed against configured compliance rules.</li>
+<li>FR-RISK-03: Alert generation MUST support deduplication and enrichment.</li>
+<li>FR-RISK-04: Risk and aggregate calculations MUST run on scheduled intervals (configurable, defaults: aggregate rules 60s, risk 300s).</li>
+</ul>
+<h3>2.5 Dashboards and reporting (FR-DASH)</h3>
+<ul>
+<li>FR-DASH-01: The platform MUST provide role-specific dashboards (executive, SOC, appsec, DBsec, compliance).</li>
+<li>FR-DASH-02: The system MUST expose a public summary endpoint and metrics for monitoring.</li>
+<li>FR-DASH-03: Dashboards MUST present findings, risks, alerts, and compliance posture through a modern web interface.</li>
+</ul>
+<h3>2.6 Dispatch and notifications (FR-DISPATCH)</h3>
+<ul>
+<li>FR-DISPATCH-01: Alerts MUST be dispatchable to downstream channels via adapters: email (SMTP), Microsoft Teams (webhook), and PagerDuty (routing key).</li>
+<li>FR-DISPATCH-02: Dispatch MUST support configurable worker and consumer counts.</li>
+<li>FR-DISPATCH-03: Dispatch failures MUST NOT silently drop alerts (retry / dead-letter handling).</li>
+</ul>
+<h3>2.7 Exports and benchmarking (FR-EXPORT)</h3>
+<ul>
+<li>FR-EXPORT-01: The platform MUST provide a provincial peer benchmark endpoint (<code>/api/v1/benchmark/province</code>) that anonymises peer provinces and exposes only aggregated fused risk for peers.</li>
+<li>FR-EXPORT-02: Peers MUST never expose raw vulnerability counts, findings, or logs.</li>
+<li>FR-EXPORT-03: An Auditor-General aggregation-only compliance attestation export MUST be provided (<code>/api/v1/exports/ag-compliance</code>).</li>
+<li>FR-EXPORT-04: AG exports MUST strip raw findings and PII, bind a SHA-256 integrity hash to the actor and tenant scope in the audit trail, and support hash verification (<code>/api/v1/exports/ag-compliance/verify/{hash}</code>).</li>
+</ul>
+<h3>2.8 Connectors (FR-CONN)</h3>
+<ul>
+<li>FR-CONN-01: The system MUST support pluggable connectors to third-party security tooling (e.g., Imperva, AppScan, APIsec, compliance).</li>
+<li>FR-CONN-02: Connector status MUST be tracked (connector status model).</li>
+</ul>
+<h3>2.9 Administration (FR-ADMIN)</h3>
+<ul>
+<li>FR-ADMIN-01: Admin routes MUST be available under the <code>/admin</code> base path.</li>
+<li>FR-ADMIN-02: All sensitive operations MUST be written to an audit trail (audit action log).</li>
+</ul>
+<h2>3. Non-functional requirements</h2>
+<h3>3.1 Architecture (NFR-ARCH)</h3>
+<ul>
+<li>NFR-ARCH-01: The system MUST use a service-oriented architecture with a FastAPI backend, React/Vite frontend, PostgreSQL, and Redis.</li>
+<li>NFR-ARCH-02: The backend MUST expose API routes under <code>/api/v1</code>, admin routes under <code>/admin</code>, and health at <code>/health</code>.</li>
+<li>NFR-ARCH-03: Database schema evolution MUST be managed with Alembic migrations.</li>
+<li>NFR-ARCH-04: Deployment MUST be supported via Docker Compose (local, remote, and production configurations).</li>
+</ul>
+<h3>3.2 Performance and scalability (NFR-PERF)</h3>
+<ul>
+<li>NFR-PERF-01: The API MUST be asynchronous (asyncpg + SQLAlchemy asyncio) to support concurrent load.</li>
+<li>NFR-PERF-02: Database connection pooling MUST be configurable (defaults: pool size 20, max overflow 40, pool timeout 30s).</li>
+<li>NFR-PERF-03: Processing MUST support configurable batch sizes (default 100) and consumer counts (default 4).</li>
+</ul>
+<h3>3.3 Security (NFR-SEC)</h3>
+<ul>
+<li>NFR-SEC-01: The default development JWT secret and bootstrap password MUST be rejected in non-dev environments.</li>
+<li>NFR-SEC-02: Demo user seeding MUST be disabled in non-dev environments.</li>
+<li>NFR-SEC-03: CORS MUST be configured for the frontend origin.</li>
+<li>NFR-SEC-04: Secrets MUST be supplied via environment configuration (<code>.env</code>) and never committed.</li>
+</ul>
+<h3>3.4 Observability (NFR-OBS)</h3>
+<ul>
+<li>NFR-OBS-01: The system MUST expose Prometheus metrics and integrate with Grafana dashboards.</li>
+<li>NFR-OBS-02: Structured logging MUST be used (structlog).</li>
+<li>NFR-OBS-03: The <code>/health</code> endpoint MUST report service status, database status, and uptime.</li>
+</ul>
+<h3>3.5 Reliability (NFR-REL)</h3>
+<ul>
+<li>NFR-REL-01: Ingestion MUST tolerate transient failures via retry and dead-letter queues.</li>
+<li>NFR-REL-02: Dispatch adapters MUST be isolated so a single channel failure does not block others.</li>
+</ul>
+<h2>4. Technology stack</h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Technology</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Backend</td>
+<td>Python 3.11+, FastAPI, SQLAlchemy (async), Pydantic v2, Alembic</td>
+</tr>
+<tr>
+<td>Frontend</td>
+<td>React 18, TypeScript, Vite, React Router, Recharts</td>
+</tr>
+<tr>
+<td>Database</td>
+<td>PostgreSQL</td>
+</tr>
+<tr>
+<td>Cache / messaging</td>
+<td>Redis</td>
+</tr>
+<tr>
+<td>Monitoring</td>
+<td>Prometheus, Grafana</td>
+</tr>
+<tr>
+<td>Packaging</td>
+<td>Docker Compose, Nginx</td>
+</tr>
+<tr>
+<td>Auth</td>
+<td>JWT (native) with optional Auth0 integration</td>
+</tr>
+</tbody>
+</table>
+<h2>5. Acceptance criteria</h2>
+<ul>
+<li>All demo role accounts can log in and see role-appropriate dashboards.</li>
+<li>Provincial SOC lead sees only their province's departments; transversal superadmin sees all departments.</li>
+<li>Ingested findings produce normalised records, risk scores, and alerts with deduplication.</li>
+<li>Alerts dispatch correctly to configured email/Teams/PagerDuty targets.</li>
+<li>Provincial benchmark anonymises peers and AG export strips PII with a verifiable integrity hash.</li>
+<li><code>/health</code> returns healthy with database connectivity.</li>
+<li>Backend unit tests pass (<code>pytest</code>), frontend passes lint and typecheck (<code>npm run lint</code>, <code>npm run typecheck</code>).</li>
+</ul>
+</body>
+</html>

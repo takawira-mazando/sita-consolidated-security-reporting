@@ -1,3 +1,15 @@
+export type TenancyTier = 'sita' | 'national' | 'dept' | 'branch';
+
+export interface TierAccess {
+  sita: string[];        // Overarching SITA Command Center dashboard keys
+  national: string[];    // dashboard keys accessible at national tier (Tier 3)
+  dept: string[];        // dashboard keys accessible at dept/provincial tier (Tier 2)
+  branch: string[];      // dashboard keys accessible at branch tier (Tier 1)
+  adminTiers: TenancyTier[]; // tiers where this user can provision RBAC
+  isSitaSuperadmin: boolean; // Overarching SITA Command Center Admin with transversal access to all tiers & dashboards
+  hasTransversalAccess: boolean; // Transversal access across entire estate
+}
+
 export interface User {
   sub: string;
   email: string;
@@ -34,6 +46,7 @@ export interface DemoAccount {
   label: string;
   role: string;
   department_ids?: string[];
+  branch_ids?: string[];
   province_ids?: string[];
   department_name?: string | null;
   province_name?: string | null;
@@ -70,6 +83,8 @@ export interface Finding {
   last_seen: string;
   status: string;
   version: number;
+  cve?: string;
+  cvss_score?: number;
 }
 
 export interface ComplianceSnapshot {

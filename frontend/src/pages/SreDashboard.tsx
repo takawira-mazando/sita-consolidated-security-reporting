@@ -9,13 +9,34 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useSreData } from '../hooks/useSreData';
+import type { TenancyTier } from '../types';
 
-export default function SreDashboard() {
+const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
+  sita: {
+    title: 'Service Operations — SITA Command Center',
+    subtitle: 'Overarching · Platform provider uptime, multi-tenant pipeline telemetry & connector ingestion SLAs',
+  },
+  national: {
+    title: 'Service Operations — National Estate',
+    subtitle: 'Strategic · Estate-wide infrastructure health, uptime SLAs and ingestion pipeline',
+  },
+  dept: {
+    title: 'Service Operations — Department',
+    subtitle: 'Tactical · Department infrastructure, deployment frequency and connector health',
+  },
+  branch: {
+    title: 'Service Operations — Branch',
+    subtitle: 'Granular · Branch infrastructure, local service health and connector status',
+  },
+};
+
+export default function SreDashboard({ tier = 'national' }: { tier?: TenancyTier }) {
+  const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useSreData();
 
   if (d.loading) {
-    return <div className="dash"><DashHeader title="Service Operations" subtitle="Loading live data…" badge={{ label: 'sre', color: 'var(--text-secondary)', bg: 'var(--text-muted)' }} consolidatedTag="Infrastructure · connectors" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
+    return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'sre', color: 'var(--text-secondary)', bg: 'var(--text-muted)' }} consolidatedTag="Infrastructure · connectors" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
   }
 
   const facts: ExplainFacts = {
@@ -29,8 +50,8 @@ export default function SreDashboard() {
   return (
     <div className="dash">
       <DashHeader
-        title="Service Operations"
-        subtitle="Agent health, connector status, and ingestion pipeline"
+        title={cfg.title}
+        subtitle={cfg.subtitle}
         badge={{ label: 'sre', color: 'var(--text-secondary)', bg: 'var(--text-muted)' }}
         consolidatedTag="Infrastructure · connectors"
         onExplain={() => setOverlay('explain')}

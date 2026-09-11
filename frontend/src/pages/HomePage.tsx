@@ -1,27 +1,123 @@
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import LoginPage from './LoginPage';
 import { useAuth } from '../hooks/useAuth';
+import { useDemoMode } from '../context/DemoContext';
 import { fetchSummary, PublicSummary } from '../api/auth';
 import '../styles/home.css';
 
-const MATRIX_ROWS = [
-  { role: 'Executive', tag: 'exec@', scope: 'National · whole estate', alerts: true, vulns: false, logs: false, compliance: true, infra: false },
-  { role: 'SOC Analyst', tag: 'soc@', scope: 'Assigned departments/branches', alerts: true, vulns: true, logs: true, compliance: false, infra: false },
-  { role: 'AppSec', tag: 'appsec@', scope: 'Assigned departments/branches', alerts: false, vulns: true, logs: false, compliance: false, infra: false },
-  { role: 'DB Security', tag: 'dbsec@', scope: 'Assigned departments/branches', alerts: false, vulns: true, logs: true, compliance: false, infra: false },
-  { role: 'Compliance', tag: 'compliance@', scope: 'National · whole estate', alerts: false, vulns: false, logs: true, compliance: true, infra: false },
-  { role: 'Service Ops', tag: 'sre@', scope: 'National · whole estate', alerts: false, vulns: false, logs: false, compliance: false, infra: true },
-  { role: 'Transversal Admin', tag: 'transversal@', scope: 'Depts or whole estate', alerts: true, vulns: true, logs: true, compliance: true, infra: true },
-  { role: 'Department Admin', tag: 'deptadmin@', scope: 'One department', alerts: true, vulns: true, logs: true, compliance: true, infra: false },
-  { role: 'Branch Admin', tag: 'branchadmin@', scope: 'Department branch', alerts: true, vulns: true, logs: true, compliance: true, infra: false },
-  { role: 'Provincial SOC Lead', tag: 'provincesoc@', scope: 'One province', alerts: true, vulns: true, logs: true, compliance: false, infra: false },
-  { role: 'Provincial Dept Admin', tag: 'provdeptadmin@', scope: 'Province dept', alerts: true, vulns: true, logs: true, compliance: true, infra: false },
-  { role: 'Local AppSec', tag: 'localappsec@', scope: 'Province dept', alerts: false, vulns: true, logs: false, compliance: false, infra: false },
-  { role: 'Admin', tag: 'admin@', scope: 'Whole estate', alerts: true, vulns: true, logs: true, compliance: true, infra: true },
-];
+export interface MatrixRow {
+  role: string;
+  tag: string;
+  loginRole?: string;
+  scope: string;
+  alerts: boolean;
+  vulns: boolean;
+  logs: boolean;
+  compliance: boolean;
+  infra: boolean;
+}
 
-const MATRIX_COLUMNS = ['Alerts', 'Vulns', 'Access Logs', 'Compliance', 'Infra'];
-const MATRIX_KEYS: (keyof (typeof MATRIX_ROWS)[number])[] = ['alerts', 'vulns', 'logs', 'compliance', 'infra'];
+const MATRIX_COLUMNS = [
+  { key: 'alerts', label: 'Alerts' },
+  { key: 'vulns', label: 'Vulns' },
+  { key: 'logs', label: 'Access Logs' },
+  { key: 'compliance', label: 'Compliance' },
+  { key: 'infra', label: 'Infra' },
+] as const;
+
+const MATRIX_ROWS: MatrixRow[] = [
+  {
+    role: 'Executive',
+    tag: 'exec@',
+    loginRole: 'exec',
+    scope: 'National · whole estate',
+    alerts: false, vulns: false, logs: false, compliance: true, infra: false,
+  },
+  {
+    role: 'SOC Analyst',
+    tag: 'soc@',
+    loginRole: 'soc',
+    scope: 'Assigned departments/branches',
+    alerts: true, vulns: false, logs: false, compliance: false, infra: false,
+  },
+  {
+    role: 'AppSec',
+    tag: 'appsec@',
+    loginRole: 'appsec',
+    scope: 'Assigned departments/branches',
+    alerts: false, vulns: true, logs: false, compliance: false, infra: false,
+  },
+  {
+    role: 'DB Security',
+    tag: 'dbsec@',
+    loginRole: 'dbsec',
+    scope: 'Assigned departments/branches',
+    alerts: false, vulns: false, logs: true, compliance: false, infra: false,
+  },
+  {
+    role: 'Compliance',
+    tag: 'compliance@',
+    loginRole: 'compliance',
+    scope: 'National · whole estate',
+    alerts: false, vulns: false, logs: false, compliance: true, infra: false,
+  },
+  {
+    role: 'Service Ops',
+    tag: 'sre@',
+    loginRole: 'sre',
+    scope: 'National · whole estate',
+    alerts: false, vulns: false, logs: false, compliance: false, infra: true,
+  },
+  {
+    role: 'Transversal Admin',
+    tag: 'transversal@',
+    loginRole: 'transversal-admin',
+    scope: 'Depts or whole estate',
+    alerts: true, vulns: true, logs: true, compliance: true, infra: true,
+  },
+  {
+    role: 'Department Admin',
+    tag: 'deptadmin@',
+    loginRole: 'dept-admin',
+    scope: 'One department',
+    alerts: true, vulns: true, logs: true, compliance: true, infra: true,
+  },
+  {
+    role: 'Branch Admin',
+    tag: 'branchadmin@',
+    loginRole: 'branch-admin',
+    scope: 'Department branch',
+    alerts: true, vulns: true, logs: true, compliance: true, infra: true,
+  },
+  {
+    role: 'Provincial SOC Lead',
+    tag: 'provincesoc@',
+    loginRole: 'province-soc-lead',
+    scope: 'One province',
+    alerts: true, vulns: false, logs: false, compliance: false, infra: false,
+  },
+  {
+    role: 'Provincial Dept Admin',
+    tag: 'provdeptadmin@',
+    loginRole: 'provdeptadmin',
+    scope: 'Province dept',
+    alerts: true, vulns: true, logs: true, compliance: true, infra: true,
+  },
+  {
+    role: 'Local AppSec',
+    tag: 'localappsec@',
+    loginRole: 'localappsec',
+    scope: 'Province dept',
+    alerts: false, vulns: true, logs: false, compliance: false, infra: false,
+  },
+  {
+    role: 'Admin',
+    tag: 'admin@',
+    loginRole: 'admin',
+    scope: 'Whole estate',
+    alerts: true, vulns: true, logs: true, compliance: true, infra: true,
+  },
+];
 
 const SEVERITY_ORDER = ['critical', 'high', 'medium', 'low', 'info'];
 
@@ -104,9 +200,26 @@ function PreviewTrend({ values }: { values: number[] }) {
 
 export default function HomePage() {
   const { loginDemo, demoAccounts } = useAuth();
+  const { demoMode, toggleDemoMode } = useDemoMode();
   const [modalOpen, setModalOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => document.body.dataset.theme !== 'light');
   const [summary, setSummary] = useState<PublicSummary | null>(null);
+  const [demoLoginLoading, setDemoLoginLoading] = useState(false);
+
+  const loginAsDemo = async () => {
+    setDemoLoginLoading(true);
+    try {
+      // SOC Analyst is scoped to home-affairs-digital (Department of Home Affairs)
+      const result = await loginDemo('soc');
+      if (result.ok) {
+        window.location.href = '/soc'; // Navigate to SOC dashboard
+      }
+    } catch (err) {
+      console.error('Demo login failed:', err);
+    } finally {
+      setDemoLoginLoading(false);
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -184,10 +297,12 @@ export default function HomePage() {
           <nav className="primary">
             <a href="#problem">The Problem</a>
             <a href="#preview">Live Preview</a>
+            <a href="#tenancy">Tenanting Model</a>
             <a href="#pipeline">How It Works</a>
             <a href="#estate">Live Estate</a>
             <a href="#matrix">Role Matrix</a>
-            <a href="#security">Security</a>
+            <a href="/presentation.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--amber, #f59e0b)', fontWeight: 600 }}>📊 Executive Deck</a>
+            <a href="/architecture.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue, #3b82f6)', fontWeight: 600 }}>🏛️ Architecture</a>
           </nav>
           <div className="home-actions">
             <button className="theme-toggle" onClick={toggleTheme}>
@@ -198,28 +313,27 @@ export default function HomePage() {
         </div>
       </header>
 
+      {demoMode && (
+        <div className="demo-banner" onClick={() => toggleDemoMode()}>
+          <span>🧪 <strong>DEMO MODE ACTIVE</strong> — Showing seeded test data from AppScan, Imperva WAF & API Security connectors. Click to dismiss.</span>
+          <button className="demo-banner-dismiss" onClick={(e) => { e.stopPropagation(); toggleDemoMode(); }} aria-label="Dismiss demo banner">✕</button>
+        </div>
+      )}
+
       <section className="hero">
         <div className="container hero-grid">
           <div>
             <div className="eyebrow"><span className="dot"></span>All security signals, one login</div>
             <h1>Stop reconciling four OEM consoles.<br />See the whole posture <span className="gradient-text">as one number.</span></h1>
             <p className="lede">SITA Security ingests AppScan, Imperva DAM, Imperva WAF, API exposure, and compliance controls into a single normalised feed — then fuses them into one risk score per application, scoped to who's looking.</p>
-            <div className="cta-row">
-              <button className="btn btn-flare" onClick={openModal}>Explore Live Dashboards</button>
-              <a href="#pipeline" className="btn btn-outline">See how it works ↓</a>
-            </div>
-            <div className="role-strip">
-              {demoAccounts.map((account) => (
-                <button
-                  key={account.role}
-                  className="role-chip"
-                  title={`Sign in as ${account.label}`}
-                  onClick={() => loginAsRole(account.role)}
-                >
-                  <b>{account.email.split('@')[0]}@</b>
-                  <span className="role-chip-cap">— {account.label.toLowerCase()} view</span>
-                </button>
-              ))}
+            <div className="cta-row" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
+              <button className="btn btn-flare" onClick={openModal}>Sign In to Explore</button>
+              <a href="/presentation.html" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <span>📊</span> Executive Deck ↗
+              </a>
+              <a href="/architecture.html" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                <span>🏛️</span> Architecture ↗
+              </a>
             </div>
           </div>
 
@@ -333,6 +447,197 @@ export default function HomePage() {
         </div>
       </section>
 
+      <section className="tenancy-graphic-section" id="tenancy">
+        <div className="container">
+          <div className="section-head">
+            <div className="eyebrow"><span className="dot"></span>Government Multi-Tenancy Architecture</div>
+            <h2>How SITA Manages Security Intelligence Across Organs of State</h2>
+            <p>A 4-tier delegated hierarchy designed for the Republic of South Africa — guaranteeing strict data isolation, provincial peer blinding, and seamless managed service governance.</p>
+          </div>
+
+          <div className="tenancy-diagram-box">
+            {/* Tier 5 & 4: SITA Platform Operator & National Estate */}
+            <div className="tenancy-tier-row tier-root">
+              <div className="tier-badge-label">Tier 5 & 4 · SITA Platform Provider & National Superadmin</div>
+              <div className="tenancy-node-card root-node">
+                <div className="node-icon">🇿🇦</div>
+                <div className="node-info">
+                  <div className="node-title">SITA National Security Command Center</div>
+                  <div className="node-desc">State Information Technology Agency (SITA) Platform Provider & National Superadmin</div>
+                  <div className="node-tags">
+                    <span className="n-tag t-admin">admin@</span>
+                    <span className="n-tag t-op">operator@</span>
+                    <span className="n-tag t-exec">exec@</span>
+                    <span className="n-tag t-comp">compliance@</span>
+                    <span className="n-tag t-sre">sre@</span>
+                  </div>
+                </div>
+                <div className="node-metrics">
+                  <div className="n-metric"><strong>100%</strong><span>National Estate Visibility</span></div>
+                  <div className="n-metric"><strong>SHA-256</strong><span>AG Audit Bound</span></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="tenancy-connector-line">
+              <div className="line-down"></div>
+              <div className="line-split"></div>
+            </div>
+
+            {/* Tier 3 & 2: National & Provincial Departments */}
+            <div className="tenancy-tier-split">
+              {/* National Branch */}
+              <div className="tenancy-branch-col">
+                <div className="col-header">
+                  <span className="col-icon">🏛️</span>
+                  <div>
+                    <h4>156 National Departments</h4>
+                    <p>National Organs of State (DHA, Treasury, SAPS, Health, DPSA, DOJ...)</p>
+                  </div>
+                </div>
+
+                <div className="tenancy-node-card dept-node active-dha">
+                  <div className="node-badge-top">Live Demo Case · DHA</div>
+                  <div className="node-head">
+                    <span className="node-flag">🏛️</span>
+                    <div>
+                      <div className="node-title">Department of Home Affairs (DHA)</div>
+                      <div className="node-sub">slug: <code>home-affairs-digital</code></div>
+                    </div>
+                  </div>
+                  <p className="node-body-text">Manages civic registers, border control, identity gateways, and immigration platforms across South Africa.</p>
+                  <div className="node-tags">
+                    <span className="n-tag t-soc">soc-ha@</span>
+                    <span className="n-tag t-app">appsec-ha@</span>
+                    <span className="n-tag t-db">dbsec-ha@</span>
+                    <span className="n-tag t-dept">deptadmin-ha@</span>
+                  </div>
+                </div>
+
+                <div className="tenancy-node-card dept-node">
+                  <div className="node-head">
+                    <span className="node-flag">💳</span>
+                    <div>
+                      <div className="node-title">National Treasury</div>
+                      <div className="node-sub">slug: <code>treasury</code></div>
+                    </div>
+                  </div>
+                  <p className="node-body-text">Oversees national financial systems, revenue, budget allocations, and inter-governmental grants.</p>
+                  <div className="node-tags">
+                    <span className="n-tag t-dept">treasury.admin@</span>
+                    <span className="n-tag t-app">appsec@</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Provincial Branch */}
+              <div className="tenancy-branch-col">
+                <div className="col-header">
+                  <span className="col-icon">📍</span>
+                  <div>
+                    <h4>9 Provinces & 113 Provincial Departments</h4>
+                    <p>Gauteng, Western Cape, KZN, Eastern Cape, Limpopo, Mpumalanga...</p>
+                  </div>
+                </div>
+
+                <div className="tenancy-node-card province-node">
+                  <div className="node-badge-top">Peer Blinding Engine</div>
+                  <div className="node-head">
+                    <span className="node-flag">📍</span>
+                    <div>
+                      <div className="node-title">Gauteng Provincial SOC Lead</div>
+                      <div className="node-sub">province_id: <code>gp</code> · 12 Departments</div>
+                    </div>
+                  </div>
+                  <p className="node-body-text">Monitors Gauteng provincial departments with <strong>Anonymized Peer Benchmarking</strong> — comparing posture against peer provinces without seeing their raw findings or PII.</p>
+                  <div className="node-tags">
+                    <span className="n-tag t-prov">provincesoc@</span>
+                    <span className="n-tag t-dept">provdeptadmin@</span>
+                  </div>
+                </div>
+
+                <div className="tenancy-node-card province-node anonymized">
+                  <div className="node-head">
+                    <span className="node-flag">🙈</span>
+                    <div>
+                      <div className="node-title">Peer Provinces (Western Cape, KZN, etc.)</div>
+                      <div className="node-sub">Anonymized Benchmark Peers</div>
+                    </div>
+                  </div>
+                  <p className="node-body-text">Exposes aggregated fused risk scores only. Raw vulnerability logs, app names, and PII are strictly blinded by SITA security policy.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="tenancy-connector-line">
+              <div className="line-down"></div>
+            </div>
+
+            {/* Tier 1: Departmental Branches */}
+            <div className="tenancy-tier-row tier-branches">
+              <div className="tier-badge-label">Tier 1 · 347 Operational Department Branches (DDG Units)</div>
+              <div className="branch-nodes-grid">
+                <div className="branch-mini-card">
+                  <div className="b-icon">🆔</div>
+                  <div>
+                    <div className="b-title">DHA Civic Services</div>
+                    <div className="b-sub">branch_id: <code>dha-civic</code></div>
+                  </div>
+                </div>
+
+                <div className="branch-mini-card active-b">
+                  <div className="b-icon">💻</div>
+                  <div>
+                    <div className="b-title">DHA Digital Transformation</div>
+                    <div className="b-sub">branch_id: <code>dha-digital</code></div>
+                  </div>
+                </div>
+
+                <div className="branch-mini-card">
+                  <div className="b-icon">🛂</div>
+                  <div>
+                    <div className="b-title">DHA Immigration Services</div>
+                    <div className="b-sub">branch_id: <code>dha-immigration</code></div>
+                  </div>
+                </div>
+
+                <div className="branch-mini-card">
+                  <div className="b-icon">💰</div>
+                  <div>
+                    <div className="b-title">Treasury Budget Branch</div>
+                    <div className="b-sub">branch_id: <code>treasury-budget</code></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 4 Pillars of Governance */}
+          <div className="tenancy-pillars-grid">
+            <div className="pillar-card">
+              <div className="p-icon">🛡️</div>
+              <h4>Write-Time Denormalization</h4>
+              <p>Every finding carries <code>department_id</code> and <code>branch_id</code> at write time, eliminating cross-tenant query leaks at the database level.</p>
+            </div>
+            <div className="pillar-card">
+              <div className="p-icon">🔒</div>
+              <h4>Strict Downstream Delegation</h4>
+              <p>SITA Superadmin (<code>admin</code>) → Department Admin (<code>dept-admin</code>) → Branch Admin (<code>branch-admin</code>). Authority can never escalate above its subtree node.</p>
+            </div>
+            <div className="pillar-card">
+              <div className="p-icon">🙈</div>
+              <h4>Provincial Peer Blinding</h4>
+              <p>Provincial SOC Leads compare risk posture against peer provinces with anonymized hashes—never exposing peer findings or PII.</p>
+            </div>
+            <div className="pillar-card">
+              <div className="p-icon">📜</div>
+              <h4>AG Audit Attestation</h4>
+              <p>Generates Auditor-General compliance exports with cryptographic SHA-256 integrity hashes bound to actor email and tenancy scope.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="pipeline-section" id="pipeline">
         <div className="container">
           <div className="section-head">
@@ -436,21 +741,29 @@ export default function HomePage() {
                   <th style={{ textAlign: 'left' }}>Role</th>
                   <th style={{ textAlign: 'left' }}>Tenant scope</th>
                   {MATRIX_COLUMNS.map((col) => (
-                    <th key={col}>{col}</th>
+                    <th key={col.key}>{col.label}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {MATRIX_ROWS.map((row) => (
-                  <tr key={row.tag}>
+                  <tr
+                    key={row.tag}
+                    className="matrix-row"
+                    onClick={() => row.loginRole && loginAsRole(row.loginRole)}
+                    title={`Click to preview ${row.role} dashboard`}
+                  >
                     <td className="rolecell">
                       {row.role}
                       <span>{row.tag}</span>
                     </td>
                     <td className="matrix-scope">{row.scope}</td>
-                    {MATRIX_KEYS.map((key) => (
-                      <td key={key}>
-                        <span className={row[key] ? 'dot-on' : 'dot-off'}></span>
+                    {MATRIX_COLUMNS.map((col) => (
+                      <td key={col.key}>
+                        <span
+                          className={row[col.key] ? 'dot-on' : 'dot-off'}
+                          title={`${col.label}: ${row[col.key] ? 'Cleared' : 'Restricted'}`}
+                        ></span>
                       </td>
                     ))}
                   </tr>
@@ -458,7 +771,9 @@ export default function HomePage() {
               </tbody>
             </table>
           </div>
-          <p className="matrix-note">Admin accounts see every column. Everyone else sees exactly their row — nothing scoped in, nothing leaked out. Sign in as any persona above to see its scoped view.</p>
+          <p className="matrix-note">
+            Admin accounts see every column. Everyone else sees exactly their row — nothing scoped in, nothing leaked out.
+          </p>
         </div>
       </section>
 
@@ -483,11 +798,7 @@ export default function HomePage() {
       <section className="cta-band">
         <div className="container">
           <h2>See your own view before rolling this out.</h2>
-          <p>Every role — from executive and compliance to delegated department, branch, and provincial admins — is provisioned with live demo data. Sign in to explore your persona's dashboard — or talk to us about connecting your OEMs.</p>
-          <div className="cta-row" style={{ justifyContent: 'center' }}>
-            <button className="btn btn-flare" onClick={openModal}>Explore Live Dashboards</button>
-            <a href="#estate" className="btn btn-outline">View the live estate</a>
-          </div>
+          <p>Every role — from executive and compliance to delegated department, branch, and provincial admins — is provisioned with live demo data. Use <strong>Sign In</strong> in the top-right to explore your persona's dashboard.</p>
         </div>
       </section>
 

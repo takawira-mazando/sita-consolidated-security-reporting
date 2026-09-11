@@ -23,6 +23,15 @@ class Settings(BaseSettings):
     teams_webhook_url: str = ""
     pagerduty_routing_key: str = ""
 
+    # AppScan Cloud
+    appscan_key_id: str = ""
+    appscan_key_secret: str = ""
+    appscan_account_id: str = ""
+    appscan_application_id: str = ""
+    appscan_base_url: str = "https://cloud.appscan.com"
+    appscan_page_size: int = 200
+    appscan_scope: str = "application"
+
     db_pool_size: int = 20
     db_max_overflow: int = 40
     db_pool_timeout: int = 30
@@ -51,5 +60,6 @@ class Settings(BaseSettings):
 
     class Config:
         env_file = ".env"
+        extra = "allow"
 
 settings = Settings()

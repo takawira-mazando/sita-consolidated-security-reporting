@@ -9,13 +9,38 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useSocData } from '../hooks/useSocData';
+import type { TenancyTier } from '../types';
 
-export default function SocDashboard() {
+const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string; queueHint: string }> = {
+  sita: {
+    title: 'SOC Analyst — SITA Command Center Incident Response',
+    subtitle: 'Overarching · Transversal alert queue, 9 provinces, 156 departments, unified multi-OEM ingestion feed',
+    queueHint: 'all OEMs · transversal whole-estate · live',
+  },
+  national: {
+    title: 'SOC Analyst — National Incident Response',
+    subtitle: 'Strategic · Estate-wide alert queue, top incident regions, unified feed from all OEMs',
+    queueHint: 'all OEMs · estate-wide · live',
+  },
+  dept: {
+    title: 'SOC Analyst — Department Incident Response',
+    subtitle: 'Tactical · Department incident queue, WAF blocks and SOC SLO metrics',
+    queueHint: 'dept scope · live',
+  },
+  branch: {
+    title: 'SOC Analyst — Branch Incident Response',
+    subtitle: 'Granular · Branch alert queue and local unit incidents',
+    queueHint: 'branch scope · live',
+  },
+};
+
+export default function SocDashboard({ tier = 'dept' }: { tier?: TenancyTier }) {
+  const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useSocData();
 
   if (d.loading) {
-    return <div className="dash"><DashHeader title="SOC Analyst — Incident Response" subtitle="Loading live data…" badge={{ label: 'soc_analyst', color: 'var(--blue)', bg: 'var(--blue-dim)' }} consolidatedTag="Consolidated · 4 sources live" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
+    return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'soc_analyst', color: 'var(--blue)', bg: 'var(--blue-dim)' }} consolidatedTag="Consolidated · 4 sources live" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
   }
 
   const facts: ExplainFacts = {
@@ -27,8 +52,8 @@ export default function SocDashboard() {
   return (
     <div className="dash">
       <DashHeader
-        title="SOC Analyst — Incident Response"
-        subtitle="Unified alert feed from AppScan + Imperva DAM/WAF + API Security"
+        title={cfg.title}
+        subtitle={cfg.subtitle}
         badge={{ label: 'soc_analyst', color: 'var(--blue)', bg: 'var(--blue-dim)' }}
         consolidatedTag="Consolidated · 4 sources live"
         onExplain={() => setOverlay('explain')}
@@ -117,7 +142,7 @@ export default function SocDashboard() {
         </Panel>
       </div>
 
-      <Panel title="Alert Queue" hint="all OEMs · live" bodyClassName="scroll-x" bodyStyle={{ padding: 0 }}>
+      <Panel title="Alert Queue" hint={cfg.queueHint} bodyClassName="scroll-x" bodyStyle={{ padding: 0 }}>
         <table>
           <thead><tr><th>Alert ID</th><th>Rule</th><th>Source</th><th>Severity</th><th>Owner / Team</th><th>Fired At</th><th>Status</th></tr></thead>
           <tbody>

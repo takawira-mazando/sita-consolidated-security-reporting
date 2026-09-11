@@ -1,5 +1,5 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import { User, AuthContextType, LoginScope } from '../types';
+import { User, AuthContextType, LoginScope, TierAccess, TenancyTier } from '../types';
 import {
   loginRequest,
   demoLoginRequest,
@@ -20,22 +20,137 @@ export const AuthContext = createContext<AuthContextType>({
   logout: () => {},
 });
 
+const HA_BRANCHES = [
+  'dha-civic',
+  'dha-digital',
+  'dha-immigration',
+  'dha-operations',
+  'dha-hrmd',
+  'dha-ccss',
+  'dha-finance',
+  'dha-planning',
+];
+
 export const FALLBACK_DEMO_ACCOUNTS: DemoAccount[] = [
-  { email: 'exec@example.com', label: 'Executive', role: 'exec', is_nationwide: true },
-  { email: 'soc@example.com', label: 'SOC Analyst', role: 'soc', department_ids: ['home-affairs-digital'] },
-  { email: 'appsec@example.com', label: 'AppSec', role: 'appsec', department_ids: ['treasury'] },
-  { email: 'dbsec@example.com', label: 'DB Security', role: 'dbsec', department_ids: ['dpsa-hr'] },
-  { email: 'compliance@example.com', label: 'Compliance', role: 'compliance', is_nationwide: true },
-  { email: 'sre@example.com', label: 'Service Ops', role: 'sre', is_nationwide: true },
-  { email: 'deptadmin@example.com', label: 'Dept Admin', role: 'dept-admin', department_ids: ['treasury'] },
-  { email: 'branchadmin@example.com', label: 'Branch Admin', role: 'branch-admin', department_ids: ['treasury'] },
-  { email: 'transversal@example.com', label: 'Transversal Admin', role: 'transversal-admin', is_nationwide: true },
-  { email: 'provincesoc@example.com', label: 'Provincial SOC Lead', role: 'province-soc-lead', province_ids: ['gp'] },
-  { email: 'admin@example.com', label: 'Admin', role: 'admin', is_nationwide: true },
+  // Department of Home Affairs (DHA) — Official Live Demo Personas
+  { email: 'soc-ha@example.com', label: 'SOC Analyst', role: 'soc-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  { email: 'appsec-ha@example.com', label: 'AppSec Engineer', role: 'appsec-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  { email: 'dbsec-ha@example.com', label: 'DB Security', role: 'dbsec-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  { email: 'deptadmin-ha@example.com', label: 'Dept Admin', role: 'deptadmin-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  { email: 'branchadmin-ha@example.com', label: 'Branch Admin', role: 'branchadmin-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
 ];
 
 export const ADMIN_EMAIL = 'admin@example.com';
 export const ALL_ROLES = ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre'];
+export const ALL_DASHBOARDS = ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre'];
+
+// ─── Tier-aware access resolution ─────────────────────────────────────────────
+// Returns which dashboard keys are accessible at each tenancy tier,
+// plus which admin pages the user can reach and transversal authority flags.
+export function getTierAccess(roles: string[]): TierAccess {
+  const sita     = new Set<string>();
+  const national = new Set<string>();
+  const dept     = new Set<string>();
+  const branch   = new Set<string>();
+  const adminTiers = new Set<TenancyTier>();
+  let isSitaSuperadmin = false;
+  let hasTransversalAccess = false;
+
+  for (const r of roles) {
+    // ── Overarching SITA Platform Provider / Transversal Super-Roles ─────────
+    if (r === 'admin' || r === 'operator') {
+      isSitaSuperadmin = true;
+      hasTransversalAccess = true;
+      ALL_DASHBOARDS.forEach((d) => {
+        sita.add(d);
+        national.add(d);
+        dept.add(d);
+        branch.add(d);
+      });
+      adminTiers.add('sita');
+      adminTiers.add('national');
+      adminTiers.add('dept');
+      adminTiers.add('branch');
+      break;
+    }
+
+    // ── Transversal admin: crosses all tiers from SITA Command Center ────────
+    if (r === 'transversal-admin') {
+      isSitaSuperadmin = true;
+      hasTransversalAccess = true;
+      ALL_DASHBOARDS.forEach((d) => {
+        sita.add(d);
+        national.add(d);
+        dept.add(d);
+        branch.add(d);
+      });
+      adminTiers.add('sita');
+      adminTiers.add('national');
+    }
+
+    // ── National-tier roles ──────────────────────────────────────────────────
+    if (r === 'exec') {
+      national.add('exec'); national.add('compliance');
+      // Exec can also read dept-level dashboards
+      dept.add('exec'); dept.add('compliance');
+    }
+    if (r === 'compliance') { national.add('compliance'); }
+    if (r === 'sre')        { national.add('sre'); }
+
+    // ── Dept / Provincial tier roles ─────────────────────────────────────────
+    if (r === 'soc' || r === 'soc-ha') {
+      dept.add('soc'); dept.add('appsec'); dept.add('dbsec');
+    }
+    if (r === 'appsec' || r === 'appsec-ha') {
+      dept.add('appsec');
+    }
+    if (r === 'dbsec' || r === 'dbsec-ha') {
+      dept.add('dbsec');
+    }
+    if (r === 'province-soc-lead') {
+      dept.add('exec'); dept.add('soc');
+    }
+
+    // ── Dept admin: all dept dashboards + branch access + admin ─────────────
+    if (r === 'dept-admin' || r === 'deptadmin-ha' || r === 'province-dept-admin') {
+      ALL_DASHBOARDS.forEach((d) => { dept.add(d); branch.add(d); });
+      adminTiers.add('dept');
+      adminTiers.add('branch');
+    }
+
+    // ── Branch tier roles ────────────────────────────────────────────────────
+    if (r === 'local-appsec') {
+      branch.add('appsec');
+    }
+
+    // ── Branch admin: all branch dashboards + admin ──────────────────────────
+    if (r === 'branch-admin' || r === 'branchadmin-ha') {
+      ALL_DASHBOARDS.forEach((d) => branch.add(d));
+      adminTiers.add('branch');
+    }
+  }
+
+  const order = ALL_DASHBOARDS;
+  return {
+    sita:     order.filter((d) => sita.has(d)),
+    national: order.filter((d) => national.has(d)),
+    dept:     order.filter((d) => dept.has(d)),
+    branch:   order.filter((d) => branch.has(d)),
+    adminTiers: (['sita', 'national', 'dept', 'branch'] as TenancyTier[]).filter((t) => adminTiers.has(t)),
+    isSitaSuperadmin,
+    hasTransversalAccess,
+  };
+}
+
+// ── Legacy shim — returns first non-empty tier for components not yet migrated ─
+export function getAccessibleDashboards(roles: string[]): string[] {
+  const access = getTierAccess(roles);
+  return access.national.length ? access.national
+    : access.dept.length        ? access.dept
+    : access.branch.length      ? access.branch
+    : ['exec'];
+}
+
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);

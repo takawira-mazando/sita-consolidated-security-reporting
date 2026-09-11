@@ -10,13 +10,38 @@ import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useExecData } from '../hooks/useExecData';
 import { toneForBucket, colorForBucket, oemForSource } from '../data/mappers';
+import type { TenancyTier } from '../types';
 
-export default function ExecDashboard() {
+const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string; heatmapHint: string }> = {
+  sita: {
+    title: 'Executive Risk Overview — SITA Command Center',
+    subtitle: 'Overarching · Republic-wide consolidated threat posture, all organs of state & AG compliance',
+    heatmapHint: 'transversal whole-estate findings × severity',
+  },
+  national: {
+    title: 'Executive Risk Overview — National Estate',
+    subtitle: 'Strategic · Consolidated from 4 OEM sources — estate-wide trendlines & AG compliance',
+    heatmapHint: 'estate-wide findings × severity',
+  },
+  dept: {
+    title: 'Executive Risk Overview — Department',
+    subtitle: 'Tactical · Department-scoped risk summary and application heatmap',
+    heatmapHint: 'dept-level findings × severity',
+  },
+  branch: {
+    title: 'Executive Risk Overview — Branch',
+    subtitle: 'Granular · Branch KPIs, remediation backlog and local unit risk',
+    heatmapHint: 'branch-level findings × severity',
+  },
+};
+
+export default function ExecDashboard({ tier = 'national' }: { tier?: TenancyTier }) {
+  const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useExecData();
 
   if (d.loading) {
-    return <div className="dash"><DashHeader title="Executive Risk Overview" subtitle="Loading live data…" badge={{ label: 'executive', color: 'var(--red)', bg: 'var(--red-dim)' }} consolidatedTag="Consolidated · 4 sources live" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
+    return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: tier, color: 'var(--red)', bg: 'var(--red-dim)' }} consolidatedTag="Consolidated · 4 sources live" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
   }
 
   const topRisks = d.topRisks.map((r) => ({
@@ -43,9 +68,9 @@ export default function ExecDashboard() {
   return (
     <div className="dash">
       <DashHeader
-        title="Executive Risk Overview"
-        subtitle="Consolidated from 4 OEM sources — live from API"
-        badge={{ label: 'executive', color: 'var(--red)', bg: 'var(--red-dim)' }}
+        title={cfg.title}
+        subtitle={cfg.subtitle}
+        badge={{ label: tier, color: 'var(--red)', bg: 'var(--red-dim)' }}
         consolidatedTag="Consolidated · 4 sources live"
         onExplain={() => setOverlay('explain')}
         onLayman={() => setOverlay('layman')}
@@ -109,7 +134,7 @@ export default function ExecDashboard() {
       </div>
 
       <div className="dash-grid cols-2">
-        <Panel title="Application Risk Heatmap" hint="findings × severity">
+        <Panel title="Application Risk Heatmap" hint={cfg.heatmapHint}>
           {heatmapHasData ? (
             <div className="scroll-x">
               <div className="heatmap">

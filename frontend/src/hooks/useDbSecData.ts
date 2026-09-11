@@ -1,7 +1,9 @@
 import { useApi } from './useApi';
+import { useDemoAwareFetcher } from '../api/demoApi';
 import { fetchFindings } from '../api/findings';
 import { fetchAlerts } from '../api/alerts';
 import { fetchDbInventory } from '../api/metrics';
+import { fetchDemoFindings } from '../api/demoApi';
 import {
   severityCounts,
   toneForSeverity,
@@ -14,9 +16,12 @@ import {
 import type { Tone } from '../data/mappers';
 
 export function useDbSecData() {
-  const findings = useApi(() => fetchFindings({ size: 200 }));
-  const alerts = useApi(() => fetchAlerts({ size: 50 }));
-  const inventory = useApi(() => fetchDbInventory());
+  const findings = useApi(useDemoAwareFetcher(
+    () => fetchFindings({ size: 200 }),
+    (branchId) => fetchDemoFindings({ size: 200, branch_id: branchId })
+  ));
+  const alerts = useApi(() => fetchAlerts({ size: 50 })); // No demo alerts
+  const inventory = useApi(() => fetchDbInventory()); // No demo inventory
 
   const loading = findings.loading || alerts.loading || inventory.loading;
   const error = findings.error || alerts.error || inventory.error;

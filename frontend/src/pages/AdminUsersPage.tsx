@@ -6,21 +6,56 @@ import { useAuth } from '../hooks/useAuth';
 import { fetchUsers, createUser, updateUser, deleteUser, AdminUser, fetchPersons, PersonRecord } from '../api/admin';
 import { fetchTenancy, TenancyDepartment } from '../api/auth';
 import type { Tone } from '../data/mappers';
+import type { TenancyTier } from '../types';
+
+// Per-tier grantable role restrictions (what a superadmin at each tier may assign)
+const TIER_GRANTABLE_ROLES: Record<TenancyTier, string[]> = {
+  sita:     ['admin', 'operator', 'transversal-admin', 'exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre', 'dept-admin', 'branch-admin', 'province-dept-admin', 'province-soc-lead', 'local-appsec'],
+  national: ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre', 'transversal-admin', 'dept-admin', 'branch-admin', 'province-dept-admin', 'province-soc-lead', 'local-appsec'],
+  dept:     ['soc', 'appsec', 'dbsec', 'branch-admin', 'province-soc-lead', 'local-appsec'],
+  branch:   ['soc', 'appsec', 'dbsec', 'local-appsec'],
+};
+
+const TIER_TITLES: Record<TenancyTier, { title: string; subtitle: string; badge: string }> = {
+  sita:     { title: 'SITA National Security Command Center — Overarching Transversal Administration', subtitle: 'Provision administrators and security roles across all tiers and organs of state', badge: 'sita-command-center' },
+  national: { title: 'National Admin — User Provisioning', subtitle: 'Provision and manage roles across the entire estate', badge: 'national' },
+  dept:     { title: 'Department Admin — User Provisioning', subtitle: 'Provision and manage roles within your department or province', badge: 'dept' },
+  branch:   { title: 'Branch Admin — User Provisioning', subtitle: 'Provision and manage roles within your branch', badge: 'branch' },
+};
 
 const DEPARTMENT_ROLES = new Set(['soc', 'appsec', 'dbsec', 'dept-admin', 'branch-admin', 'province-soc-lead', 'province-dept-admin', 'local-appsec']);
 const PROVINCIAL_ROLES = new Set(['province-soc-lead', 'province-dept-admin', 'local-appsec']);
 const BRANCH_REQUIRED_ROLES = new Set(['branch-admin']);
 
 // Mirrors backend GRANTABLE_ROLES: roles each tier may grant. The cascade is
-// operator (creator) -> admin (SITA superuser) -> dept/branch admins -> ops.
+// SITA (admin/operator) -> Transversal Superadmin -> Dept/Provincial Admins -> Branch Admins -> Ops.
 const GRANTABLE_ROLES: Record<string, string[]> = {
-  'operator': ['admin', 'operator'],
-  'admin': ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre', 'transversal-admin', 'dept-admin', 'branch-admin', 'province-dept-admin', 'province-soc-lead', 'local-appsec'],
+  'operator': ['admin', 'operator', 'transversal-admin', 'dept-admin', 'province-dept-admin', 'branch-admin', 'exec', 'compliance', 'sre', 'soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec'],
+  'admin': ['admin', 'transversal-admin', 'dept-admin', 'province-dept-admin', 'branch-admin', 'exec', 'compliance', 'sre', 'soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec'],
+  'transversal-admin': ['transversal-admin', 'dept-admin', 'province-dept-admin', 'branch-admin', 'exec', 'compliance', 'sre', 'soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec'],
+  'dept-admin': ['dept-admin', 'branch-admin', 'province-soc-lead', 'local-appsec', 'soc', 'appsec', 'dbsec'],
+  'deptadmin-ha': ['dept-admin', 'branch-admin', 'province-soc-lead', 'local-appsec', 'soc', 'appsec', 'dbsec'],
+  'province-dept-admin': ['province-dept-admin', 'branch-admin', 'province-soc-lead', 'local-appsec', 'soc', 'appsec', 'dbsec'],
+  'branch-admin': ['branch-admin', 'local-appsec', 'soc', 'appsec', 'dbsec'],
+  'branchadmin-ha': ['branch-admin', 'local-appsec', 'soc', 'appsec', 'dbsec'],
   'sre': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec'],
-  'transversal-admin': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec', 'dept-admin', 'branch-admin', 'province-dept-admin', 'transversal-admin', 'sre', 'exec', 'compliance'],
-  'dept-admin': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec', 'branch-admin'],
-  'province-dept-admin': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec'],
-  'branch-admin': ['soc', 'appsec', 'dbsec', 'province-soc-lead', 'local-appsec'],
+};
+
+const ROLE_DISPLAY_INFO: Record<string, { label: string; tierLabel: string }> = {
+  'admin':               { label: 'SITA Platform Superadmin',       tierLabel: 'Tier 4 · SITA Command Center' },
+  'operator':            { label: 'Platform Provider Root',         tierLabel: 'Tier 4 · SITA Command Center' },
+  'transversal-admin':   { label: 'Transversal Superadmin',         tierLabel: 'Tier 3 · National Estate' },
+  'exec':                { label: 'National Executive',             tierLabel: 'Tier 3 · National Estate' },
+  'compliance':          { label: 'Compliance & AG Officer',        tierLabel: 'Tier 3 · National Estate' },
+  'sre':                 { label: 'Service Reliability Engineer',   tierLabel: 'Tier 3 · National Estate' },
+  'dept-admin':          { label: 'Department Superadmin',          tierLabel: 'Tier 2 · Department' },
+  'province-dept-admin': { label: 'Provincial Department Admin',    tierLabel: 'Tier 2 · Provincial' },
+  'province-soc-lead':   { label: 'Provincial SOC Lead',            tierLabel: 'Tier 2 · Provincial' },
+  'branch-admin':        { label: 'Branch Superadmin',              tierLabel: 'Tier 1 · Branch' },
+  'local-appsec':        { label: 'Branch AppSec Specialist',       tierLabel: 'Tier 1 · Branch' },
+  'soc':                 { label: 'SOC Security Analyst',           tierLabel: 'Operational' },
+  'appsec':              { label: 'AppSec Engineer',                tierLabel: 'Operational' },
+  'dbsec':               { label: 'Database Security Specialist',   tierLabel: 'Operational' },
 };
 
 const ROLE_TONE: Record<string, Tone> = {
@@ -77,7 +112,9 @@ interface BranchRef {
   department_id: string;
 }
 
-export default function AdminUsersPage() {
+export default function AdminUsersPage({ adminTier = 'national' }: { adminTier?: TenancyTier }) {
+  const tierMeta = TIER_TITLES[adminTier];
+  const tierGrantable = TIER_GRANTABLE_ROLES[adminTier];
   const { user: me } = useAuth();
   const users = useApi(() => fetchUsers());
   const tenancy = useApi(() => fetchTenancy());
@@ -119,9 +156,12 @@ export default function AdminUsersPage() {
   const myDepts = me?.department_ids || [];
   const myBranches = me?.branch_ids || [];
   const myProvinces = me?.province_ids || [];
-  const isSystemAdmin = me?.roles?.includes('admin');
-  const isScopedAdmin = !isSystemAdmin && (me?.roles?.some((r) => ['dept-admin', 'branch-admin', 'province-dept-admin'].includes(r)) || myDepts.length > 0);
-  const grantableOptions = Array.from(new Set((me?.roles || []).flatMap((r) => GRANTABLE_ROLES[r] || [])));
+  const isSystemAdmin = me?.roles?.some((r) => ['admin', 'operator', 'transversal-admin'].includes(r));
+  const isScopedAdmin = !isSystemAdmin && (me?.roles?.some((r) => ['dept-admin', 'branch-admin', 'province-dept-admin', 'deptadmin-ha', 'branchadmin-ha'].includes(r)) || myDepts.length > 0);
+  // Intersection of what the logged-in user's own role grants AND what this tier allows
+  const grantableOptions = Array.from(new Set(
+    (me?.roles || []).flatMap((r) => GRANTABLE_ROLES[r] || [])
+  )).filter((r) => tierGrantable.includes(r));
   const pickable = isScopedAdmin
     ? departments.filter((d) => myDepts.length === 0 || myDepts.includes(d.id))
     : departments;
@@ -308,13 +348,13 @@ export default function AdminUsersPage() {
   return (
     <div className="dash">
       <DashHeader
-        title="User Access & RBAC"
+        title={tierMeta.title}
         subtitle={
           counts
-            ? `National + provincial estate — ${counts.departments} national departments · ${counts.provincial_departments ?? '—'} provincial · ${counts.branches} branches`
-            : 'Create and manage users, assign roles and access'
+            ? `${tierMeta.subtitle} — ${counts.departments} departments · ${counts.branches} branches`
+            : tierMeta.subtitle
         }
-        badge={{ label: 'rbac', color: 'var(--violet)', bg: 'var(--violet-dim)' }}
+        badge={{ label: tierMeta.badge, color: 'var(--violet)', bg: 'var(--violet-dim)' }}
         consolidatedTag="identity · roles · least privilege"
         onExplain={() => {}}
         onLayman={() => {}}
@@ -519,19 +559,26 @@ export default function AdminUsersPage() {
               </div>
             </div>
             <div className="form-field">
-              <span className="form-label">Roles</span>
+              <span className="form-label">Roles &amp; Superadmin Entitlements (Cascaded from {tierMeta.title.split('—')[0].trim()})</span>
               <div className="role-check-list">
                 {grantableOptions.map((role) => {
                   const checked = form.roles.includes(role);
+                  const info = ROLE_DISPLAY_INFO[role];
                   return (
                     <button
                       key={role}
                       type="button"
                       className={`role-check${checked ? ' checked' : ''}`}
                       onClick={() => toggleRole(role)}
+                      title={info ? `${info.label} (${info.tierLabel})` : role}
                     >
                       <span className="role-check-box">{checked ? '✓' : ''}</span>
-                      {role}
+                      <span style={{ fontWeight: 600 }}>{role}</span>
+                      {info && (
+                        <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 6 }}>
+                          — {info.label} <small style={{ opacity: 0.85, color: 'var(--accent)' }}>[{info.tierLabel}]</small>
+                        </span>
+                      )}
                     </button>
                   );
                 })}

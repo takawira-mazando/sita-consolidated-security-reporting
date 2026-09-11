@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -869,44 +869,42 @@
 <div class="modal-overlay" id="tenancyModal" role="dialog" aria-modal="true" aria-labelledby="tenancyTitle">
   <div class="modal">
     <div class="modal-head">
-      <h2 id="tenancyTitle">&#128737;&#65039; Multi-tenancy &amp; data isolation <span class="badge">tenancy deep-dive</span></h2>
+      <h2 id="tenancyTitle">&#128737;&#65039; Multi-tenancy &amp; data isolation <span class="badge">SITA 4-tier architecture</span></h2>
       <button class="modal-close" id="tenancyModalClose" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
 
-      <h3>&#128994; Purpose</h3>
-      <p>SITA-style government multi-tenancy &mdash; every application and database belongs to a <strong>government department</strong>, and each department is composed of <strong>branches</strong> (its real DDG-led organisational units). Tenancy drives both <strong>data scoping</strong> and <strong>delegated user administration</strong>. Modelled on SITA&rsquo;s real mandate: <strong>43 national + 113 provincial departments across 9 provinces</strong> (156 public clients on the NGN), with the transversal SOC covering 39 national departments and GPCE cloud/IaaS serving ~125 public clients.</p>
+      <h3>&#128994; Platform Authority &amp; Client</h3>
+      <p><strong>SITA (State Information Technology Agency)</strong> is the platform managing authority and client. SITA operates at <strong>Tier 4 (SITA National Security Command Center)</strong> with overarching transversal authority across the entire Republic of South Africa: all 173 national departments and 9 provincial administrations (covering 156 public client organs of state on the Next Generation Network, transversal SOC, and GPCE cloud).</p>
 
-      <h3>&#128278; The tenant tree</h3>
-      <p><code>Province</code> <span class="flow-arrow">&rarr;</span> <code>Department</code> <span class="flow-arrow">&rarr;</span> <code>Branch</code> <span class="flow-arrow">&rarr;</span> <code>App / Database</code> &mdash; modelled in <code>C:\sita-platform\backend\app\tenant.py</code> as stable-slug catalogs (<code>PROVINCES</code> (9), <code>PROVINCIAL_DEPARTMENTS</code> (113, namespaced <code>&lt;province&gt;-&lt;function&gt;</code>), <code>DEPARTMENTS</code>, <code>BRANCHES</code>, <code>APP_DEPARTMENTS</code>, <code>DB_TO_DEPARTMENT</code>, <code>MINISTRIES</code>/<code>CLUSTERS</code> for reporting rollups) so resolution needs no DB lookup. Provincial departments are branchless (the writer persists a NULL branch); a province scope expands to the province&rsquo;s full department set, so no warehouse column changes were needed.</p>
+      <h3>&#127919; Designated Demo &amp; PoC Test Bed: Department of Home Affairs (DHA)</h3>
+      <p>The <strong>Department of Home Affairs (DHA)</strong> (<code>home-affairs-digital</code>) serves as the primary live demonstration and Proof of Concept (PoC) testbed. DHA demonstrates real-world multi-tenant scoping and subtree isolation across its <strong>8 real DDG operational branches</strong>: <code>dha-civic</code>, <code>dha-digital</code>, <code>dha-immigration</code>, <code>dha-operations</code>, <code>dha-hrmd</code>, <code>dha-ccss</code>, <code>dha-finance</code>, and <code>dha-planning</code>. DHA receives live ingested OEM data from <strong>HCL AppScan Cloud</strong> (83 real CVE/CWE findings) and <strong>Thales DAM</strong> (Cassandra cluster monitoring and security events).</p>
+
+      <h3>&#128278; The 4-Tier Tenancy Cascade</h3>
+      <p><code>Tier 4: SITA Command Center</code> <span class="flow-arrow">&rarr;</span> <code>Tier 3: National Estate</code> <span class="flow-arrow">&rarr;</span> <code>Tier 2: Departments &amp; Provinces</code> <span class="flow-arrow">&rarr;</span> <code>Tier 1: Operational Branches</code> &mdash; modelled in <code>C:\sita-platform\backend\app\tenant.py</code> as stable-slug catalogs (<code>PROVINCES</code> (9), <code>DEPARTMENTS</code> (173), <code>BRANCHES</code> (347), <code>APP_DEPARTMENTS</code>, <code>DB_TO_DEPARTMENT</code>, <code>MINISTRIES</code>/<code>CLUSTERS</code> for rollups).</p>
       <div class="file-list"><span class="file-tag">tenant.py</span><span class="file-tag">models/tenant.py</span><span class="file-tag">models/audit.py</span><span class="file-tag">api/auth.py</span><span class="file-tag">api/routers/auth.py</span><span class="file-tag">api/routers/admin.py</span><span class="file-tag">security.py</span><span class="file-tag">_migrate_province.py</span><span class="file-tag">tests/test_tenancy.py</span></div>
 
-      <h3>&#128279; How scoping works</h3>
+      <h3>&#128279; Scoping &amp; Isolation Rules</h3>
       <ul>
-        <li><strong>Nationwide roles</strong> (<code>exec</code>, <code>compliance</code>, <code>sre</code>, <code>admin</code>, <code>transversal-admin</code>) see the whole estate (empty scope = whole estate).</li>
-        <li><strong>Department roles</strong> (<code>soc</code>, <code>appsec</code>, <code>dbsec</code>) are scoped to the <code>department_ids</code>/<code>branch_ids</code> lists on their JWT; <code>tenant_filter(claims, model)</code> in <code>backend\app\api\auth.py</code> adds the WHERE clause on every read so users never see rows outside their scope.</li>
-        <li><strong>Province roles</strong> (<code>province-soc-lead</code>, <code>province-dept-admin</code>, <code>local-appsec</code>) are scoped by <code>province_ids</code> on the JWT; <code>tenant_filter</code> expands a province to its full department set, so a provincial SOC lead sees every department in Gauteng without listing them all.</li>
-        <li><strong>Denormalised at write time</strong> &mdash; every app/db-scoped warehouse row carries <code>department_id</code>/<code>branch_id</code> (set by the lake writer / normaliser), so REST scoping needs no joins.</li>
-        <li><strong>Fail closed</strong> &mdash; a department-scoped user with no assigned scope sees nothing until an admin assigns one; scoped parameters can only narrow a scope, never widen it.</li>
+        <li><strong>Tier 4 &mdash; SITA Command Center</strong> (<code>admin@</code>, <code>operator@</code>): Overarching transversal authority across all 173 departments, 9 provinces, and 347 branches. Unrestricted superadmin provisioning down the entire cascade.</li>
+        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation (0&ndash;100), and Auditor-General compliance export with cryptographic SHA-256 hash chains.</li>
+        <li><strong>Tier 2 &mdash; Departmental &amp; Provincial</strong> (<code>dept-admin</code>, <code>deptadmin-ha</code>, <code>provincesoc</code>): Tactical operations scoped strictly to the assigned department (e.g., DHA) or province (Gauteng). Provincial peer blinding ensures provinces compare posture without leaking peer vulnerability details or PII.</li>
+        <li><strong>Tier 1 &mdash; Operational Branch Tier</strong> (<code>branch-admin</code>, <code>branchadmin-ha</code>, <code>soc-ha</code>, <code>appsec-ha</code>, <code>dbsec-ha</code>): Granular remediation locked strictly to the assigned DDG branch (e.g. <code>dha-digital</code>, <code>dha-civic</code>).</li>
+        <li><strong>Write-Time Denormalisation</strong>: Every warehouse row carries <code>department_id</code> and <code>branch_id</code> at ingestion; <code>tenant_filter()</code> enforces zero cross-tenant data leakage on all queries.</li>
       </ul>
 
-      <h3>&#128295; Delegated administration along the tree</h3>
-      <p>Each admin tier is a node in the tenant tree, and its authority is exactly its node&rsquo;s subtree, mirroring the Managed Services hierarchy (<code>ADMIN_TIERS</code>, <code>GRANTABLE_ROLES</code> in <code>tenant.py</code>):</p>
+      <h3>&#128295; Superadmin Provisioning Cascade</h3>
+      <p>SITA Command Center administrators possess overarching authority to provision superusers and administrative roles down the entire cascade (<code>TIER_GRANTABLE_ROLES</code>, <code>GRANTABLE_ROLES</code> in <code>tenant.py</code> &amp; <code>AdminUsersPage.tsx</code>):</p>
       <table class="table">
-        <thead><tr><th>Tier</th><th>Node in tree</th><th>May grant</th></tr></thead>
+        <thead><tr><th>Tier Level</th><th>Role Persona</th><th>Scope &amp; Authorized Dashboards</th><th>Provisioning Authority</th></tr></thead>
         <tbody>
-          <tr><td><strong>system <code>admin</code></strong> &mdash; tier 4</td><td>estate root (overarching national superadmin)</td><td>Anything</td></tr>
-          <tr><td><strong><code>transversal-admin</code></strong> &mdash; tier 3</td><td>all-department reports (empty scope) or multiple departments/branches (assigned scope)</td><td>Operational dept roles (<code>soc</code>/<code>appsec</code>/<code>dbsec</code>) plus <code>dept-admin</code>/<code>branch-admin</code>/<code>province-dept-admin</code>; never another <code>transversal-admin</code> or system <code>admin</code></td></tr>
-          <tr><td><strong><code>dept-admin</code></strong> &mdash; tier 2</td><td>a national department node</td><td>Operational dept roles plus <code>branch-admin</code>, scoped to its departments</td></tr>
-          <tr><td><strong><code>province-dept-admin</code></strong> &mdash; tier 2</td><td>a provincial department node</td><td>The operational department roles within its province/department scope</td></tr>
-          <tr><td><strong><code>branch-admin</code></strong> &mdash; tier 1</td><td>a branch node</td><td>The operational dept roles only, scoped to its branches</td></tr>
+          <tr><td><strong>Tier 4 &mdash; SITA Command Center</strong></td><td><code>admin@example.com</code><br/><code>operator@example.com</code></td><td>Transversal Nationwide (/sita/*, /national/*, /dept/*, /branch/*)</td><td>May provision superusers and roles at <strong>all tiers</strong> (transversal-admin, dept-admin, province-dept-admin, branch-admin, all operational roles).</td></tr>
+          <tr><td><strong>Tier 3 &mdash; National Superadmin</strong></td><td><code>transversal@example.com</code></td><td>Nationwide estate (/national/*)</td><td>May provision Department Superadmins (<code>dept-admin</code>), Provincial Admins, and Branch Superadmins down the hierarchy. Cannot provision Tier 4 SITA admins.</td></tr>
+          <tr><td><strong>Tier 2 &mdash; Department Superadmin</strong></td><td><code>deptadmin-ha@example.com</code></td><td>DHA Department + 8 branches (/dept/*, /branch/*)</td><td>May provision Branch Superadmins (<code>branch-admin</code>) and departmental operational specialists (<code>soc</code>, <code>appsec</code>, <code>dbsec</code>) strictly within DHA. Cannot elevate above Tier 2.</td></tr>
+          <tr><td><strong>Tier 1 &mdash; Branch Superadmin</strong></td><td><code>branchadmin-ha@example.com</code></td><td>Single Branch (/branch/*, e.g. <code>dha-digital</code>)</td><td>May provision local operational analysts strictly within the assigned branch. Cannot cross branches or elevate.</td></tr>
         </tbody>
       </table>
-      <p>Delegation is strictly <strong>one-way down</strong>: <code>can_manage</code> (in <code>backend\app\api\auth.py</code>) blocks granting a tier at or above the caller&rsquo;s own, and <code>_tenant_consistent</code> rejects scopes whose branches are not children of the caller&rsquo;s departments. A department admin therefore can never see or manage another department&rsquo;s admin functionality. Enforced on every user create/update/delete in <code>C:\sita-platform\backend\app\api\routers\admin.py</code> (<code>_validate_scope</code>, <code>can_manage</code>) and demonstrable via the demo accounts <code>transversal@example.com</code> (whole estate), <code>provincesoc@example.com</code> (Gauteng-scoped provincial SOC lead), <code>deptadmin@example.com</code> / <code>branchadmin@example.com</code>.</p>
-
-      <h3>&#128202; Where it lives in the database</h3>
-      <p>Tenant reference tables live in the <code>warehouse</code> schema (<code>warehouse.departments</code>, <code>warehouse.branches</code>, plus <code>warehouse.provinces</code> and <code>departments.province_id</code>, and <code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> JSONB scope lists on <code>identity.users</code>); the <code>audit</code> schema gains <code>action_audit</code> for the AG export trail. Table definitions live in <code>C:\sita-platform\infrastructure\scripts\init-db.sql</code> and are backfilled by <code>C:\sita-platform\backend\_migrate_province.py</code>.</p>
-      <p><em>Full architecture breakdown also available in the <strong>Multi-Tenancy</strong> panel &mdash; click <code>tenant.py</code> in the file tree.</em></p>
+      <p><em>Enforced on every user mutation in <code>backend\app\api\routers\admin.py</code> (<code>_validate_scope</code>, <code>can_manage</code>) and verified in <code>tests/test_tenancy.py</code> (84/84 passed).</em></p>
     </div>
   </div>
 </div>
@@ -1690,32 +1688,32 @@ const details = {
     `
   },
   tenancy: {
-    title: 'Multi-Tenancy',
-    badge: 'Province &rarr; Department &rarr; Branch &rarr; App &middot; RBAC',
+    title: 'Multi-Tenancy & Governance',
+    badge: 'Tier 4 SITA Command &middot; Tier 3 National &middot; Tier 2 DHA / Prov &middot; Tier 1 Branch',
     body: String.raw`
-      <p><strong>Purpose:</strong> SITA-style government multi-tenancy &mdash; every app/database belongs to a <strong>government department</strong>, and each department is composed of <strong>branches</strong> (its real DDG-led organisational units). Tenancy drives both data scoping and delegated user administration. Modelled on SITA&rsquo;s real mandate: <strong>43 national + 113 provincial departments across 9 provinces</strong> (156 public clients on the NGN), with the transversal SOC covering 39 national departments and GPCE cloud/IaaS serving ~125 public clients.</p>
-      <h3>Tenant tree</h3>
-      <p><code>Province</code> <span class="flow-arrow">&rarr;</span> <code>Department</code> <span class="flow-arrow">&rarr;</span> <code>Branch</code> <span class="flow-arrow">&rarr;</span> <code>App / Database</code> &mdash; modelled in <code>C:\sita-platform\backend\app\tenant.py</code> as stable-slug catalogs (<code>PROVINCES</code> (9), <code>PROVINCIAL_DEPARTMENTS</code> (113, namespaced <code>&lt;province&gt;-&lt;function&gt;</code>), <code>DEPARTMENTS</code>, <code>BRANCHES</code>, <code>APP_DEPARTMENTS</code>, <code>DB_TO_DEPARTMENT</code>, <code>MINISTRIES</code>/<code>CLUSTERS</code> for reporting rollups) so resolution needs no DB lookup. Provincial departments are branchless (the writer persists NULL branch); province scope expands to the province&rsquo;s full department set, so no warehouse column changes were needed.</p>
+      <p><strong>Platform Managing Authority &amp; Client:</strong> <strong>SITA (State Information Technology Agency)</strong> operates at <strong>Tier 4 (SITA National Security Command Center)</strong> with overarching transversal authority across the entire South African Government (all 173 national departments and 9 provincial administrations across the Next Generation Network).</p>
+      <p><strong>Designated Demo &amp; PoC Test Bed:</strong> The <strong>Department of Home Affairs (DHA)</strong> (<code>home-affairs-digital</code>) serves as the primary live demonstration tenant with <strong>8 real DDG operational branches</strong> (<code>dha-civic</code>, <code>dha-digital</code>, <code>dha-immigration</code>, etc.). DHA telemetry is driven by live ingested <strong>HCL AppScan Cloud</strong> findings and <strong>Thales DAM</strong> database activity monitoring.</p>
+      <h3>The 4-Tier Tenancy Hierarchy</h3>
+      <p><code>Tier 4: SITA Command Center</code> <span class="flow-arrow">&rarr;</span> <code>Tier 3: National Estate</code> <span class="flow-arrow">&rarr;</span> <code>Tier 2: Departments &amp; Provinces</code> <span class="flow-arrow">&rarr;</span> <code>Tier 1: Operational Branches</code> &mdash; modelled in <code>C:\sita-platform\backend\app\tenant.py</code> as stable-slug catalogs (<code>PROVINCES</code> (9), <code>DEPARTMENTS</code> (173), <code>BRANCHES</code> (347), <code>APP_DEPARTMENTS</code>, <code>DB_TO_DEPARTMENT</code>, <code>MINISTRIES</code>/<code>CLUSTERS</code> for rollups).</p>
       <div class="file-list"><span class="file-tag">tenant.py</span><span class="file-tag">models/tenant.py</span><span class="file-tag">models/audit.py</span><span class="file-tag">api/auth.py</span><span class="file-tag">api/routers/auth.py</span><span class="file-tag">api/routers/admin.py</span><span class="file-tag">security.py</span><span class="file-tag">_migrate_province.py</span><span class="file-tag">tests/test_tenancy.py</span></div>
-      <h3>How scoping works</h3>
+      <h3>Scoping &amp; Security Isolation</h3>
       <ul>
-        <li><strong>Nationwide roles</strong> (<code>exec</code>, <code>compliance</code>, <code>sre</code>, <code>admin</code>, <code>transversal-admin</code>) see the whole estate (empty scope = whole estate).</li>
-        <li><strong>Department roles</strong> (<code>soc</code>, <code>appsec</code>, <code>dbsec</code>) are scoped to the <code>department_ids</code>/<code>branch_ids</code> lists on their JWT; <code>tenant_filter(claims, model)</code> in <code>backend\app\api\auth.py</code> adds the WHERE clause on every read so users never see rows outside their scope.</li>
-        <li><strong>Province roles</strong> (<code>province-soc-lead</code>, <code>province-dept-admin</code>, <code>local-appsec</code>) are scoped by <code>province_ids</code> on the JWT; <code>tenant_filter</code> expands a province to its full department set, so a provincial SOC lead sees every department in Gauteng without listing them all.</li>
-        <li><strong>Denormalised at write time</strong> &mdash; every app/db-scoped warehouse row carries <code>department_id</code>/<code>branch_id</code> (set by the lake writer / normaliser), so REST scoping needs no joins.</li>
+        <li><strong>Tier 4 &mdash; SITA Superadmins</strong> (<code>admin@</code>, <code>operator@</code>): Overarching transversal authority across all 173 departments and 9 provinces. Unrestricted superadmin provisioning down the entire cascade.</li>
+        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation, and AG compliance export with SHA-256 integrity hash verification.</li>
+        <li><strong>Tier 2 &mdash; Department &amp; Provincial Admins</strong> (<code>dept-admin</code>, <code>provincesoc</code>): Tactical operations scoped strictly to the assigned department (e.g. DHA) or province. Provincial peer blinding prevents cross-tenant leakage.</li>
+        <li><strong>Tier 1 &mdash; Branch Superadmins &amp; Specialists</strong> (<code>branch-admin</code>, <code>soc</code>, <code>appsec</code>, <code>dbsec</code>): Operational triage strictly confined to the assigned DDG branch (e.g. <code>dha-digital</code>).</li>
+        <li><strong>Write-Time Denormalisation</strong>: Every warehouse record carries <code>department_id</code> and <code>branch_id</code> at ingestion; <code>tenant_filter()</code> guarantees zero cross-tenant leakage.</li>
       </ul>
-      <h3>Delegated administration along the tree</h3>
-      <p>Each admin tier is a node in the tenant tree, and its authority is exactly its node&rsquo;s subtree, mirroring the Managed Services hierarchy (<code>ADMIN_TIERS</code>, <code>GRANTABLE_ROLES</code> in <code>tenant.py</code>):</p>
+      <h3>Superadmin Provisioning Cascade</h3>
+      <p>SITA Command Center administrators possess overarching authority to provision superusers and administrative roles down the entire cascade (<code>TIER_GRANTABLE_ROLES</code>, <code>GRANTABLE_ROLES</code> in <code>tenant.py</code>):</p>
       <ul>
-        <li><strong>system <code>admin</code></strong> (tier 4) &mdash; estate root / overarching national superadmin: may grant anything.</li>
-        <li><strong><code>transversal-admin</code></strong> (tier 3) &mdash; a transversal superadmin: may grant operational dept roles (<code>soc</code>/<code>appsec</code>/<code>dbsec</code>) plus <code>dept-admin</code>/<code>branch-admin</code>/<code>province-dept-admin</code>, spanning all-department reports (empty scope) or multiple departments/branches (assigned scope). Never grants another <code>transversal-admin</code> or system <code>admin</code>.</li>
-        <li><strong><code>dept-admin</code></strong> (tier 2) &mdash; a national department node: may grant operational dept roles plus <code>branch-admin</code>, scoped to its departments.</li>
-        <li><strong><code>province-dept-admin</code></strong> (tier 2) &mdash; a provincial department node: may grant the operational department roles within its province/department scope.</li>
-        <li><strong><code>branch-admin</code></strong> (tier 1) &mdash; a branch node: may grant the operational dept roles only, scoped to its branches.</li>
+        <li><strong>Tier 4 (SITA Command Center)</strong> &mdash; May provision superusers and roles at <strong>all tiers</strong> (transversal-admin, dept-admin, province-dept-admin, branch-admin, all operational roles).</li>
+        <li><strong>Tier 3 (National Superadmin)</strong> &mdash; May provision Department Superadmins (<code>dept-admin</code>), Provincial Admins, and Branch Superadmins down the hierarchy. Cannot provision Tier 4 SITA admins.</li>
+        <li><strong>Tier 2 (Department Superadmin)</strong> &mdash; May provision Branch Superadmins (<code>branch-admin</code>) and departmental operational specialists (<code>soc</code>, <code>appsec</code>, <code>dbsec</code>) strictly within DHA. Cannot elevate above Tier 2.</li>
+        <li><strong>Tier 1 (Branch Superadmin)</strong> &mdash; May provision local operational analysts strictly within the assigned branch. Cannot cross branches or elevate.</li>
       </ul>
-      <p>Delegation is strictly <strong>one-way down</strong>: <code>can_manage</code> (in <code>backend\app\api\auth.py</code>) blocks granting a tier at or above the caller&rsquo;s own, and <code>_tenant_consistent</code> rejects scopes whose branches are not children of the caller&rsquo;s departments. A department admin therefore can never see or manage another department&rsquo;s admin functionality. Enforced on every user create/update/delete in <code>C:\sita-platform\backend\app\api\routers\admin.py</code> (<code>_validate_scope</code>, <code>can_manage</code>) and on the demo accounts <code>transversal@example.com</code> (whole estate), <code>provincesoc@example.com</code> (Gauteng-scoped provincial SOC lead), <code>deptadmin@example.com</code> / <code>branchadmin@example.com</code>.</p>
-      <h3>Database</h3>
-      <p>Tenant reference tables live in the <code>warehouse</code> schema (<code>warehouse.departments</code>, <code>warehouse.branches</code>, plus the new <code>warehouse.provinces</code> and <code>departments.province_id</code>, and <code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> JSONB scope lists on <code>identity.users</code>); the <code>audit</code> schema gains <code>action_audit</code> for the AG export trail. Created in <code>C:\sita-platform\infrastructure\scripts\init-db.sql</code> and backfilled by <code>C:\sita-platform\backend\_migrate_province.py</code>.</p>
+      <h3>Database Schema</h3>
+      <p>Tenant reference tables live in the <code>warehouse</code> schema (<code>warehouse.departments</code>, <code>warehouse.branches</code>, <code>warehouse.provinces</code>, and <code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> JSONB scope lists on <code>identity.users</code>); the <code>audit</code> schema contains <code>action_audit</code> for the AG export and administrative audit trail. Backed by immutable PostgreSQL logs.</p>
     `
   },
   ui: {

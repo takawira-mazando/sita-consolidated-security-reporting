@@ -67,6 +67,7 @@ export function toneForStatus(status: string): Tone {
 
 export function oemForSource(source?: string | null): [string, string] {
   const s = (source || '').toLowerCase();
+  if (s.includes('thales')) return ['thales', 'Thales DAM'];
   if (s.includes('imperva') && s.includes('waf')) return ['imperva-waf', 'Imperva WAF'];
   if (s.includes('imperva')) return ['imperva', 'Imperva DAM'];
   if (s.includes('api')) return ['api-sec', 'API Security'];

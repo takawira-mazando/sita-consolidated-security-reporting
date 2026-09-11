@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { ALL_ROLES } from '../../context/AuthContext';
+import { getTierAccess } from '../../context/AuthContext';
+import type { TenancyTier } from '../../types';
 import {
   fetchTenancy,
   filterTenancy,
   entitlementFromUser,
   TenancyResponse,
 } from '../../api/auth';
+import { useDemoMode } from '../../context/DemoContext';
 
 interface RoleTab {
   role: string;
@@ -17,18 +19,27 @@ interface RoleTab {
 }
 
 const ROLE_TABS: RoleTab[] = [
-  { role: 'exec', label: 'Executive', color: 'var(--red)', pulse: true },
-  { role: 'soc', label: 'SOC Analyst', color: 'var(--blue)' },
-  { role: 'appsec', label: 'AppSec', color: 'var(--amber)' },
-  { role: 'dbsec', label: 'DB Security', color: 'var(--green)' },
-  { role: 'compliance', label: 'Compliance', color: 'var(--violet)' },
-  { role: 'sre', label: 'Service Ops', color: 'var(--text-muted)' },
+  { role: 'exec',       label: 'Executive',   color: 'var(--red)',        pulse: true },
+  { role: 'soc',        label: 'SOC Analyst', color: 'var(--blue)' },
+  { role: 'appsec',     label: 'AppSec',      color: 'var(--amber)' },
+  { role: 'dbsec',      label: 'DB Security', color: 'var(--green)' },
+  { role: 'compliance', label: 'Compliance',  color: 'var(--violet)' },
+  { role: 'sre',        label: 'Service Ops', color: 'var(--text-muted)' },
 ];
 
+const TIER_META: Record<TenancyTier, { label: string; icon: string; hint: string }> = {
+  sita:     { label: 'SITA Command Center', icon: '🇿🇦', hint: 'Overarching · Transversal Estate Control' },
+  national: { label: 'National',           icon: '🏛',  hint: 'Strategic · Estate-wide' },
+  dept:     { label: 'Department',         icon: '🏢',  hint: 'Tactical · Dept/Provincial' },
+  branch:   { label: 'Branch',             icon: '📍',  hint: 'Granular · Branch-level' },
+};
+
 const ACCOUNT_DEFAULT = '__account_default__';
+const TIER_STORAGE_KEY = 'sita_active_tier';
 
 export default function RoleNav() {
   const { user, logout, switchTenant } = useAuth();
+  const { demoMode, toggleDemoMode } = useDemoMode();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,53 +53,88 @@ export default function RoleNav() {
   useEffect(() => {
     let cancelled = false;
     fetchTenancy()
-      .then((t) => {
-        if (!cancelled) setTenancy(t);
-      })
+      .then((t) => { if (!cancelled) setTenancy(t); })
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const entitlement = useMemo(() => (user ? entitlementFromUser(user) : null), [user]);
   const filteredTenancy = useMemo(
     () => (tenancy && entitlement ? filterTenancy(tenancy, entitlement) : null),
-    [tenancy, entitlement]
+    [tenancy, entitlement],
   );
   const pickableDepartments = filteredTenancy?.departments ?? [];
   const isProvinceScoped = province !== ACCOUNT_DEFAULT;
   const selectedDept = pickableDepartments.find((d) => d.id === dept) ?? null;
 
+  // --- Tier & access computation -------------------------------------------
   const baseRoles = user?.roles || [];
-  const allowedRoles = baseRoles.includes('admin') ? ALL_ROLES : baseRoles;
-  const canManageUsers = allowedRoles.some((r) => ['operator', 'sre', 'dept-admin', 'branch-admin', 'transversal-admin'].includes(r));
-  const activeRole = location.pathname.replace('/', '') || allowedRoles[0] || '';
-  const isDark = document.body.dataset.theme !== 'light';
+  const access = getTierAccess(baseRoles);
 
+  // Only transversal-scoped roles may switch tenant scope.
+  // Department-scoped personas are locked to their own scope — the backend
+  // also enforces this on POST /auth/switch-tenant.
+  const TRANSVERSAL_ROLES = new Set(['admin', 'transversal-admin', 'operator']);
+  const canSwitchTenant = baseRoles.some((r) => TRANSVERSAL_ROLES.has(r));
+
+  const availableTiers = useMemo(
+    () => (['sita', 'national', 'dept', 'branch'] as TenancyTier[]).filter((t) => (access[t]?.length > 0) || access.adminTiers.includes(t)),
+    [access],
+  );
+
+  // Derive active tier from URL path: /national/exec → 'national'
+  const urlTier = location.pathname.split('/')[1] as TenancyTier | undefined;
+  const isValidTier = urlTier && availableTiers.includes(urlTier);
+
+  const [activeTier, setActiveTier] = useState<TenancyTier>(() => {
+    if (isValidTier) return urlTier;
+    const stored = localStorage.getItem(TIER_STORAGE_KEY) as TenancyTier | null;
+    if (stored && availableTiers.includes(stored)) return stored;
+    return availableTiers[0] ?? 'national';
+  });
+
+  // Sync activeTier with URL
+  useEffect(() => {
+    if (isValidTier && urlTier !== activeTier) {
+      setActiveTier(urlTier);
+    }
+  }, [urlTier]);
+
+  const activeDashboards = access[activeTier] ?? [];
+  const canAdminThisTier = access.adminTiers.includes(activeTier);
+  const activeRole = location.pathname.split('/')[2] || '';
+
+  const switchTierTo = (tier: TenancyTier) => {
+    setActiveTier(tier);
+    localStorage.setItem(TIER_STORAGE_KEY, tier);
+    // Navigate to the first available dashboard in the new tier
+    const tierDashes = access[tier];
+    const tierAdmins = access.adminTiers.includes(tier);
+    const target = tierDashes[0] ?? (tierAdmins ? 'admin' : null);
+    if (target) navigate(`/${tier}/${target}`);
+  };
+
+  const [isDark, setIsDark] = useState(() => document.body.dataset.theme !== 'light');
   const toggleTheme = () => {
     const next = document.body.dataset.theme === 'light' ? 'dark' : 'light';
     document.body.dataset.theme = next;
     localStorage.setItem('sita_theme', next);
+    setIsDark(next === 'dark');
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
+  const handleLogout = () => { logout(); navigate('/'); };
 
   const userName = user?.email?.split('@')[0] || 'user';
-
   const deptIds = user?.department_ids || [];
   const provinceStr = user?.province_name ? `${user.province_name} » ` : '';
-  const branchStr = user?.branch_names?.length ? ` » ${user.branch_names[0]}${user.branch_names.length > 1 ? ' (+' + (user.branch_names.length - 1) + ')' : ''}` : '';
-  
+  const branchStr = user?.branch_names?.length
+    ? ` » ${user.branch_names[0]}${user.branch_names.length > 1 ? ' (+' + (user.branch_names.length - 1) + ')' : ''}`
+    : '';
   const scopeLabel = deptIds.length
     ? `${provinceStr}${user?.department_name || deptIds[0]}${branchStr}`
     : user?.province_ids?.length
     ? `${provinceStr}${filteredTenancy?.departments.length || 0} departments`
     : 'National Estate';
-    
   const scopeTitle = deptIds.length
     ? `Tenant scope: ${deptIds.length} department(s)${(user?.branch_names || []).length ? ` · ${(user?.branch_names || []).join(', ')}` : ''}`
     : 'Tenant scope: national (all departments)';
@@ -104,48 +150,101 @@ export default function RoleNav() {
         ? { department_id: dept, branch_id: branch || null, province_id: null }
         : { department_id: null, branch_id: null });
     const result = await switchTenant(scope);
-    if (result.ok) {
-      setSwitchOpen(false);
-    } else {
-      setSwitchError(result.error || 'Switch failed');
-    }
+    if (result.ok) { setSwitchOpen(false); }
+    else { setSwitchError(result.error || 'Switch failed'); }
   };
 
   return (
     <nav className="role-nav">
+      {/* Brand */}
       <div className="nav-brand">
         <img className="nav-logo-img" src="/sita-logo.gif" alt="SITA" />
       </div>
       <div className="nav-div" />
-      {ROLE_TABS.filter((t) => allowedRoles.includes(t.role)).map((t) => (
+
+      {/* ── Tier Pill Selector ── */}
+      {availableTiers.length > 1 && (
+        <div className="tier-pills" role="group" aria-label="Tenancy tier">
+          {availableTiers.map((tier) => (
+            <button
+              key={tier}
+              id={`tier-pill-${tier}`}
+              className={`tier-pill ${activeTier === tier ? 'active' : ''}`}
+              title={TIER_META[tier].hint}
+              onClick={() => switchTierTo(tier)}
+            >
+              <span className="tier-pill-icon">{TIER_META[tier].icon}</span>
+              {TIER_META[tier].label}
+            </button>
+          ))}
+        </div>
+      )}
+      <div className="nav-div" />
+
+      {/* ── Role Dashboard Tabs (scoped to active tier) ── */}
+      {ROLE_TABS.filter((t) => activeDashboards.includes(t.role)).map((t) => (
         <button
           key={t.role}
+          id={`dash-tab-${activeTier}-${t.role}`}
           className={`role-tab ${activeRole === t.role ? 'active' : ''}`}
-          onClick={() => navigate(`/${t.role}`)}
+          onClick={() => navigate(`/${activeTier}/${t.role}`)}
         >
           <span className={`tab-orb ${t.pulse ? 'pulse' : ''}`} style={{ background: t.color }} />
           {t.label}
         </button>
       ))}
-      {canManageUsers && (
+
+      {/* ── Admin Tab (tier-scoped) ── */}
+      {canAdminThisTier && (
         <button
-          className={`role-tab ${activeRole === 'users' ? 'active' : ''}`}
-          onClick={() => navigate('/users')}
+          id={`dash-tab-${activeTier}-admin`}
+          className={`role-tab admin-tab ${activeRole === 'admin' ? 'active' : ''}`}
+          onClick={() => navigate(`/${activeTier}/admin`)}
         >
           <span className="tab-orb" style={{ background: 'var(--violet)' }} />
-          Users
+          {TIER_META[activeTier].label} Admin
         </button>
       )}
+
+      {/* ── Right-side controls ── */}
       <div className="nav-right">
         <button className="theme-toggle" onClick={toggleTheme}>
           {isDark ? '☀ Light' : '🌙 Dark'}
         </button>
+        <button
+          className={`demo-toggle ${demoMode ? 'active' : ''}`}
+          onClick={toggleDemoMode}
+          title={demoMode ? 'Exit Demo Mode (uses test data)' : 'Enter Demo Mode (uses test data)'}
+        >
+          {demoMode ? '🧪 Demo: ON' : '🧪 Demo'}
+        </button>
+        {demoMode && (
+          <span className="demo-badge" title="Running in demo mode with seeded test data">DEMO</span>
+        )}
+
+        {/* Tenant scope — transversal roles get a switchable button; all others get a locked badge */}
         <div className="nav-dept-wrap">
-          <button className="nav-dept" title={`${scopeTitle} — click to switch tenant`} onClick={() => setSwitchOpen((o) => !o)}>
-            {scopeLabel}
-            {extraDepts && <span className="nav-dept-more" style={{ marginLeft: 4 }}>{extraDepts}</span>}
-          </button>
-          {switchOpen && (
+          {canSwitchTenant ? (
+            <button
+              className="nav-dept"
+              title={`${scopeTitle} — click to switch tenant scope`}
+              onClick={() => setSwitchOpen((o) => !o)}
+            >
+              {scopeLabel}
+              {extraDepts && <span className="nav-dept-more" style={{ marginLeft: 4 }}>{extraDepts}</span>}
+            </button>
+          ) : (
+            <span
+              className="nav-dept nav-dept--locked"
+              title={`${scopeTitle} · Scope is fixed for your role`}
+              aria-label="Your tenant scope is fixed and cannot be changed"
+            >
+              {scopeLabel}
+              {extraDepts && <span className="nav-dept-more" style={{ marginLeft: 4 }}>{extraDepts}</span>}
+              <span className="nav-dept-lock" aria-hidden="true">🔒</span>
+            </span>
+          )}
+          {canSwitchTenant && switchOpen && (
             <div className="tenant-switcher">
               <div className="tenant-switcher-t">
                 Switch tenancy scope
@@ -159,37 +258,27 @@ export default function RoleNav() {
                     disabled={(filteredTenancy.provinces.length || 0) === 0}
                     onChange={(e) => {
                       setProvince(e.target.value);
-                      if (e.target.value !== ACCOUNT_DEFAULT) {
-                        setDept(ACCOUNT_DEFAULT);
-                        setBranch('');
-                      }
+                      if (e.target.value !== ACCOUNT_DEFAULT) { setDept(ACCOUNT_DEFAULT); setBranch(''); }
                     }}
                   >
                     <option value={ACCOUNT_DEFAULT}>
                       {filteredTenancy.provinces.length === 0 ? 'National (no province scope)' : 'Account default'}
                     </option>
                     {filteredTenancy.provinces.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name} ({p.department_count} depts)
-                      </option>
+                      <option key={p.id} value={p.id}>{p.name} ({p.department_count} depts)</option>
                     ))}
                   </select>
                   <select
                     className="form-input"
                     value={dept}
                     disabled={isProvinceScoped}
-                    onChange={(e) => {
-                      setDept(e.target.value);
-                      setBranch('');
-                    }}
+                    onChange={(e) => { setDept(e.target.value); setBranch(''); }}
                   >
                     <option value={ACCOUNT_DEFAULT}>
                       {entitlement?.isNationwide ? 'National — all departments' : 'Account default'}
                     </option>
                     {pickableDepartments.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.name} ({d.branch_count} branches)
-                      </option>
+                      <option key={d.id} value={d.id}>{d.name} ({d.branch_count} branches)</option>
                     ))}
                   </select>
                   <select
@@ -200,22 +289,16 @@ export default function RoleNav() {
                   >
                     <option value="">Whole department</option>
                     {selectedDept?.branches.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        {b.name}
-                      </option>
+                      <option key={b.id} value={b.id}>{b.name}</option>
                     ))}
                   </select>
                   <div className="tenant-switcher-row">
-                    <button type="button" className="btn btn-flare tenant-switcher-go" onClick={() => doSwitch()}>
-                      Switch
-                    </button>
+                    <button type="button" className="btn btn-flare tenant-switcher-go" onClick={() => doSwitch()}>Switch</button>
                     <button
                       type="button"
                       className="btn btn-outline tenant-switcher-reset"
                       onClick={() => doSwitch({ department_id: null, branch_id: null })}
-                    >
-                      Reset to default
-                    </button>
+                    >Reset to default</button>
                   </div>
                   {switchError && <div className="tenant-switcher-err">{switchError}</div>}
                 </div>
@@ -225,6 +308,7 @@ export default function RoleNav() {
             </div>
           )}
         </div>
+
         <span className="nav-user">{userName}</span>
         <button className="logout-btn" onClick={handleLogout}>Sign Out</button>
       </div>

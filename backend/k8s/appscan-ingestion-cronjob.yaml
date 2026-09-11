@@ -1,0 +1,150 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: appscan-ingestion
+  namespace: sita-platform
+  labels:
+    app: sita-platform
+    component: ingestion
+    source: appscan
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 5
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            app: sita-platform
+            component: ingestion
+            source: appscan
+          annotations:
+            prometheus.io/scrape: "true"
+            prometheus.io/port: "8000"
+            prometheus.io/path: "/metrics"
+        spec:
+          serviceAccountName: sita-ingestion
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            fsGroup: 1000
+          containers:
+          - name: ingest
+            image: ${IMAGE_REGISTRY}/sita-backend:${IMAGE_TAG:-latest}
+            imagePullPolicy: Always
+            command:
+            - python
+            - -m
+            - scripts.ingest_appscan_logs
+            - --config
+            - /etc/appscan/config.yaml
+            env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: LOG_LEVEL
+              value: "INFO"
+            envFrom:
+            - secretRef:
+                name: appscan-secrets
+                optional: false
+            - configMapRef:
+                name: appscan-config
+                optional: false
+            volumeMounts:
+            - name: config
+              mountPath: /etc/appscan
+              readOnly: true
+            resources:
+              requests:
+                cpu: "100m"
+                memory: "128Mi"
+              limits:
+                cpu: "500m"
+                memory: "512Mi"
+            livenessProbe:
+              exec:
+                command: ["python", "-c", "import sys; sys.exit(0)"]
+              initialDelaySeconds: 10
+              periodSeconds: 30
+          volumes:
+          - name: config
+            configMap:
+              name: appscan-config
+              items:
+              - key: config.yaml
+                path: config.yaml
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: appscan-config
+  namespace: sita-platform
+  labels:
+    app: sita-platform
+    component: ingestion
+    source: appscan
+data:
+  config.yaml: |
+    base_url: "https://cloud.appscan.com"
+    page_size: 200
+    scope: "application"
+    # account_id and application_id are set via secret/env
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: appscan-secrets
+  namespace: sita-platform
+  labels:
+    app: sita-platform
+    component: ingestion
+    source: appscan
+type: Opaque
+stringData:
+  # Fill these in before applying (or use sealed-secrets/external-secrets)
+  APPSCAN_KEY_ID: ""
+  APPSCAN_KEY_SECRET: ""
+  APPSCAN_ACCOUNT_ID: ""
+  # APPSCAN_APPLICATION_ID: ""  # alternative to account_id
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sita-ingestion
+  namespace: sita-platform
+  labels:
+    app: sita-platform
+    component: ingestion
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sita-ingestion
+  namespace: sita-platform
+rules:
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sita-ingestion
+  namespace: sita-platform
+subjects:
+- kind: ServiceAccount
+  name: sita-ingestion
+  namespace: sita-platform
+roleRef:
+  kind: Role
+  name: sita-ingestion
+  apiGroup: rbac.authorization.k8s.io

@@ -13,7 +13,7 @@ router = APIRouter(tags=["compliance"])
 
 @router.get("/compliance")
 async def get_compliance(
-    framework: str | None = Query(None, regex="^(popia|iso_27001)$"),
+    framework: str | None = Query(None, pattern="^(popia|iso_27001)$"),
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("compliance")),
 ):

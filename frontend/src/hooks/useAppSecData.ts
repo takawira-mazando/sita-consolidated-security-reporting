@@ -1,6 +1,8 @@
 import { useApi } from './useApi';
+import { useDemoAwareFetcher } from '../api/demoApi';
 import { fetchFindings } from '../api/findings';
 import { fetchFixRate, fetchWafSummary, fetchApiExposure } from '../api/metrics';
+import { fetchDemoFindings, fetchDemoFixRate, fetchDemoWafSummary, fetchDemoApiExposure } from '../api/demoApi';
 import {
   severityCounts,
   findingsByAppSeverity,
@@ -12,10 +14,22 @@ import {
 import type { Tone } from '../data/mappers';
 
 export function useAppSecData() {
-  const findings = useApi(() => fetchFindings({ size: 200 }));
-  const fix = useApi(() => fetchFixRate());
-  const waf = useApi(() => fetchWafSummary());
-  const apiExp = useApi(() => fetchApiExposure());
+  const findings = useApi(useDemoAwareFetcher(
+    () => fetchFindings({ size: 200 }),
+    (branchId) => fetchDemoFindings({ size: 200, branch_id: branchId })
+  ));
+  const fix = useApi(useDemoAwareFetcher(
+    () => fetchFixRate(),
+    (branchId) => fetchDemoFixRate(branchId)
+  ));
+  const waf = useApi(useDemoAwareFetcher(
+    () => fetchWafSummary(),
+    (branchId) => fetchDemoWafSummary(branchId)
+  ));
+  const apiExp = useApi(useDemoAwareFetcher(
+    () => fetchApiExposure(),
+    (branchId) => fetchDemoApiExposure(branchId)
+  ));
 
   const loading = [findings, fix, waf, apiExp].some((h) => h.loading);
   const error = [findings, fix, waf, apiExp].find((h) => h.error)?.error || null;
@@ -67,14 +81,14 @@ export function useAppSecData() {
 
   const fixRate = fix.data?.fix_rate ?? null;
   const wafTotal = waf.data?.total ?? 0;
-  const wafByType = (waf.data?.by_type || []).map((b, _, all) => ({
+  const wafByType = (waf.data?.by_type || []).map((b: { type: string; count: number }, _: number, all: { type: string; count: number }[]) => ({
     label: b.type.replace(/_/g, ' '),
-    width: barHeight(b.count / Math.max(1, all.reduce((a, x) => Math.max(a, x.count), 0))),
+    width: barHeight(b.count / Math.max(1, all.reduce((a: number, x: { count: number }) => Math.max(a, x.count), 0))),
     color: b.count >= 20 ? 'var(--red)' : b.count >= 10 ? 'var(--amber)' : 'var(--blue)',
     value: String(b.count),
   }));
 
-  const apiExposure = (apiExp.data?.items || []).slice(0, 12).map((e) => ({
+  const apiExposure = (apiExp.data?.items || []).slice(0, 12).map((e: { endpoint: string; app_name: string; method: string; exposure_score: number; is_shadow: boolean }) => ({
     endpoint: e.endpoint,
     app: e.app_name,
     method: e.method,

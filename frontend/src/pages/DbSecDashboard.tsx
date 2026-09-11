@@ -9,13 +9,34 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useDbSecData } from '../hooks/useDbSecData';
+import type { TenancyTier } from '../types';
 
-export default function DbSecDashboard() {
+const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
+  sita: {
+    title: 'Database Security — SITA Command Center',
+    subtitle: 'Overarching · Transversal DAM across all national & provincial databases, privileged access monitoring',
+  },
+  national: {
+    title: 'Database Security — National Estate',
+    subtitle: 'Strategic · Estate-wide DAM — anomaly patterns and database policy compliance',
+  },
+  dept: {
+    title: 'Database Security — Department',
+    subtitle: 'Tactical · Department DAM alerts, database session anomalies and violation categories',
+  },
+  branch: {
+    title: 'Database Security — Branch',
+    subtitle: 'Granular · Branch DB sessions, local database policies and active violations',
+  },
+};
+
+export default function DbSecDashboard({ tier = 'dept' }: { tier?: TenancyTier }) {
+  const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useDbSecData();
 
   if (d.loading) {
-    return <div className="dash"><DashHeader title="Database Security" subtitle="Loading live data…" badge={{ label: 'db_sec', color: 'var(--green)', bg: 'var(--green-dim)' }} consolidatedTag="Imperva DAM · database audit" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
+    return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'db_sec', color: 'var(--green)', bg: 'var(--green-dim)' }} consolidatedTag="Imperva DAM · database audit" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
   }
 
   const facts: ExplainFacts = {
@@ -27,17 +48,17 @@ export default function DbSecDashboard() {
   return (
     <div className="dash">
       <DashHeader
-        title="Database Security"
-        subtitle="Imperva DAM monitoring — database activity and violations"
+        title={cfg.title}
+        subtitle={cfg.subtitle}
         badge={{ label: 'db_sec', color: 'var(--green)', bg: 'var(--green-dim)' }}
-        consolidatedTag="Imperva DAM · database audit"
+        consolidatedTag="Imperva DAM · Thales DAM · Database Audit"
         onExplain={() => setOverlay('explain')}
         onLayman={() => setOverlay('layman')}
       />
       <div className="consol-note">
         <strong>✓ Consolidation:</strong>&nbsp;
-        DB Security view consolidates <OemTag source="imperva" label="Imperva DAM" /> database activity across all database servers.
-        Database-specific policy violations, user activity, and baseline deviations are unified here.
+        DB Security view consolidates <OemTag source="imperva" label="Imperva DAM" /> and <OemTag source="thales" label="Thales DAM" /> database activity across all relational and Cassandra clusters.
+        Database-specific policy violations, privileged DDL/DML, and baseline deviations are unified here.
       </div>
 
       {d.error && <div className="dash-error">{d.error}</div>}

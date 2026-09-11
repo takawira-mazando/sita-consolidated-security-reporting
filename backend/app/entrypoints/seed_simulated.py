@@ -50,13 +50,15 @@ from app.tenant import (
     BRANCHES,
     DB_TO_DEPARTMENT,
     DEPARTMENTS,
+    DHA_BRANCH_APPS,
+    DHA_BRANCH_CASSANDRA_CLUSTERS,
     department_for_app,
     department_for_db,
 )
 
 logger = logging.getLogger(__name__)
 
-ALL_SOURCES = ["appscan", "imperva_dam", "imperva_waf", "apisec", "compliance"]
+ALL_SOURCES = ["appscan", "imperva_dam", "imperva_waf", "apisec", "thales", "compliance"]
 
 APPS = list(APP_DEPARTMENTS)
 DB_NAMES = list(DB_TO_DEPARTMENT)
@@ -66,6 +68,7 @@ SOURCE_OWNER = {
     "imperva_dam": "DB Security Engineer",
     "imperva_waf": "AppSec Engineer",
     "apisec": "AppSec Engineer",
+    "thales": "DB Security Engineer",
     "compliance": "Compliance Officer",
 }
 
@@ -237,10 +240,13 @@ async def seed_metric_tables(session, feed: SyntheticOEMFeed) -> None:
     now = datetime.now(timezone.utc)
     rng = feed.rng
 
+    # All apps including DHA branch-specific apps
+    ALL_APPS = APPS + [app for apps in DHA_BRANCH_APPS.values() for app in apps]
+
     # ---- WAF blocks (AppSec: WAF Blocks stat + WAF Block Summary) ----
     waf_rows = []
     for i in range(120):
-        app = rng.choice(APPS)
+        app = rng.choice(ALL_APPS)
         ts = now - timedelta(minutes=rng.randint(0, 60 * 24 * 3))
         waf_rows.append({
             "app_name": app,
@@ -251,7 +257,7 @@ async def seed_metric_tables(session, feed: SyntheticOEMFeed) -> None:
             "block_time": ts.isoformat(),
         })
     covered_apps = {row["app_name"] for row in waf_rows}
-    for app in APPS:
+    for app in ALL_APPS:
         if app in covered_apps:
             continue
         ts = now - timedelta(minutes=rng.randint(0, 60 * 24 * 3))
@@ -277,6 +283,12 @@ async def seed_metric_tables(session, feed: SyntheticOEMFeed) -> None:
         ("legacy-api", "/soap/login", "POST", False, 60.0),
         ("internal-hr", "/api/v1/employees", "GET", False, 12.0),
         ("internal-hr", "/api/v1/payroll", "POST", True, 55.0),
+        # DHA branch-specific endpoints
+        ("ehomeaffairs-portal", "/api/v1/citizen/profile", "GET", False, 65.0),
+        ("national-population-register", "/api/v1/search", "POST", False, 75.0),
+        ("movement-control-system", "/api/v1/border/crossings", "GET", False, 80.0),
+        ("finance-management-system", "/api/v1/payments", "POST", False, 50.0),
+        ("security-incident-system", "/api/v1/incidents", "POST", True, 90.0),
     ]
     for app, endpoint, method, shadow, exposure in endpoints:
         api_rows.append({
@@ -289,7 +301,7 @@ async def seed_metric_tables(session, feed: SyntheticOEMFeed) -> None:
             "last_seen": (now - timedelta(hours=rng.randint(1, 72))).isoformat(),
         })
     covered_apps = {app for app, *_ in endpoints}
-    for app in APPS:
+    for app in ALL_APPS:
         if app in covered_apps:
             continue
         api_rows.append({
@@ -408,10 +420,12 @@ async def seed_metric_tables(session, feed: SyntheticOEMFeed) -> None:
 
     # ---- Database inventory (DBSec: Databases Monitored + Coverage) ----
     db_rows = []
-    for db in DB_NAMES:
+    # All databases including DHA branch-specific Cassandra clusters
+    ALL_DB_NAMES = DB_NAMES + [cluster for clusters in DHA_BRANCH_CASSANDRA_CLUSTERS.values() for cluster in clusters]
+    for db in ALL_DB_NAMES:
         db_rows.append({
             "name": db,
-            "engine": rng.choice(["PostgreSQL 15", "PostgreSQL 14", "Oracle 19c"]),
+            "engine": rng.choice(["PostgreSQL 15", "PostgreSQL 14", "Oracle 19c", "Cassandra 4.0"]),
             "monitored": True,
             "agent_version": "9.5.1",
             "last_heartbeat": (now - timedelta(minutes=rng.randint(0, 5))).isoformat(),
@@ -419,6 +433,9 @@ async def seed_metric_tables(session, feed: SyntheticOEMFeed) -> None:
     upserted_dbs = await upsert_database_inventory(session, db_rows)
     logger.info("seeded %d database inventory rows", upserted_dbs)
 
+
+# DHA branches for distributing demo data
+DHA_BRANCHES = list(DHA_BRANCH_APPS.keys())
 
 async def seed_source(
     session,
@@ -432,7 +449,20 @@ async def seed_source(
     if source == "imperva":
         source = "imperva_dam"
 
-    records = feed.batch(source, count)
+    # For DHA demo: distribute findings across branches
+    # For Thales, distribute across all DHA branches to show different Cassandra clusters per branch
+    if source == "thales":
+        records = []
+        per_branch = max(1, count // len(DHA_BRANCHES))
+        for branch in DHA_BRANCHES:
+            branch_records = feed.batch(source, per_branch, branch_id=branch)
+            records.extend(branch_records)
+        # Add remaining records to first branch
+        remaining = count - len(records)
+        if remaining > 0:
+            records.extend(feed.batch(source, remaining, branch_id=DHA_BRANCHES[0]))
+    else:
+        records = feed.batch(source, count, branch_id=feed.rng.choice(DHA_BRANCHES))
 
     # Guarantee national coverage: every app (or database) appears at least once
     # per source so no department is missing from the M2/M3 dashboards.
@@ -449,14 +479,22 @@ async def seed_source(
                 rec = feed.apisec_endpoint()
             rec["application_name" if source != "apisec" else "application"] = app
             records.append(rec)
-    elif source == "imperva_dam":
-        covered = {rec.get("database_name") for rec in records}
-        for db in DB_NAMES:
-            if db in covered:
-                continue
-            rec = feed.imperva_dam_event()
-            rec["database_name"] = db
-            records.append(rec)
+    elif source in ("imperva_dam", "thales"):
+        if source == "imperva_dam":
+            covered = {rec.get("database_name") for rec in records}
+            for db in DB_NAMES:
+                if db in covered:
+                    continue
+                rec = feed.imperva_dam_event()
+                rec["database_name"] = db
+                records.append(rec)
+        else:
+            # Thales: use the specific keyspace from OEM logs, ensure it appears
+            covered = {rec.get("Keyspace Name") for rec in records}
+            if "select_keyspace" not in covered:
+                rec = feed.thales_dam_event()
+                rec["Keyspace Name"] = "select_keyspace"
+                records.append(rec)
 
     # spread timestamps over the requested window to make trend charts meaningful
     now = datetime.now(timezone.utc)
@@ -467,6 +505,8 @@ async def seed_source(
         ts_col = "timestamp"
         if source == "appscan":
             ts_col = "last_found_date"
+        elif source in ("imperva_dam", "thales"):
+            ts_col = "Gateway Event Time"
         elif source == "imperva_waf":
             ts_col = "block_time"
         elif source == "apisec":
@@ -474,7 +514,13 @@ async def seed_source(
         elif source == "compliance":
             ts_col = "due_date"
         rec[ts_col] = ts_iso
-        rec["app_name"] = rec.get("application_name") or rec.get("database_name") or rec.get("application") or rec.get("endpoint")
+        if source == "thales":
+            # Thales uses nested date format
+            rec[ts_col] = {"$date": ts_iso}
+            # For Thales, use DB Cluster Name as app_name so it maps to correct branch
+            rec["app_name"] = rec.get("DB Cluster Name") or rec.get("Keyspace Name")
+        else:
+            rec["app_name"] = rec.get("application_name") or rec.get("database_name") or rec.get("application") or rec.get("endpoint") or rec.get("Keyspace Name")
 
     batch_id = await write_staging_batch(session, source, records)
     logger.info("wrote staging batch %s (%d raw records)", batch_id, len(records))
@@ -498,27 +544,38 @@ async def seed_source(
         "low": ["teams"],
     }
     enricher = AlertEnricher()
+    # Deduplicate alerts by (source, app_name, title/vulnerability_name)
+    # so multiple findings of same vuln type on same app produce one alert
+    seen_alerts: dict[tuple, dict] = {}
     for row in rows:
         sev = str(row.get("severity") or "info").lower()
-        if sev in ("critical", "high"):
-            fired = now - timedelta(hours=feed.rng.randint(1, 72))
-            status = feed.rng.choice(status_cycle)
-            alerts.append(
-                {
-                    "id": str(uuid.uuid4()),
-                    "rule_id": f"{sev}_record",
-                    "title": f"{sev.title()} {source} finding ingested",
-                    "description": row.get("title"),
-                    "severity": sev,
-                    "source": source,
-                    "target_id": row.get("app_name"),
-                    "status": status,
-                    "channels": default_channels.get(sev, ["teams"]),
-                    "dedup_key": f"{sev}_record:{source}:{row.get('app_name')}",
-                    "first_triggered": fired.isoformat(),
-                    "last_triggered": fired.isoformat(),
-                }
-            )
+        if sev not in ("critical", "high"):
+            continue
+        app_name = row.get("app_name")
+        title = row.get("title")
+        if not app_name or not title:
+            continue
+        key = (source, app_name, title)
+        if key in seen_alerts:
+            continue
+        fired = now - timedelta(hours=feed.rng.randint(1, 72))
+        status = feed.rng.choice(status_cycle)
+        ext_id = row.get("external_id") or str(uuid.uuid4())
+        seen_alerts[key] = {
+            "id": str(uuid.uuid4()),
+            "rule_id": f"{sev}_record",
+            "title": f"{sev.title()} {source} finding ingested",
+            "description": title,
+            "severity": sev,
+            "source": source,
+            "target_id": app_name,
+            "status": feed.rng.choice(status_cycle),
+            "channels": default_channels.get(sev, ["teams"]),
+            "dedup_key": f"{sev}_record:{source}:{app_name}:{title}",
+            "first_triggered": (now - timedelta(hours=feed.rng.randint(1, 72))).isoformat(),
+            "last_triggered": (now - timedelta(hours=feed.rng.randint(1, 72))).isoformat(),
+        }
+    alerts = list(seen_alerts.values())
     if alerts:
         alerts = [enricher.enrich(a) for a in alerts]
         await upsert_alerts(session, alerts, commit=False)

@@ -1,8 +1,10 @@
 import { useApi } from './useApi';
+import { useDemoAwareFetcher } from '../api/demoApi';
 import { fetchAlerts, acknowledgeAlert, resolveAlert } from '../api/alerts';
 import { fetchFindings } from '../api/findings';
 import { fetchDashboardSummary } from '../api/dashboard';
 import { fetchSloMetrics } from '../api/metrics';
+import { fetchDemoFindings, fetchDemoPublicSummary } from '../api/demoApi';
 import {
   toneForSeverity,
   toneForStatus,
@@ -15,10 +17,16 @@ import {
 import type { Tone } from '../data/mappers';
 
 export function useSocData() {
-  const summary = useApi(() => fetchDashboardSummary());
-  const alerts = useApi(() => fetchAlerts({ size: 50 }));
-  const findings = useApi(() => fetchFindings({ size: 200 }));
-  const slo = useApi(() => fetchSloMetrics());
+  const summary = useApi(useDemoAwareFetcher(
+    () => fetchDashboardSummary(),
+    (branchId) => fetchDemoPublicSummary(branchId)
+  ));
+  const alerts = useApi(() => fetchAlerts({ size: 50 })); // Alerts not demo'd yet
+  const findings = useApi(useDemoAwareFetcher(
+    () => fetchFindings({ size: 200 }),
+    (branchId) => fetchDemoFindings({ size: 200, branch_id: branchId })
+  ));
+  const slo = useApi(() => fetchSloMetrics()); // SLO metrics not demo'd yet
 
   const loading = [summary, alerts, findings, slo].some((h) => h.loading);
   const error = [summary, alerts, findings, slo].find((h) => h.error)?.error || null;

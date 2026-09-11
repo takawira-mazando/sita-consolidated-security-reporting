@@ -1,0 +1,38 @@
+# AppScan Cloud Connector Configuration
+# Copy this file and fill in your credentials
+# NEVER commit this file with real credentials to version control
+
+# AppScan Cloud base URL (usually https://cloud.appscan.com)
+base_url: "https://cloud.appscan.com"
+
+# Authentication: Key ID and Key Secret (from AppScan Cloud Account > API Keys)
+# Provide as "key_id:key_secret" in api_key OR use separate key_id/key_secret fields
+api_key: ""  # Format: "your_key_id:your_key_secret" (or set APPSCAN_API_KEY env)
+
+# Alternative: separate fields
+key_id: ""       # Set via APPSCAN_KEY_ID env or --key-id CLI arg
+key_secret: ""   # Set via APPSCAN_KEY_SECRET env or --key-secret CLI arg
+
+# Account/Organization ID (required for 'org' scope)
+# Find this in AppScan Cloud URL or Account settings
+account_id: ""  # Set via APPSCAN_ACCOUNT_ID env var or --account-id CLI arg
+
+# Application ID (required for 'application' scope)
+# Find this in AppScan Cloud > Applications > click app > check URL contains the ID
+application_id: ""  # Set via APPSCAN_APPLICATION_ID env var or --application-id CLI arg
+
+# Scope for issues query: 'application' (per-app) or 'org' (all apps in org)
+scope: "application"
+
+# Page size for pagination (max 200 per AppScan API)
+page_size: 200
+
+# Optional: Filter by last modified date (ISO 8601)
+# Only fetch issues modified after this date
+# last_modified_since: "2026-08-01T00:00:00Z"
+
+# Optional: Specific severity filter (comma-separated)
+# severity_filter: "critical,high"
+
+# Optional: Status filter
+# status_filter: "Open,In Progress"

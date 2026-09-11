@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SITA Platform — Detailed Deployment Plan</title><style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+      color: #1f2d3d; margin: 0; background: #f4f6fb; line-height: 1.6;
+    }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 32px 80px; }
+    header.cover {
+      background: linear-gradient(135deg, #1b3a5c 0%, #10314f 100%);
+      color: #fff; padding: 48px 32px;
+    }
+    header.cover .inner { max-width: 1080px; margin: 0 auto; }
+    header.cover h1 { margin: 0 0 8px; font-size: 30px; letter-spacing: .3px; }
+    header.cover .sub { opacity: .92; font-size: 15px; max-width: 760px; }
+    .meta { display: flex; flex-wrap: wrap; gap: 8px 24px; margin-top: 18px; font-size: 13px; }
+    .meta .chip {
+      background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.25);
+      padding: 4px 12px; border-radius: 14px;
+    }
+    .badge { display:inline-block; padding: 2px 10px; border-radius: 12px; font-size: 12px;
+             font-weight: 600; margin-left: 6px; vertical-align: middle; }
+    .b-done { background: #d4f0dd; color: #126e3a; }
+    .b-run  { background: #fedfc2; color: #9a4a00; }
+    .b-next { background: #dbe3ef; color: #2b4a77; }
+    nav.toc { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px;
+              padding: 20px 24px; margin: 24px 0; }
+    nav.toc a { color: #1b3a5c; text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    nav.toc ul { margin: 0; padding-left: 20px; }
+    h2 { color: #1b3a5c; border-bottom: 3px solid #0e7c6b; padding-bottom: 8px;
+         margin-top: 48px; font-size: 22px; }
+    h3 { color: #24507a; margin-top: 28px; font-size: 18px; }
+    h4 { color: #0e7c6b; margin-top: 20px; font-size: 15px; }
+    p { margin: 10px 0; }
+    a { color: #0e7c6b; }
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; background: #fff;
+            border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(16,49,79,.08); }
+    th { background: #1b3a5c; color: #fff; text-align: left; padding: 10px 12px; font-size: 13px; }
+    td { padding: 10px 12px; border-bottom: 1px solid #eef1f6; font-size: 13.5px; vertical-align: top; }
+    tr:nth-child(even) td { background: #f8fafc; }
+    code { background: #eef2f7; padding: 1px 6px; border-radius: 4px;
+           font-family: Consolas, monospace; font-size: .92em; }
+    pre.code { background: #0f1f2e; color: #d6e6f5; padding: 16px; border-radius: 8px;
+               overflow-x: auto; font-size: 12.5px; line-height: 1.5; }
+    pre.code code { background: none; color: inherit; padding: 0; }
+    blockquote { border-left: 4px solid #0e7c6b; background: #eefaf6; margin: 14px 0;
+                 padding: 12px 16px; border-radius: 0 8px 8px 0; color: #0d5a4e; }
+    .compare { table-layout: fixed; }
+    .compare th:first-child { width: 16%; }
+    .biasbox {
+      background: #fff8ec; border: 1px solid #f0ddb0; border-left: 6px solid #d9a520;
+      border-radius: 8px; padding: 14px 18px; margin: 14px 0;
+    }
+    .biasbox h4 { margin: 0 0 6px; color: #8a6508; }
+    .biasbox p { margin: 6px 0; }
+    .callout { background: #eaf3fb; border-left: 6px solid #2563eb; border-radius: 8px;
+               padding: 14px 18px; margin: 14px 0; }
+    ul, ol { padding-left: 26px; }
+    li { margin: 4px 0; }
+    input[type=checkbox] { margin-right: 6px; }
+    .statusbar { display: inline-block; padding: 3px 12px; border-radius: 14px;
+                 font-size: 12px; font-weight: 700; margin-right: 8px; }
+    .s-green { background: #d4f0dd; color: #126e3a; }
+    .s-amber { background: #fedfc2; color: #9a4a00; }
+    .s-grey  { background: #e3e8ef; color: #40556b; }
+    footer { margin-top: 60px; color: #7a8ba0; font-size: 12px; border-top: 1px solid #e2e8f0; padding-top: 14px; }
+    @media print { body { background: #fff; } header.cover { border-radius: 0; }
+      nav.toc { break-after: auto; } }
+    </style></head><body>
+<header class="cover"><div class="inner">
+  <h1>SITA Platform — Detailed Deployment Plan <span class="badge b-run">v2.0</span></h1>
+  <div class="sub">Docker containers shipped to SITA's environment · Linux reference deploy at Hosi Fourways · AWS only if Hosi-managed</div>
+  <div class="meta">
+    <span class="chip">📅 19 Aug 2026</span>
+    <span class="chip">Repo: github.com/takawira-mazando/sita-consolidated-security-reporting</span>
+    <span class="chip">Phase 0 ✅ · Phase 1 ✅ · Phase 2 🔄 · Phases 3–6 ⬜</span>
+  </div>
+</div></header>
+<div class="container">
+<nav class="toc"><strong>Contents</strong>
+  <ul>
+    <li><a href="#deployment-systems-comparison">1. Deployment Systems Comparison</a></li>
+    <li style="margin-left:0px"><a href="#sita-platform-detailed-deployment-plan-enriched">SITA Platform — Detailed Deployment Plan (Enriched)</a></li><li style="margin-left:0px"><a href="#1-executive-summary">1. Executive Summary</a></li><li style="margin-left:0px"><a href="#2-goal-scope-and-success-criteria">2. Goal, Scope, and Success Criteria</a></li><li style="margin-left:20px"><a href="#2-1-goal">2.1 Goal</a></li><li style="margin-left:20px"><a href="#2-2-key-principle">2.2 Key principle</a></li><li style="margin-left:20px"><a href="#2-3-success-criteria-stage-a">2.3 Success criteria (Stage A)</a></li><li style="margin-left:0px"><a href="#3-stakeholders-responsibility-raci">3. Stakeholders & Responsibility (RACI)</a></li><li style="margin-left:0px"><a href="#4-current-state-local-windows-dev">4. Current State (Local Windows / Dev)</a></li><li style="margin-left:20px"><a href="#4-1-what-exists-in-the-repo-today">4.1 What exists in the repo today</a></li><li style="margin-left:20px"><a href="#4-2-ghcr-images-public-pullable-without-credentials">4.2 GHCR images (public, pullable without credentials)</a></li><li style="margin-left:0px"><a href="#5-target-state-stage-a-hosi-fourways-linux">5. Target State (Stage A — Hosi Fourways Linux)</a></li><li style="margin-left:20px"><a href="#5-1-confirmed-host-inventory-captured-19-aug-2026">5.1 Confirmed host inventory (captured 19 Aug 2026)</a></li><li style="margin-left:20px"><a href="#5-2-target-topology">5.2 Target topology</a></li><li style="margin-left:20px"><a href="#5-3-compose-service-map-as-expressed-by-docker-compose-remote-yml">5.3 Compose service map (as expressed by docker-compose.remote.yml)</a></li><li style="margin-left:20px"><a href="#5-4-recommended-sizing-start">5.4 Recommended sizing (start)</a></li><li style="margin-left:0px"><a href="#6-why-linux-hosi-fourways-over-windows-anydesk-box">6. Why Linux (Hosi Fourways) over Windows (AnyDesk box)</a></li><li style="margin-left:0px"><a href="#7-deployment-principles">7. Deployment Principles</a></li><li style="margin-left:0px"><a href="#8-prerequisites-pre-flight-checklist-stage-a">8. Prerequisites & Pre-flight Checklist (Stage A)</a></li><li style="margin-left:20px"><a href="#8-1-access">8.1 Access</a></li><li style="margin-left:20px"><a href="#8-2-assets">8.2 Assets</a></li><li style="margin-left:20px"><a href="#8-3-environment">8.3 Environment</a></li><li style="margin-left:0px"><a href="#9-phased-execution-plan">9. Phased Execution Plan</a></li><li style="margin-left:20px"><a href="#phase-0-access-inventory-completed-19-aug-2026">Phase 0 — Access & inventory ✅ (completed 19 Aug 2026)</a></li><li style="margin-left:20px"><a href="#phase-1-prepare-host-unified-automated-by-script">Phase 1 — Prepare host (unified) ✅ (automated by script)</a></li><li style="margin-left:20px"><a href="#phase-2-deploy-the-stack-stage-a-execution-started">Phase 2 — Deploy the stack (Stage A) 🔄 (execution started)</a></li><li style="margin-left:20px"><a href="#phase-3-backup-observability-baseline">Phase 3 — Backup & observability baseline</a></li><li style="margin-left:20px"><a href="#phase-4-cutover-stage-a-live">Phase 4 — Cutover (Stage A live)</a></li><li style="margin-left:20px"><a href="#phase-5-ship-to-sita-s-preferred-environment-stage-b-the-customer-deliverable">Phase 5 — Ship to SITA's preferred environment (Stage B — the customer deliverable)</a></li><li style="margin-left:40px"><a href="#5-1-shipping-bundle">5.1 Shipping bundle</a></li><li style="margin-left:40px"><a href="#5-2-deployment-flow-on-sita-s-environment">5.2 Deployment flow on SITA's environment</a></li><li style="margin-left:40px"><a href="#5-3-environment-specific-notes-for-sita">5.3 Environment-specific notes for SITA</a></li><li style="margin-left:40px"><a href="#5-4-stage-b-acceptance-checklist-run-once-per-sita-env">5.4 Stage B acceptance checklist (run once per SITA env)</a></li><li style="margin-left:20px"><a href="#phase-6-aws-only-as-a-hosi-managed-cloud-service-stage-c-optional">Phase 6 — AWS, only as a Hosi-managed cloud service (Stage C — optional)</a></li><li style="margin-left:0px"><a href="#10-secrets-configuration-management">10. Secrets & Configuration Management</a></li><li style="margin-left:20px"><a href="#10-1-variables-in-env-as-generated-by-deploy-remote-linux-sh">10.1 Variables in .env (as generated by deploy-remote-linux.sh)</a></li><li style="margin-left:20px"><a href="#10-2-rules">10.2 Rules</a></li><li style="margin-left:0px"><a href="#11-operational-runbook-day-2-stage-a">11. Operational Runbook (Day-2, Stage A)</a></li><li style="margin-left:20px"><a href="#11-1-status-health">11.1 Status & health</a></li><li style="margin-left:20px"><a href="#11-2-logs">11.2 Logs</a></li><li style="margin-left:20px"><a href="#11-3-redeploy-after-image-update">11.3 Redeploy after image update</a></li><li style="margin-left:20px"><a href="#11-4-backup-restore">11.4 Backup & restore</a></li><li style="margin-left:20px"><a href="#11-5-stop-start-teardown-careful">11.5 Stop / start / teardown (careful)</a></li><li style="margin-left:20px"><a href="#11-6-host-maintenance">11.6 Host maintenance</a></li><li style="margin-left:20px"><a href="#11-7-escalation-path">11.7 Escalation path</a></li><li style="margin-left:0px"><a href="#12-verification-acceptance-test-plan-stage-a">12. Verification & Acceptance Test Plan (Stage A)</a></li><li style="margin-left:20px"><a href="#12-1-functional-smoke-repeatable">12.1 Functional smoke (repeatable)</a></li><li style="margin-left:20px"><a href="#12-2-non-functional-checks">12.2 Non-functional checks</a></li><li style="margin-left:20px"><a href="#12-3-acceptance-gate">12.3 Acceptance gate</a></li><li style="margin-left:0px"><a href="#13-troubleshooting-runbook">13. Troubleshooting Runbook</a></li><li style="margin-left:20px"><a href="#13-1-deploy-script-health-check-failed">13.1 Deploy script health check failed</a></li><li style="margin-left:20px"><a href="#13-2-services-crash-looping">13.2 Services crash-looping</a></li><li style="margin-left:20px"><a href="#13-3-ui-loads-but-api-calls-fail">13.3 UI loads but API calls fail</a></li><li style="margin-left:20px"><a href="#13-4-postgres-will-not-start-after-host-crash">13.4 Postgres will not start after host crash</a></li><li style="margin-left:20px"><a href="#13-5-address-already-in-use-for-port-80-or-443">13.5 "Address already in use" for port 80 or 443</a></li><li style="margin-left:20px"><a href="#13-6-host-full-disk">13.6 Host full disk</a></li><li style="margin-left:0px"><a href="#14-security-plan">14. Security Plan</a></li><li style="margin-left:20px"><a href="#14-1-stage-a-security-checklist">14.1 Stage A security checklist</a></li><li style="margin-left:20px"><a href="#14-2-threat-notes">14.2 Threat notes</a></li><li style="margin-left:20px"><a href="#14-3-air-gapped-delivery-process-stage-b">14.3 Air-gapped delivery process (Stage B)</a></li><li style="margin-left:0px"><a href="#15-backup-restore-dr-stage-a">15. Backup, Restore & DR (Stage A)</a></li><li style="margin-left:20px"><a href="#15-1-strategy-summary">15.1 Strategy summary</a></li><li style="margin-left:20px"><a href="#15-2-restore-procedure-disaster">15.2 Restore procedure (disaster)</a></li><li style="margin-left:20px"><a href="#15-3-backup-verification-schedule">15.3 Backup verification schedule</a></li><li style="margin-left:0px"><a href="#16-monitoring-observability-stage-a-baseline">16. Monitoring & Observability (Stage A baseline)</a></li><li style="margin-left:0px"><a href="#17-stage-c-aws-only-as-a-hosi-managed-cloud-service">17. Stage C — AWS, only as a Hosi-Managed Cloud Service</a></li><li style="margin-left:20px"><a href="#17-1-entry-criteria">17.1 Entry criteria</a></li><li style="margin-left:20px"><a href="#17-2-target-architecture">17.2 Target architecture</a></li><li style="margin-left:20px"><a href="#17-3-lift-and-shift-mapping-compose-aws">17.3 Lift-and-shift mapping (compose → AWS)</a></li><li style="margin-left:20px"><a href="#17-4-why-aws-stage-c-only-when-hosi-operates-it">17.4 Why AWS (Stage C) only when Hosi operates it</a></li><li style="margin-left:20px"><a href="#17-5-aws-rollout-milestones-if-stage-c-engaged">17.5 AWS rollout milestones (if Stage C engaged)</a></li><li style="margin-left:0px"><a href="#18-rollback-plan">18. Rollback Plan</a></li><li style="margin-left:20px"><a href="#18-1-stage-a">18.1 Stage A</a></li><li style="margin-left:20px"><a href="#18-2-tag-pinning-for-rollback">18.2 Tag pinning for rollback</a></li><li style="margin-left:0px"><a href="#19-risk-register">19. Risk Register</a></li><li style="margin-left:0px"><a href="#20-detailed-timeline">20. Detailed Timeline</a></li><li style="margin-left:0px"><a href="#21-open-decisions-next-actions">21. Open Decisions & Next Actions</a></li><li style="margin-left:0px"><a href="#22-summary">22. Summary</a></li><li style="margin-left:0px"><a href="#23-change-log">23. Change Log</a></li>
+  </ul>
+</nav>
+
+<h2 id="deployment-systems-comparison">1. Deployment Systems Comparison</h2>
+<p>This section compares the realistic deployment options for the SITA platform, with a deliberate, explicit bias toward the Linux option selected for Stage A (host `unified` at Hosi Fourways). Each option's pros and cons are stated honestly; the recommendation still lands on Linux because the decisive factors (cost, licensing risk, image compatibility, scriptability, and portability) all favour it.</p>
+<p>Bottom line: the Linux deployment runs the exact containers SITA will run. Every later stage consumes the same images; only the execution environment changes. Choosing Linux now is choosing the path of least resistance to the real deliverable.</p>
+<div class="biasbox"><h4>Bias statement (explicit)</h4><p>This document deliberately favours the Linux option for Stage A. The comparison below is not neutral: it is written to make the Linux choice easy to defend to stakeholders while still flagging where Linux demands more operational discipline than a managed cloud.</p></div><div class="biasbox"><h4>Why the bias is justified</h4><p>Linux is the only option that simultaneously removes licensing risk, needs no kernel/VM translation layer, is scriptable end-to-end, and produces the exact same artefact (GHCR images + compose) that is shipped to SITA (Stage B) or lifted to AWS (Stage C). Every counter-option either expires soon, is not scriptable, or is conditional on a commercial decision not yet made.</p></div>
+<table class="compare"><thead><tr><th>Option</th><th>Pros</th><th>Cons</th><th>Verdict (bias)</th></tr></thead><tbody><tr class="selected"><td>Linux @ Hosi Fourways (Stage A) — SELECTED</td><td>Free (Ubuntu LTS), no licensing expiry; existing Hosi asset; native Docker Engine + Compose v2 = 1:1 with our compose files; pulls GHCR Linux images directly (no WSL2/VM layer); reusable shell tooling (deploy-remote-linux.sh, backup.sh, UFW, cron); SSH key-based automation; tiny footprint (~300 MB images, low idle RAM); same compose topology ships to SITA and AWS</td><td>Requires VPN access to 192.168.101.0/24 (open blocker, workaround via hosiai jump); host-level HA is DIY (no managed failover); ops discipline (backups, updates) is on Hosi staff</td><td>BEST CHOICE NOW. Lowest risk, lowest cost, fully scriptable, and byte-for-byte portable to every later stage.</td></tr><tr><td>Windows Server (AnyDesk box)</td><td>Familiar GUI; already reachable via AnyDesk; no Linux admin skills needed in-house</td><td>Eval license expires in < 30 days forcing a re-license or rebuild mid-flight; Docker Desktop/Windows containers have host-kernel version pinning; Linux GHCR images need WSL2/VM layer (extra moving parts); GUI-only remote = not scriptable from CI/CD; PowerShell equivalents of every bash script must be written; heavier footprint</td><td>REJECTED for Stage A. Expiry pressure + incompatible image model + no automation path for zero architectural benefit.</td></tr><tr><td>AWS (Stage C — conditional, Hosi-managed)</td><td>Multi-AZ ALB/RDS, autoscaling, PITR, audit trails, elastic scaling, no host management; Fargate from the same GHCR images; Secrets Manager; CloudWatch</td><td>Monthly cost + mark-up responsibility on Hosi; only justified when Hosi operates the system as a managed cloud service for SITA; needs its own IaC (CDK/Terraform); higher complexity to operate well</td><td>CONDITIONAL. Include only if Hosi runs a managed cloud service. Not the default; Stage B's same containers are the real deliverable.</td></tr><tr><td>SITA's preferred environment (Stage B — customer deliverable)</td><td>Customer owns/controls their hosting; same Docker images + compose + runbook shipped unchanged; air-gapped delivery via docker save/load; fits SITA's compliance/audit model</td><td>Hosting cost on SITA; HA/DR depends on SITA's environment; ingress is the only provider-specific piece; we cannot control their ops</td><td>THE DELIVERABLE. Everything we build is shaped so this is a drop-in. Environment-agnostic by construction.</td></tr></tbody></table>
+<h3>Bias callout</h3>
+<p class="callout">Bottom line: the Linux deployment runs the exact containers SITA will run. Every later stage consumes the same images; only the execution environment changes. Choosing Linux now is choosing the path of least resistance to the real deliverable.</p>
+
+<h2>SITA Platform — Detailed Deployment Plan (Enriched)</h1>
+<p><strong>Project:</strong> SITA Consolidated Security Reporting (<code>sita-platform</code>)</p>
+<p><strong>Repo:</strong> https://github.com/takawira-mazando/sita-consolidated-security-reporting</p>
+<p><strong>Deployment unit:</strong> Docker containers (prebuilt images on GHCR) — portable to any Docker-capable host</p>
+<p><strong>From:</strong> Local Windows dev machine (Docker Desktop, no persistent hosting)</p>
+<p><strong>To (now):</strong> Linux Docker host at Hosi Technologies, Fourways, Johannesburg, South Africa</p>
+<p><strong>To (customer):</strong> SITA's preferred environment (their own servers / cloud / chosen platform)</p>
+<p><strong>To (Hosi-managed cloud, optional):</strong> Amazon Web Services (AWS) — only if Hosi Technologies operates the system as a cloud-based, managed service</p>
+<p><strong>Date:</strong> 19 August 2026</p>
+<p><strong>Version:</strong> 2.0 (enriched)</p>
+<p><strong>Status:</strong> Phase 0 ✅ · Phase 1 ✅ (script ready) · Phase 2 🔄 (execution started) · Phases 3–6 ⬜</p>
+<p><strong>Related docs:</strong> <a href="./SITA_Platform_System_Documentation.md">SITA_Platform_System_Documentation.md</a>, <a href="./Role-Provisioning-Roadmap.html">Role-Provisioning-Roadmap.html</a></p>
+<p>---</p>
+<h2>1. Executive Summary</h2>
+<p>The SITA platform is built and running only on a local Windows dev machine today. This plan deploys it as <strong>portable Docker containers</strong> to a Linux server on the Hosi Technologies LAN (<code>192.168.101.20</code>, hostname <code>unified</code>, Ubuntu 26.04 LTS), using <strong>prebuilt public GHCR images</strong> — the server pulls images, it never compiles.</p>
+<p>This Linux deployment (Stage A) is the *working reference* and proves the containerized platform. The real deliverable is <strong>shipping the same containers to SITA's preferred environment</strong> (Stage B), with compose files, images, <code>.env.template</code>, and a runbook. AWS (Stage C) is included <strong>only if</strong> Hosi Technologies operates the system as a cloud-based managed service; otherwise it is out of scope.</p>
+<p>The deployment is <strong>image-driven, not build-driven</strong>: no source code ever needs a compiler on the target host; the same image digest deployed at Stage A is exactly what gets shipped to Stage B or lifted into AWS.</p>
+<p><strong>Current execution status:</strong></p>
+<ul><li>Host <code>unified</code> is inventoried and reachable via the <code>hosiai</code> tailnet jump node.</li><li><code>infrastructure/scripts/deploy-remote-linux.sh</code> is written and ready (installs Docker if missing, generates strong secrets, pulls GHCR images, <code>up -d</code>, health-check).</li><li>VPN access to <code>192.168.101.0/24</code> is requested from IT; per-individual provisioning pending — the single blocker before the one-shot deploy can run.</li></ul>
+<p>---</p>
+<h2>2. Goal, Scope, and Success Criteria</h2>
+<h3>2.1 Goal</h3>
+<p>Deliver the SITA platform as <strong>portable Docker containers</strong> that run identically wherever they are placed, and stand them up in stages:</p>
+<table><thead><tr><th>Stage</th><th>Target</th><th>Rationale</th><th>Owned by</th></tr></thead><tbody><tr><td><strong>Stage A (now)</strong></td><td>Linux server at Hosi Fourways (LAN <code>192.168.101.20</code>)</td><td>Cost-effective immediately; no licensing; existing Hosi asset; under our control</td><td>Hosi Dev</td></tr><tr><td><strong>Stage B (customer)</strong></td><td><strong>SITA's preferred environment</strong></td><td>The platform is <strong>shipped to SITA</strong> — deployed as Docker containers on the environment SITA chooses (on-prem, their cloud, third-party hosting)</td><td>SITA + Hosi support</td></tr><tr><td><strong>Stage C (optional)</strong></td><td>Amazon AWS</td><td><strong>Only if Hosi Technologies operates the system as a cloud-based managed service</strong> — managed services, elastic scale, HA/DR</td><td>Hosi Ops</td></tr></tbody></table>
+<h3>2.2 Key principle</h3>
+<p><strong>AWS is not the default destination.</strong> The deliverable is a containerized system. AWS is one hosting option among several, and only makes sense when Hosi Technologies operates it as a managed cloud service. If SITA specifies a different environment, the <strong>same Docker images and compose topology</strong> are shipped there unchanged (Stage B).</p>
+<h3>2.3 Success criteria (Stage A)</h3>
+<table><thead><tr><th>#</th><th>Criterion</th><th>How it is measured / verified</th></tr></thead><tbody><tr><td>S1</td><td>Platform reachable at a stable HTTP URL on the Hosi LAN / via VPN</td><td><code>curl http://192.168.101.20</code> returns 200; login page renders in a browser</td></tr><tr><td>S2</td><td>Backend, frontend, Postgres, Redis running from <strong>prebuilt GHCR images</strong> (no source build on server)</td><td><code>docker compose ps</code> = 5 services <code>Up</code>; <code>docker image ls</code> shows <code>ghcr.io/takawira-mazando/*</code> images; no build context on host</td></tr><tr><td>S3</td><td>HR schema + seed data initialized on first boot</td><td><code>\dn</code> shows <code>hr</code> schema; <code>SELECT count(*) FROM hr.employees;</code> returns seeded rows</td></tr><tr><td>S4</td><td>Strong generated secrets; demo seeding disabled; admin bootstrap active</td><td><code>.env</code> is <code>chmod 600</code>; <code>SEED_DEMO_USERS_ENABLED=false</code>; bootstrap admin login succeeds</td></tr><tr><td>S5</td><td>A <strong>portable shipping bundle</strong> ready for SITA</td><td>Bundle assembled (compose + images + <code>.env.template</code> + runbook) and validated in Stage B rehearsal</td></tr><tr><td>S6</td><td>Backups running and restorable</td><td>Nightly <code>pg_dump</code> cron active; one restore drill passed (<code>backup.sh drill</code>)</td></tr></tbody></table>
+<p>---</p>
+<h2>3. Stakeholders & Responsibility (RACI)</h2>
+<table><thead><tr><th>Activity</th><th>Hosi Dev (hero)</th><th>Hosi Ops/IT</th><th>SITA</th><th>Tooling/Asset</th></tr></thead><tbody><tr><td>Access provisioning (VPN <code>192.168.101.0/24</code>, per individual)</td><td>C</td><td><strong>A/R</strong></td><td>—</td><td>IT VPN request via Arezoo</td></tr><tr><td>Host inventory & SSH access to <code>unified</code></td><td><strong>R</strong></td><td>C</td><td>—</td><td>Tailscale <code>hosiai</code> jump</td></tr><tr><td>Run deploy script / stand up stack</td><td><strong>A/R</strong></td><td>C</td><td>I</td><td><code>deploy-remote-linux.sh</code></td></tr><tr><td>Generate & custody secrets (<code>.env</code>)</td><td><strong>A/R</strong></td><td>I</td><td>—</td><td><code>openssl rand</code>, <code>chmod 600</code></td></tr><tr><td>Verify health, seeds, smoke tests</td><td><strong>R</strong></td><td>I</td><td>—</td><td>curl + browser + psql</td></tr><tr><td>Decision: SITA's preferred environment</td><td>C</td><td>—</td><td><strong>A/R</strong></td><td>Commercial agreement</td></tr><tr><td>Sign-off of Stage A cutover</td><td><strong>A</strong></td><td>C</td><td>I</td><td>Stakeholder review</td></tr><tr><td>Ship bundle + runbook to SITA</td><td><strong>A/R</strong></td><td>C</td><td>C</td><td><code>docker save</code> tars + docs</td></tr><tr><td>Operate Staged B environment</td><td>C</td><td>C</td><td><strong>R</strong> (or Hosi under service agreement)</td><td>Runbook</td></tr><tr><td>Operate Stage C AWS (if chosen)</td><td>C</td><td><strong>A/R</strong></td><td>I</td><td>CDK/Terraform + AWS</td></tr></tbody></table>
+<p>Legend: R = Responsible, A = Accountable, C = Consulted, I = Informed.</p>
+<p>---</p>
+<h2>4. Current State (Local Windows / Dev)</h2>
+<pre class="code">Dev machine (Windows, hosi)
+   ├── Docker Desktop (dev compose: postgres, redis, backend, frontend)
+   ├── Uvicorn on 127.0.0.1:8000 + Vite dev on 127.0.0.1:3000 (dual-stack ::)
+   └── No persistent host / public URL / backups / monitoring</pre>
+<h3>4.1 What exists in the repo today</h3>
+<table><thead><tr><th>Asset</th><th>Purpose</th></tr></thead><tbody><tr><td><code>infrastructure/docker-compose.remote.yml</code></td><td>The Stage A stack — pulls <code>ghcr.io/…/sita-backend:latest</code> + <code>sita-frontend:latest</code>, Postgres 16, Redis 7, nginx :80</td></tr><tr><td><code>infrastructure/docker-compose.prod.yml</code></td><td>Production/compliance variant — replicas, workers (ingestion/processing/dispatch/analytics), resource limits, HTTPS nginx; the draft of the AWS compose</td></tr><tr><td><code>infrastructure/nginx/sita-http.conf</code></td><td>HTTP entrypoint for first deploy (no TLS dependency)</td></tr><tr><td><code>infrastructure/nginx/sita.conf</code></td><td>HTTPS-only TLS config (Stage B/prod)</td></tr><tr><td><code>infrastructure/scripts/init-db.sql</code>, <code>seed-hr-system.sql</code>, <code>seed-hr-system-branches.sql</code></td><td>Schema + HR seed mounted into Postgres first-boot (<code>/docker-entrypoint-initdb.d/01…03</code>)</td></tr><tr><td><code>infrastructure/scripts/deploy-remote.ps1</code></td><td>Windows-side bootstrap (secondary; superseded)</td></tr><tr><td><code>infrastructure/scripts/deploy-remote-linux.sh</code></td><td><strong>Linux (primary) bootstrap</strong> — one-shot deploy (details in §9)</td></tr><tr><td><code>infrastructure/scripts/backup.sh</code></td><td>PostgreSQL <code>pg_basebackup</code>, WAL archiving helper, PITR restore drill, backup verify</td></tr><tr><td><code>infrastructure/monitoring/prometheus.yml</code></td><td>Scrape config for backend <code>/metrics</code>, postgres-exporter (:9187), redis-exporter (:9121)</td></tr><tr><td><code>.github/workflows/ci.yml</code>, <code>publish-ghcr.yml</code></td><td>CI + publish images to GitHub Container Registry on <code>main</code></td></tr><tr><td><code>backend/.env.example</code></td><td>Full reference of configuration keys (secrets + tuning knobs)</td></tr><tr><td><code>docs/</code></td><td>System documentation, role-provisioning roadmap</td></tr></tbody></table>
+<h3>4.2 GHCR images (public, pullable without credentials)</h3>
+<pre class="code">docker pull ghcr.io/takawira-mazando/sita-backend:latest
+docker pull ghcr.io/takawira-mazando/sita-frontend:latest</pre>
+<p>Verified public via <code>docker manifest inspect</code> on 19 Aug 2026. The publisher workflow tags <code>latest</code> on every merged <code>main</code>. For reproducible deployments, pin a <strong>specific digest/tag</strong> (<code>git sha</code> tag) once Stage A is signed off.</p>
+<p>---</p>
+<h2>5. Target State (Stage A — Hosi Fourways Linux)</h2>
+<h3>5.1 Confirmed host inventory (captured 19 Aug 2026)</h3>
+<table><thead><tr><th>Attribute</th><th>Value</th></tr></thead><tbody><tr><td>Hostname</td><td><code>unified</code></td></tr><tr><td>IP</td><td><code>192.168.101.20</code> (LAN <code>192.168.101.0/24</code>)</td></tr><tr><td>OS</td><td>Ubuntu 26.04 LTS (GNU/Linux 7.0.0-30-generic x86_64)</td></tr><tr><td>SSH user</td><td><code>uni</code></td></tr><tr><td>Access path</td><td>Via <code>hosiai</code> tailnet node (<code>100.116.102.102</code>) → <code>ssh uni@192.168.101.20</code> (VPN / jump host required from <code>hosi</code>)</td></tr><tr><td>Disk</td><td>97.87 GB used 11.4% — ample (~87 GB free)</td></tr><tr><td>Memory</td><td>~1% used at inventory — plenty for the stack</td></tr><tr><td>Docker</td><td>To be installed by <code>deploy-remote-linux.sh</code> (script auto-installs if missing)</td></tr></tbody></table>
+<h3>5.2 Target topology</h3>
+<pre class="code">LAN users / VPN
+   │ HTTP :80
+   ▼
+┌──────────────────────────────────────┐
+│  HOSI FOURWAYS LINUX SERVER          │
+│  hostname: unified (192.168.101.20)  │
+│  Ubuntu 26.04 LTS, user: uni         │
+│  • Docker Compose: sita stack        │
+│  • backend    :8000 (internal)       │
+│  • frontend   :80   (internal)       │
+│  • postgres 16 + redis 7 (internal)  │
+│  • nginx      :80   → frontend/API   │
+│  • GHCR images pulled, no build      │
+└──────────────────────────────────────┘</pre>
+<h3>5.3 Compose service map (as expressed by <code>docker-compose.remote.yml</code>)</h3>
+<table><thead><tr><th>Service</th><th>Image</th><th>Ports (host)</th><th>Healthcheck</th><th>Volume</th><th>Notes</th></tr></thead><tbody><tr><td><code>postgres</code></td><td><code>postgres:16-alpine</code></td><td>none</td><td><code>pg_isready -U sita -d sita</code> (10s/5s/5)</td><td><code>pgdata</code>, <code>pg_wal</code></td><td><code>POSTGRES_DB/USER=sita</code>; seeds mounted <code>01/02/03</code>; log rotation 10m×3</td></tr><tr><td><code>redis</code></td><td><code>redis:7-alpine</code></td><td>none</td><td><code>redis-cli ping</code> (10s/3s/3)</td><td><code>redis_data</code></td><td><code>--requirepass ${REDIS_PASSWORD}</code></td></tr><tr><td><code>backend</code></td><td><code>ghcr.io/takawira-mazando/sita-backend:latest</code></td><td>none</td><td>—</td><td>—</td><td><code>DATABASE_URL</code>, <code>REDIS_URL</code>, <code>JWT_SECRET</code> (required), <code>SEED_DEMO_USERS_ENABLED=false</code>, bootstrap admin env; waits on postgres+redis healthy</td></tr><tr><td><code>frontend</code></td><td><code>ghcr.io/takawira-mazando/sita-frontend:latest</code></td><td>none</td><td>—</td><td>—</td><td>depends on backend</td></tr><tr><td><code>nginx</code></td><td><code>nginx:1.25-alpine</code></td><td><strong>80 → 80</strong></td><td>—</td><td>mounts <code>sita-http.conf</code> ro</td><td>sole public entrypoint; proxies frontend + <code>/api</code></td></tr></tbody></table>
+<h3>5.4 Recommended sizing (start)</h3>
+<table><thead><tr><th>Server</th><th>CPU</th><th>RAM</th><th>Disk</th><th>Notes</th></tr></thead><tbody><tr><td>Hosi Fourways Linux (<code>unified</code>)</td><td>4+ vCPU</td><td>8+ GB</td><td>100 GB SSD</td><td>Compose stack + images + DB + backups (~package target)</td></tr><tr><td>Stage B (SITA on-prem equivalent)</td><td>4+ vCPU</td><td>8+ GB</td><td>100 GB SSD</td><td>Same topology; scale to multi-worker <code>docker-compose.prod.yml</code> if load demands</td></tr><tr><td>Stage C (AWS, if Hosi-managed)</td><td>per-service Fargate/ASG</td><td>per-service</td><td>RDS allocated storage</td><td>See §17</td></tr></tbody></table>
+<p>---</p>
+<h2>6. Why Linux (Hosi Fourways) over Windows (AnyDesk box)</h2>
+<p>The current alternative — a Windows box reachable via AnyDesk (<code>Administrator</code> / eval licensing) — was evaluated and set aside. The deciding factor: <strong>Windows Server licensing on that box expires in < 30 days</strong>, which forces a re-license or re-build mid-flight.</p>
+<table><thead><tr><th>Factor</th><th>Linux (Hosi Fourways)</th><th>Windows Server (AnyDesk box)</th></tr></thead><tbody><tr><td><strong>Licensing</strong></td><td>Free (Ubuntu LTS); no expiry</td><td>Per-core/OS licensing; <strong>eval expires < 30 days</strong> → urgent renewal risk</td></tr><tr><td><strong>Docker</strong></td><td>Native engine, <code>docker compose</code> v2; 1:1 with our compose files</td><td>Docker Desktop or Windows containers; <strong>Windows containers need matching host build</strong> (kernel-version pinning)</td></tr><tr><td><strong>Images</strong></td><td>Pull GHCR Linux images directly</td><td>Linux images won't run without a Linux VM/WSL2 layer — extra moving parts</td></tr><tr><td><strong>Ops tooling</strong></td><td><code>deploy-remote-linux.sh</code>, <code>backup.sh</code>, UFW, cron — battle-tested on Linux</td><td>PowerShell equivalents must be written; no equivalent to shell scripts</td></tr><tr><td><strong>Footprint</strong></td><td>~300 MB images, low idle RAM</td><td>Heavier base image + WSL2/VM overhead</td></tr><tr><td><strong>Remote access</strong></td><td>SSH key-based (reachable via <code>hosiai</code> tailnet / VPN)</td><td>AnyDesk GUI only — not scriptable from CI/CD</td></tr><tr><td><strong>Cost</strong></td><td>None (existing Hosi asset)</td><td>License + renewal risk + potential CALs</td></tr><tr><td><strong>Risk</strong></td><td>Low</td><td>High (expiry deadline forces urgent remediation)</td></tr></tbody></table>
+<p><strong>Verdict:</strong> Linux at Hosi Fourways is the accessible, cost-effective, low-risk choice <strong>now</strong>. It also keeps the exact same compose topology that can later be shipped to SITA's environment or lifted into AWS — the Windows path would force a parallel, incompatible deployment model for zero benefit.</p>
+<p>---</p>
+<h2>7. Deployment Principles</h2>
+<ol><li><strong>Image-driven, not build-driven</strong> — the server pulls GHCR images; it never compiles. The same images are what gets shipped.</li><li><strong>Portable by construction</strong> — everything needed to run (compose files, nginx config, init SQL, <code>.env</code> template, runbook) is in the repo. Deployment = <code>docker compose up</code> on any Docker-capable host.</li><li><strong>Fresh secrets everywhere</strong> — strong generated <code>JWT_SECRET</code>, <code>DB_PASSWORD</code>, <code>REDIS_PASSWORD</code>, bootstrap admin password; <code>SEED_DEMO_USERS_ENABLED=false</code> in production.</li><li><strong>Server-side state is disposable</strong> — Postgres/Redis volumes live on the host, but backups are taken off-host.</li><li><strong>Same topology, every host</strong> — the compose model is identical whether deployed at Hosi Fourways, in SITA's preferred environment, or on AWS. Only image tags / TLS / ingress differ. No re-architecture.</li><li><strong>Keep a rollback path</strong> — the current dev stack stays intact until a stage is signed off.</li><li><strong>VPN-gated access</strong> — Hosi LAN <code>192.168.101.0/24</code> is only reachable via VPN (per-request access provisioning). No public exposure during Stage A.</li><li><strong>Reproducibility over re-provisioning</strong> — scripts and compose files are the source of truth; manual host edits are logged and, where possible, folded back into the script.</li></ol>
+<p>---</p>
+<h2>8. Prerequisites & Pre-flight Checklist (Stage A)</h2>
+<h3>8.1 Access</h3>
+<table><thead><tr><th>#</th><th>Prerequisite</th><th>Status</th><th>Owner</th></tr></thead><tbody><tr><td>P1</td><td>SSH path from <code>hosi</code> to <code>192.168.101.20</code> usable (via <code>hosiai</code> jump or VPN)</td><td>✅ (jump works; VPN requested)</td><td>IT / Arezoo</td></tr><tr><td>P2</td><td>Ability to run <code>sudo</code> as <code>uni</code> on <code>unified</code></td><td>⬜ confirm on first SSH</td><td><code>uni</code></td></tr><tr><td>P3</td><td>Outbound HTTPS (443) from <code>unified</code> to <code>github.com</code> and <code>ghcr.io</code></td><td>⬜ verify <code>curl -I https://ghcr.io</code></td><td>deploy script</td></tr><tr><td>P4</td><td>UDP/offlines not required; no inbound ports beyond 80 needed</td><td>—</td><td>—</td></tr></tbody></table>
+<h3>8.2 Assets</h3>
+<table><thead><tr><th>#</th><th>Prerequisite</th><th>Status</th><th>Notes</th></tr></thead><tbody><tr><td>P5</td><td>GHCR images public / pullable</td><td>✅ verified 19 Aug</td><td><code>sita-backend:latest</code>, <code>sita-frontend:latest</code></td></tr><tr><td>P6</td><td><code>deploy-remote-linux.sh</code> committed to <code>main</code></td><td>✅ commit <code>732e6e2</code></td><td>repo cloned on host</td></tr><tr><td>P7</td><td><code>.env.template</code> exists in bundle (no secrets)</td><td>⬜ create in bundle phase</td><td>placeholders only</td></tr><tr><td>P8</td><td>Seed SQL files present & valid</td><td>✅ in repo</td><td>bad seed = init failures (see §13)</td></tr></tbody></table>
+<h3>8.3 Environment</h3>
+<table><thead><tr><th>#</th><th>Prerequisite</th><th>Status</th><th>Notes</th></tr></thead><tbody><tr><td>P9</td><td><code>unified</code> has ≥4 GB free RAM and ≥20 GB free disk</td><td>✅ inventory</td><td>87 GB free</td></tr><tr><td>P10</td><td>No existing service on port 80 (nginx/Apache host install)</td><td>⬜ check <code>ss -ltnp</code> before deploy</td><td>port 80 must be free</td></tr><tr><td>P11</td><td>Host clock synchronised (TLS, backups, JWT)</td><td>✅ standard Ubuntu</td><td><code>timedatectl</code> if needed</td></tr><tr><td>P12</td><td>VPN access for reviewer list (each person)</td><td>⬜ in progress with IT</td><td>per individual</td></tr></tbody></table>
+<p>---</p>
+<h2>9. Phased Execution Plan</h2>
+<h3>Phase 0 — Access & inventory ✅ (completed 19 Aug 2026)</h3>
+<p><strong>What was done:</strong></p>
+<ul><li>✅ Server reached via <code>hosiai</code> tailnet node: <code>ssh uni@192.168.101.20</code>; interactive SSH works.</li><li>✅ Host inventory captured (<code>unified</code>, Ubuntu 26.04 LTS, 97.87 GB disk, ample RAM, kernel 7.0.0-30).</li><li>✅ GHCR images confirmed public / pullable without auth.</li><li>✅ VPN access to <code>192.168.101.0/24</code> being provisioned per individual (request via Arezoo/IT); jump access via <code>hosiai</code> works today.</li></ul>
+<p><strong>Decisions locked at Phase 0:</strong></p>
+<table><thead><tr><th>Decision</th><th>Chosen</th></tr></thead><tbody><tr><td>Public/LAN URL</td><td><code>http://192.168.101.20</code> (LAN, VPN-gated)</td></tr><tr><td>TLS</td><td>Deferred — HTTP for Stage A; add Let's Encrypt/internal CA after sign-off</td></tr><tr><td>Data</td><td>Fresh init + HR seed on first boot (no legacy data yet)</td></tr><tr><td>Access model</td><td>VPN-gated LAN only; no public exposure</td></tr></tbody></table>
+<p><strong>Exit criteria:</strong> inventory captured, images pullable, access path defined. ✅ MET.</p>
+<h3>Phase 1 — Prepare host (<code>unified</code>) ✅ (automated by script)</h3>
+<p>The <strong><code>deploy-remote-linux.sh</code></strong> script performs this phase automatically when run as <code>uni</code> (with sudo). Steps performed, in order:</p>
+<table><thead><tr><th>#</th><th>Step</th><th>Command (inside script)</th><th>Failure handling</th></tr></thead><tbody><tr><td>1.1</td><td>Install Docker if missing</td><td>apt install <code>docker-ce docker-ce-cli containerd.io docker-compose-plugin</code> from Docker's Ubuntu repo; add <code>$USER</code> to <code>docker</code> group; <code>systemctl enable --now docker</code></td><td><code>set -euo pipefail</code> — script halts on error with message</td></tr><tr><td>1.2</td><td>Fetch deployment assets</td><td><code>git clone --depth 1</code> repo to <code>$DEPLOY_DIR/sita-platform</code> (pulls <code>--ff-only</code> if present)</td><td>halts if clone fails (check P3/P4)</td></tr><tr><td>1.3</td><td>Generate <code>.env</code> with strong secrets</td><td><code>openssl rand -hex 32/64/20</code> for <code>DB_PASSWORD</code>/<code>JWT_SECRET</code>/<code>BOOTSTRAP_ADMIN_PASSWORD</code>; static values for email + <code>SEED_DEMO_USERS_ENABLED=false</code>; <code>chmod 600</code></td><td>preserves existing <code>.env</code> if already present (idempotent)</td></tr><tr><td>1.4</td><td>Print bootstrap admin password</td><td><code>sudo grep BOOTSTRAP_ADMIN_PASSWORD "$ENV_FILE"</code></td><td>output must be captured securely (§10)</td></tr><tr><td>1.5</td><td>Configure UFW</td><td><code>ufw allow OpenSSH</code>, <code>ufw allow 80/tcp</code>, <code>ufw --force enable</code></td><td>best-effort (`</td><td></td><td>true`)</td></tr><tr><td>1.6</td><td>Pull images</td><td><code>docker compose … pull</code></td><td>halts on failure</td></tr></tbody></table>
+<p><strong>Script prerequisites:</strong> run from a shell as <code>uni</code> with <code>sudo</code> rights; network egress to <code>github.com</code> + Docker's apt repo + <code>ghcr.io</code>.</p>
+<p><strong>Manual equivalents</strong> (if run by hand instead of the script):</p>
+<pre class="code">sudo apt update && sudo apt upgrade -y
+sudo mkdir -p /opt/sita/sita-platform
+git clone --depth 1 https://github.com/takawira-mazando/sita-consolidated-security-reporting.git /opt/sita/sita-platform
+cd /opt/sita/sita-platform/infrastructure
+# write .env (see script for the openssl generation) then:
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw --force enable</pre>
+<p><strong>Exit criteria:</strong> Docker present, repo cloned, <code>.env</code> generated (<code>chmod 600</code>), bootstrap password captured, UFW active.</p>
+<h3>Phase 2 — Deploy the stack (Stage A) 🔄 (execution started)</h3>
+<p><strong>Primary command (one-shot):</strong></p>
+<pre class="code">git clone --depth 1 https://github.com/takawira-mazando/sita-consolidated-security-reporting.git /opt/sita/sita-platform
+sudo bash /opt/sita/sita-platform/infrastructure/scripts/deploy-remote-linux.sh</pre>
+<p>Expected outputs, step by step:</p>
+<table><thead><tr><th>Script output</th><th>Meaning</th></tr></thead><tbody><tr><td><code>Docker found: …</code> or <code>Docker installed. Re-login required</code></td><td>Docker present or installed</td></tr><tr><td><code>Cloning repo…</code> / <code>Pulling latest…</code></td><td>assets fetched to <code>/opt/sita/sita-platform</code></td></tr><tr><td><code>Generating .env with strong secrets…</code> + <code>Bootstrap admin password below</code></td><td><code>.env</code> written; <strong>capture the password</strong></td></tr><tr><td><code>Configuring UFW (SSH + 80)…</code></td><td>firewall rule set</td></tr><tr><td><code>Pulling images…</code>, <code>Starting stack…</code></td><td>images pulled; <code>up -d</code></td></tr><tr><td><code>DEPLOY SUCCESS</code> + UI/API/health lines (<code>curl health</code> OK)</td><td>✅ deploy verified</td></tr><tr><td><code>Deploy started, health check failed…</code> + log hint</td><td>backend unhealthy — go to troubleshooting §13</td></tr></tbody></table>
+<p>Manual equivalent:</p>
+<pre class="code">cd /opt/sita/sita-platform/infrastructure
+sudo docker compose -f docker-compose.remote.yml --env-file .env pull
+sudo docker compose -f docker-compose.remote.yml --env-file .env up -d
+sudo docker compose -f docker-compose.remote.yml --env-file .env ps</pre>
+<p><strong>Validation checkpoint (must all pass):</strong></p>
+<table><thead><tr><th>#</th><th>Check</th><th>Command (on <code>unified</code>)</th><th>Pass =</th></tr></thead><tbody><tr><td>V1</td><td>All containers up</td><td><code>docker compose … ps</code></td><td>5 services <code>Up</code>, healthy where healthcheck set</td></tr><tr><td>V2</td><td>Public summary API</td><td><code>curl -sf http://localhost/api/v1/public/summary</code></td><td>JSON with findings/assets</td></tr><tr><td>V3</td><td>Demo accounts endpoint</td><td><code>curl -sf http://localhost/api/v1/auth/demo-accounts</code></td><td>200 with demo account list</td></tr><tr><td>V4</td><td>UI renders</td><td>browser <code>http://192.168.101.20</code></td><td>login page loads</td></tr><tr><td>V5</td><td>Admin login</td><td>login with bootstrap admin</td><td>dashboard renders; tenant scope correct</td></tr><tr><td>V6</td><td>HR schema seeded</td><td><code>docker compose … exec -T postgres psql -U sita -d sita -c '\dn'</code></td><td><code>hr</code> schema present</td></tr><tr><td>V7</td><td>HR rows present</td><td><code>docker compose … exec -T postgres psql -U sita -d sita -c 'SELECT count(*) FROM hr.employees;'</code></td><td>> 0 seeded rows</td></tr><tr><td>V8</td><td>No demo users enabled</td><td><code>docker compose … exec -T postgres psql -U sita -d sita -c "SELECT count(*) FROM users WHERE is_demo=…;"</code> (or backend env)</td><td><code>SEED_DEMO_USERS_ENABLED=false</code> also visible in backend env</td></tr><tr><td>V9</td><td>Host firewall</td><td><code>sudo ufw status</code></td><td><code>80/tcp</code> + <code>OpenSSH</code> allowed</td></tr></tbody></table>
+<p><strong>Exit criteria:</strong> V1–V9 pass. Record outputs into the deployment log.</p>
+<h3>Phase 3 — Backup & observability baseline</h3>
+<ol><li><strong>Nightly Postgres backup</strong> on the host:</li></ol>
+<pre class="code">sudo mkdir -p /opt/sita/backups
+sudo docker compose -f /opt/sita/sita-platform/infrastructure/docker-compose.remote.yml --env-file /opt/sita/sita-platform/infrastructure/.env \
+  exec -T postgres pg_dump -U sita -Fc sita > /opt/sita/backups/sita_$(date +%F).dump
+
+# cron (daily 01:15 SAST), run:
+(crontab -u uni -l 2>/dev/null; echo '15 1 * * * sudo bash /opt/sita/sita-platform/infrastructure/scripts/backup.sh base') | crontab -u uni -</pre>
+<ol><li><strong>Off-host copy</strong> — sync the dump off the server (S3, NAS, or a second Hosi host). A backup that lives only on the dying host is not a backup.</li></ol>
+<ol><li><strong>PITR capability</strong> — <code>infrastructure/scripts/backup.sh</code> supports <code>base</code> (pg_basebackup), <code>drill "<ts>"</code> (restore-drill), <code>verify</code>. Schedule a drill monthly and record results.</li></ol>
+<ol><li><strong>Observability (optional in Stage A):</strong> enable Prometheus/Grafana from <code>infrastructure/monitoring/</code> (scrape targets: backend <code>:8000/metrics</code>, postgres-exporter <code>:9187</code>, redis-exporter <code>:9121</code>) — do the same after sign-off.</li></ol>
+<ol><li><strong>Log rotation</strong> already baked into compose (<code>10m × 3</code>, json-file driver) — no action needed.</li></ol>
+<p><strong>Exit criteria:</strong> one successful dump + off-host copy verified; <code>backup.sh verify</code> passes; cron entry present.</p>
+<h3>Phase 4 — Cutover (Stage A live)</h3>
+<ol><li>Point dev team / stakeholders at <code>http://192.168.101.20</code> (VPN required).</li><li>Update README / docs "access" section with the LAN URL.</li><li>Keep local dev stack running as fallback until sign-off.</li><li>Announce cutover + window; record sign-off in the log.</li><li>Fix <strong>image tags</strong>: switch from <code>latest</code> to the signed-off commit-tagged images (<code>sita-backend:<git-sha></code>, <code>sita-frontend:<git-sha></code>) for reproducibility.</li></ol>
+<p><strong>Exit criteria:</strong> signed-off; tags pinned; README updated.</p>
+<h3>Phase 5 — Ship to SITA's preferred environment (Stage B — the customer deliverable)</h3>
+<p>The SITA platform is <strong>shipped to SITA</strong> as portable Docker containers. SITA chooses the environment; we hand over the same images and topology that ran at Stage A, plus a runbook.</p>
+<h4>5.1 Shipping bundle</h4>
+<p>A self-contained package handed to SITA (or run remotely with their consent):</p>
+<table><thead><tr><th>Item</th><th>Contents</th></tr></thead><tbody><tr><td><code>infrastructure/docker-compose.remote.yml</code></td><td>The runnable compose stack (backend, frontend, postgres, redis, nginx)</td></tr><tr><td><code>infrastructure/docker-compose.prod.yml</code></td><td>The production/compliance variant (replicas, workers, TLS, resource limits)</td></tr><tr><td><code>infrastructure/nginx/sita-http.conf</code> + <code>sita.conf</code></td><td>HTTP and HTTPS ingress configurations</td></tr><tr><td><code>infrastructure/scripts/init-db.sql</code>, <code>seed-hr-system.sql</code>, <code>seed-hr-system-branches.sql</code></td><td>Schema + HR seed (Postgres first-boot)</td></tr><tr><td><code>.env.template</code></td><td>Required secrets/configuration with placeholders (no real values)</td></tr><tr><td>GHCR images</td><td><code>ghcr.io/takawira-mazando/sita-backend:<sha></code>, <code>sita-frontend:<sha></code> (public) — pinned, reproducible</td></tr><tr><td><code>DEPLOYMENT_RUNBOOK.md</code></td><td>Phase-by-phase install, smoke tests, backup/restore, rollback (§11 content packaged as its own doc)</td></tr><tr><td><code>openapi.json</code> export + system documentation</td><td>For SITA's integration, security review, and audit</td></tr><tr><td>SBOM / digest manifest</td><td>For air-gapped verification (see P-check §10)</td></tr></tbody></table>
+<p><strong>Offline option:</strong> if SITA's environment is air-gapped from GitHub/GHCR, ship a bundle on media (USB/artefact); the images are saved to tar with <code>docker save</code> and loaded with <code>docker load</code> (§14.3).</p>
+<h4>5.2 Deployment flow on SITA's environment</h4>
+<pre class="code"># On SITA's chosen host (Docker required)
+# 1. Load images (online: pull; air-gapped: docker load from tar)
+docker pull ghcr.io/takawira-mazando/sita-backend:latest
+docker pull ghcr.io/takawira-mazando/sita-frontend:latest
+
+# 2. Provision
+mkdir -p /opt/sita && cp -r sita-bundle/* /opt/sita/
+cd /opt/sita/infrastructure
+cp .env.template .env && $EDITOR .env   # SITA supplies production secrets
+
+# 3. Start
+docker compose -f docker-compose.remote.yml --env-file .env up -d
+
+# 4. Verify
+curl -s http://localhost:80/api/v1/public/summary</pre>
+<h4>5.3 Environment-specific notes for SITA</h4>
+<table><thead><tr><th>SITA's environment</th><th>Notes</th></tr></thead><tbody><tr><td>On-prem / their own servers</td><td>Provide the shipping bundle + runbook; they run it, or we do a supported install with their credentials</td></tr><tr><td>Their cloud (any provider)</td><td>Same compose; ingress is the only provider-specific piece (LB/NSG/security group)</td></tr><tr><td>Air-gapped network</td><td><code>docker save</code>/<code>load</code> image tars; no dependency on GHCR at runtime</td></tr><tr><td>Kubernetes-based</td><td>Compose can be converted (compose → k8s) — same images, no code change</td></tr></tbody></table>
+<p><strong>Hosi's role shifts</strong> from "the environment" to "the vendor of the containerized system": we ship, support, patch images, and provide documentation. Whether we also <strong>operate</strong> the environment depends on the agreement (see Stage C §16).</p>
+<h4>5.4 Stage B acceptance checklist (run once per SITA env)</h4>
+<ul><li>[ ] <code>docker compose ps</code> → all services Up</li><li>[ ] <code>curl http://<host>/api/v1/public/summary</code> → 200</li><li>[ ] Login page renders; SSO (if configured) works</li><li>[ ] HR seed verified (<code>\dn</code>, <code>hr.employees</code> count)</li><li>[ ] Nightly backup cron + off-box copy configured</li><li>[ ] TLS (if prod variant) valid; HSTS/CSP observed</li><li>[ ] Stakeholder sign-off recorded</li></ul>
+<p><strong>Exit criteria:</strong> bundle validated in a staged rehearsal (on a scratch host) before it leaves Hosi; acceptance checklist signed at SITA.</p>
+<h3>Phase 6 — AWS, only as a Hosi-managed cloud service (Stage C — optional)</h3>
+<p>See §17 for the full Stage C treatment. Conditions to enter this phase:</p>
+<ol><li>SITA and Hosi agree Hosi operates the platform as a cloud-based managed service, <strong>and</strong></li><li>Commercial agreement includes hosting, uptime (SLA), support, and ops ownership by Hosi.</li></ol>
+<p><strong>Exit criteria:</strong> hosting agreement signed; AWS account + landing zone created; IaC scaffolded from <code>docker-compose.prod.yml</code>.</p>
+<p>---</p>
+<h2>10. Secrets & Configuration Management</h2>
+<h3>10.1 Variables in <code>.env</code> (as generated by <code>deploy-remote-linux.sh</code>)</h3>
+<table><thead><tr><th>Variable</th><th>Value source</th><th>Sensitive</th><th>Notes</th></tr></thead><tbody><tr><td><code>DB_PASSWORD</code></td><td><code>openssl rand -hex 32</code></td><td>🔒</td><td>Postgres superuser for <code>sita</code> DB</td></tr><tr><td><code>REDIS_PASSWORD</code></td><td><code>openssl rand -hex 32</code></td><td>🔒</td><td>Redis <code>--requirepass</code></td></tr><tr><td><code>JWT_SECRET</code></td><td><code>openssl rand -hex 64</code></td><td>🔒</td><td>Signed tokens; <strong>compose requires it</strong> (<code>:?</code>)</td></tr><tr><td><code>BOOTSTRAP_ADMIN_EMAIL</code></td><td>static <code>admin@sita.local</code></td><td>—</td><td>change to a real mailbox at sign-off</td></tr><tr><td><code>BOOTSTRAP_ADMIN_PASSWORD</code></td><td><code>openssl rand -hex 20</code></td><td>🔒</td><td><strong>print once</strong> by script; rotate after first login</td></tr><tr><td><code>SEED_DEMO_USERS_ENABLED</code></td><td><code>false</code></td><td>—</td><td>locked off in prod</td></tr><tr><td><code>ENVIRONMENT</code></td><td><code>production</code></td><td>—</td><td>disables dev-only behaviours</td></tr></tbody></table>
+<p>References: <code>backend/.env.example</code> lists the fuller configuration surface (AUTH0, SMTP, Teams, PagerDuty, worker tuning) for Stage B/C.</p>
+<h3>10.2 Rules</h3>
+<ul><li><code>.env</code> is <strong>never committed</strong>; it is <code>.gitignore</code>d and <code>chmod 600</code>.</li><li>The script is <strong>idempotent</strong>: it regenerates only if <code>.env</code> is missing; existing <code>.env</code> is preserved.</li><li><code>BOOTSTRAP_ADMIN_PASSWORD</code> is shown exactly once in the script output — capture it at deploy time.</li><li>After first admin login, <strong>rotate</strong> the bootstrap password and store under password manager, not in the repo.</li><li>Stage B: SITA supplies production secrets; <code>.env.template</code> ships with placeholders only.</li><li>Stage C: move secrets to AWS Secrets Manager / SSM Parameter Store (no secrets on disk) — see §17.</li></ul>
+<p>---</p>
+<h2>11. Operational Runbook (Day-2, Stage A)</h2>
+<p>All commands run on <code>unified</code> (<code>ssh uni@192.168.101.20</code> via <code>hosiai</code>), in <code>/opt/sita/sita-platform/infrastructure</code>.</p>
+<h3>11.1 Status & health</h3>
+<pre class="code"># Stack status
+sudo docker compose -f docker-compose.remote.yml --env-file .env ps
+
+# Health endpoints
+curl -s http://localhost:80/api/v1/public/summary
+
+# Container health detail
+sudo docker ps --format 'table {{.Names}}\t{{.Status}}'</pre>
+<h3>11.2 Logs</h3>
+<pre class="code"># Follow backend logs
+sudo docker compose -f docker-compose.remote.yml --env-file .env logs -f --tail 100 backend
+
+# All services, last 200 lines
+sudo docker compose -f docker-compose.remote.yml --env-file .env logs --tail 200
+
+# nginx access/error (verify proxy works)
+sudo docker compose -f docker-compose.remote.yml --env-file .env logs nginx</pre>
+<h3>11.3 Redeploy after image update</h3>
+<pre class="code"># Pull the new GHCR tag then recreate changed containers
+sudo docker compose -f docker-compose.remote.yml --env-file .env pull
+sudo docker compose -f docker-compose.remote.yml --env-file .env up -d</pre>
+<p>For a clean recreate (schema/env changes), also <code>--force-recreate</code>; if <code>postgres</code> image/env changed, data must be migrated — never <code>down -v</code> without a fresh backup.</p>
+<h3>11.4 Backup & restore</h3>
+<pre class="code"># Backup (custom-format dump, compressible/restorable subset)
+sudo mkdir -p /opt/sita/backups
+sudo docker compose -f docker-compose.remote.yml --env-file .env exec -T postgres pg_dump -U sita -Fc sita \
+  > /opt/sita/backups/sita_$(date +%F).dump
+
+# Restore (disaster) — into a running postgres
+sudo docker compose -f docker-compose.remote.yml --env-file .env exec -T postgres pg_restore -U sita -d sita \
+  --clean --if-exists /opt/sita/backups/sita_YYYY-MM-DD.dump
+
+# Full + WAL/PITR path (off-host capable)
+sudo bash /opt/sita/sita-platform/infrastructure/scripts/backup.sh base     # full base
+sudo bash /opt/sita/sita-platform/infrastructure/scripts/backup.sh drill "2026-08-20 03:00:00"  # test PITR
+sudo bash /opt/sita/sita-platform/infrastructure/scripts/backup.sh verify   # verify latest set</pre>
+<h3>11.5 Stop / start / teardown (careful)</h3>
+<pre class="code"># Stop (keep volumes)
+sudo docker compose -f docker-compose.remote.yml --env-file .env stop
+
+# Start again
+sudo docker compose -f docker-compose.remote.yml --env-file .env start   # or: up -d
+
+# Tear down containers+networks (KEEPS volumes)
+sudo docker compose -f docker-compose.remote.yml --env-file .env down
+
+# DESTRUCTIVE: also delete postgres/redis data volumes — ONLY after confirmed backup
+sudo docker compose -f docker-compose.remote.yml --env-file .env down -v</pre>
+<h3>11.6 Host maintenance</h3>
+<pre class="code"># Updates (Ubuntu security patches)
+sudo apt update && sudo apt upgrade -y
+
+# Disk space check (backups grow)
+df -h /opt/sita
+
+# Firewall state
+sudo ufw status verbose</pre>
+<h3>11.7 Escalation path</h3>
+<table><thead><tr><th>Symptom</th><th>First response</th><th>Escalate to</th></tr></thead><tbody><tr><td>UI unreachable, API down</td><td>§13 troubleshoot; check docker/logs</td><td>Hosi Dev (SLA-owner)</td></tr><tr><td>Disk > 85%</td><td>prune old backups; <code>docker system prune</code>; check <code>/opt/sita/backups</code></td><td>Hosi Ops</td></tr><tr><td>DB corruption / failed restore</td><td>stop services; restore from last good dump; keep dev up</td><td>Hosi Dev + backup owner</td></tr><tr><td>Security incident</td><td>disconnect from VPN; snapshot host; notify Hosi IT</td><td>Hosi IT / incident owner</td></tr></tbody></table>
+<p>---</p>
+<h2>12. Verification & Acceptance Test Plan (Stage A)</h2>
+<h3>12.1 Functional smoke (repeatable)</h3>
+<table><thead><tr><th>Test</th><th>Steps</th><th>Expected</th></tr></thead><tbody><tr><td>API summary</td><td><code>curl -sf http://192.168.101.20/api/v1/public/summary</code></td><td>JSON blob; exit 0</td></tr><tr><td>Login page</td><td>browser → <code>http://192.168.101.20</code></td><td>SPA loads; login form</td></tr><tr><td>Auth</td><td>login as bootstrap admin</td><td>dashboard renders; no console errors</td></tr><tr><td>HR data present</td><td>psql <code>SELECT count(*) FROM hr.employees;</code></td><td>seeded count > 0</td></tr><tr><td>Redis reachable</td><td><code>docker compose … exec redis redis-cli -a "$REDIS_PASSWORD" ping</code></td><td><code>PONG</code></td></tr><tr><td>Tenant scoping</td><td>create/switch tenants in UI</td><td>data isolation observed</td></tr></tbody></table>
+<h3>12.2 Non-functional checks</h3>
+<table><thead><tr><th>Area</th><th>Check</th><th>Pass =</th></tr></thead><tbody><tr><td>Resource use</td><td><code>docker stats --no-stream</code> at idle</td><td>memory within leaves per service</td></tr><tr><td>Restart resiliency</td><td><code>sudo systemctl restart docker</code> then <code>compose up -d</code></td><td>stack returns to healthy; volumes intact</td></tr><tr><td>Persistence</td><td>restart postgres; data still in <code>hr.employees</code></td><td>data survives container recreate</td></tr><tr><td>Backup restore</td><td>restore last dump into scratch DB</td><td>row counts match</td></tr></tbody></table>
+<h3>12.3 Acceptance gate</h3>
+<p>Secretary of the sign-off on D0 (see §19 timeline) verifies each box, signs, and dates. Any V-check failure in §9 Phase 2 blocks cutover (§Phase 4) until resolved.</p>
+<p>---</p>
+<h2>13. Troubleshooting Runbook</h2>
+<h3>13.1 Deploy script health check failed</h3>
+<p><strong>Symptom:</strong> script prints <code>Deploy started, health check failed</code>.</p>
+<table><thead><tr><th>#</th><th>Likely cause</th><th>Diagnose</th><th>Fix</th></tr></thead><tbody><tr><td>A</td><td>Backend can't reach Postgres (secrets mismatch, <code>postgres</code> not healthy)</td><td><code>docker compose logs backend</code>, <code>docker compose ps postgres</code></td><td>confirm <code>postgres</code> healthy; <code>.env</code> <code>DB_PASSWORD</code> consistent between postgres + backend URL</td></tr><tr><td>B</td><td>Backend can't reach Redis</td><td><code>docker compose logs redis</code>; test <code>redis-cli -a $REDIS_PASSWORD ping</code></td><td>confirm <code>REDIS_PASSWORD</code> matches compose command</td></tr><tr><td>C</td><td>Port 80 taken by host nginx/Apache</td><td>`sudo ss -ltnp \</td><td>grep :80`</td><td>stop host service or change mapping</td></tr><tr><td>D</td><td>Image tags/Digest mismatch after GHCR push</td><td><code>docker compose pull</code> again; inspect <code>docker image ls</code></td><td>pull again or pin correct sha</td></tr><tr><td>E</td><td>DNS/egress blocked</td><td><code>curl -I https://ghcr.io</code></td><td>check P3/network/firewall</td></tr><tr><td>F</td><td>Seed SQL error on first init</td><td><code>docker compose logs postgres</code></td><td>fix seed file in repo; new volume (<code>down -v</code> <strong>only with backup</strong>)</td></tr></tbody></table>
+<h3>13.2 Services crash-looping</h3>
+<pre class="code"># What does the backend think?
+sudo docker compose -f docker-compose.remote.yml --env-file .env logs --tail 200 backend
+# Exit codes / restarts?
+sudo docker ps -a</pre>
+<p>Common: missing env var (compose uses <code>:?…</code> which fails fast — that's a <strong>config</strong> error, not runtime), CPU/mem limits in prod variant too tight (<code>docker stats</code>), or DB schema drift.</p>
+<h3>13.3 UI loads but API calls fail</h3>
+<ul><li>Check nginx proxy config (<code>sita-http.conf</code>): frontend routes <code>/api/*</code> → backend; confirm <code>nginx</code> resolves <code>backend:8000</code>.</li><li><code>curl http://localhost/api/v1/public/summary</code> from host — if OK but browser fails, check VPN/route on the client.</li></ul>
+<h3>13.4 Postgres will not start after host crash</h3>
+<ul><li>Check <code>docker compose logs postgres</code> for missing <code>pg_wal</code>/permission issues; volume path <code>pgdata</code> present.</li><li>Recover from last dump (<code>pg_restore</code>) or PITR (backup.sh drill path).</li><li>Never run <code>docker compose down -v</code> before confirming a valid backup exists.</li></ul>
+<h3>13.5 "Address already in use" for port 80 or 443</h3>
+<p><code>sudo ss -ltnp | grep -E ':(80|443)'</code>; on <code>unified</code> a pre-existing web service would conflict — resolve before deploying.</p>
+<h3>13.6 Host full disk</h3>
+<p><code>df -h /opt/sita</code>; prune old dumps (<code>/opt/sita/backups</code>, retention policy), <code>docker system prune -af --volumes</code> only when safe, then re-run backups.</p>
+<p>---</p>
+<h2>14. Security Plan</h2>
+<h3>14.1 Stage A security checklist</h3>
+<ul><li>[x] Host reachable only via VPN/jump (<code>hosiai</code>); no public exposure during Stage A</li><li>[x] Strong secrets generated by <code>deploy-remote-linux.sh</code> (<code>openssl rand</code>); <code>.env</code> set to <code>chmod 600</code></li><li>[ ] UFW set by script: only SSH + 80 (verify with <code>sudo ufw status</code>)</li><li>[ ] <code>.env</code> never committed; confirm <code>git status</code> clean on host (<code>git -C /opt/sita/sita-platform status</code>)</li><li>[ ] SSH key-only auth (disable password) on <code>unified</code> — for <code>uni</code>, set up key and disable password</li><li>[x] <code>SEED_DEMO_USERS_ENABLED=false</code> in generated <code>.env</code></li><li>[ ] Bootstrap admin password captured securely from script output, then rotated after first login</li><li>[ ] Nightly Postgres dump (<code>backup.sh</code> + cron) + off-host copy</li><li>[x] Docker log rotation (configured in compose: 10m x 3)</li><li>[ ] Shipping bundle: no secrets in compose/template; <code>.env.template</code> uses placeholders only</li><li>[ ] Air-gapped delivery: images verified via checksum/SBOM before <code>docker load</code></li><li>[ ] Backend container as non-root; no privileged containers; read-only FS where possible (image-level, verify on upstream images)</li><li>[ ] <code>SEED_DEMO_USERS_ENABLED=false</code> re-confirmed before SITA bundle ships</li></ul>
+<h3>14.2 Threat notes</h3>
+<table><thead><tr><th>Threat</th><th>Mitigation</th></tr></thead><tbody><tr><td>Public exposure of Stage A</td><td>VPN-gated LAN; UFW only 80/SSH; no port-forward</td></tr><tr><td><code>.env</code> / secrets leak</td><td>never committed; <code>chmod 600</code>; rotated after first login; Secrets Manager in Stage C</td></tr><tr><td>Compromised image</td><td>pin digests at sign-off; SBOM/checksum on air-gapped load; GHCR is signed/build from CI</td></tr><tr><td>DB data exfiltration</td><td>VPN-only reachable ports; no PUBLIC bind of postgres/redis</td></tr><tr><td>Supply chain (GHCR)</td><td>registry is repo-coupled (publish-ghcr.yml); tags pinned post-sign-off</td></tr></tbody></table>
+<h3>14.3 Air-gapped delivery process (Stage B)</h3>
+<pre class="code"># On an internet-connected machine (e.g., a Hosi build box)
+docker save ghcr.io/takawira-mazando/sita-backend:<sha> ghcr.io/takawira-mazando/sita-frontend:<sha> | gzip > sita-images.tar.gz
+# Compute manifest hashes for the bundle manifest
+sha256sum sita-images.tar.gz > SHA256SUMS
+
+# On SITA's air-gapped host
+sha256sum -c SHA256SUMS && docker load -i sita-images.tar.gz
+docker compose -f docker-compose.remote.yml --env-file .env up -d</pre>
+<p>---</p>
+<h2>15. Backup, Restore & DR (Stage A)</h2>
+<h3>15.1 Strategy summary</h3>
+<table><thead><tr><th>Layer</th><th>Mechanism</th><th>Frequency</th><th>Retention</th><th>Restore target</th></tr></thead><tbody><tr><td>Logical DB (primary)</td><td><code>pg_dump -Fc</code> dump + pg_basebackup (<code>backup.sh base</code>)</td><td>nightly cron</td><td>14 dumps / 2 base sets</td><td>Same or scratch host</td></tr><tr><td>WAL / PITR</td><td><code>backup.sh</code> archive (needs <code>archive_command</code> per server profile)</td><td>continuous</td><td>WAL dir policy</td><td>Point-in-time</td></tr><tr><td>Off-host</td><td>rsync/object store copy of <code>/opt/sita/backups</code></td><td>nightly after dump</td><td>30 d</td><td>DR host / S3</td></tr></tbody></table>
+<h3>15.2 Restore procedure (disaster)</h3>
+<ol><li>Confirm latest known-good dump + off-host copy (<code>sha256sum</code> match).</li><li>Recreate environment: clone repo, write <code>.env</code> (restore secrets from vault or regenerate w/ admin rebuild).</li><li>Start stack with <strong>empty</strong> <code>pgdata</code> (<code>docker compose down -v</code> is fine now — data comes from the dump).</li><li><code>pg_restore -U sita -d sita --clean --if-exists /opt/sita/backups/sita_<date>.dump</code> (or PITR replay via <code>backup.sh drill</code>).</li><li>Verify V2–V7 smoke checks (§9 Phase 2).</li><li>Record RTO/RPO observed (target RTO ≤ 4 h, RPO ≤ 24 h for logical dump; PITR improves RPO if WAL shipped).</li></ol>
+<h3>15.3 Backup verification schedule</h3>
+<table><thead><tr><th>Cadence</th><th>Action</th></tr></thead><tbody><tr><td>Daily</td><td>cron dump; confirm non-zero file + off-host copy</td></tr><tr><td>Weekly</td><td><code>backup.sh verify</code></td></tr><tr><td>Monthly</td><td><code>backup.sh drill "<timestamp>"</code> PITR rehearsal; record time-to-restore</td></tr></tbody></table>
+<p>---</p>
+<h2>16. Monitoring & Observability (Stage A baseline)</h2>
+<table><thead><tr><th>Signal</th><th>Source</th><th>Action</th></tr></thead><tbody><tr><td>Stack health</td><td><code>docker compose ps</code> / healthchecks</td><td>alert if not healthy</td></tr><tr><td>API liveness</td><td>curl <code>/api/v1/public/summary</code> every 5 min (cron/systemd timer)</td><td>page/email on failure</td></tr><tr><td>Backend metrics</td><td><code>/metrics</code> (prom)</td><td>Prometheus + Grafana (opt-in)</td></tr><tr><td>Postgres exporter</td><td><code>:9187</code> (profile)</td><td>connection/space/WAL metrics</td></tr><tr><td>Redis exporter</td><td><code>:9121</code> (profile)</td><td>memory, evictions, hit-rate</td></tr><tr><td>Logs</td><td>json-file (10m×3) per container</td><td><code>docker compose logs</code>; ship to Loki/ELK in later phase</td></tr><tr><td>Disk</td><td><code>df -h /opt/sita</code></td><td>alert > 85%</td></tr></tbody></table>
+<p>Prometheus scrape config already provisioned in repo (<code>infrastructure/monitoring/prometheus.yml</code>); enabling the monitoring compose services is opt-in for Stage A and required before Stage B handover.</p>
+<p>---</p>
+<h2>17. Stage C — AWS, only as a Hosi-Managed Cloud Service</h2>
+<p>AWS is <strong>not the default destination.</strong> The system is cloud-based and managed from AWS <strong>only if Hosi Technologies operates it from there</strong>. If Hosi runs SITA as a managed cloud service (Hosi operates the platform on behalf of SITA), AWS is the right long-term home. If SITA prefers to host it themselves, the same containers are shipped to their environment (Stage B) and AWS is out of scope.</p>
+<h3>17.1 Entry criteria</h3>
+<ol><li>Hosting/commercial agreement in place (Hosi operates on SITA's behalf).</li><li>Agreed SLA, support model, cost model (Hosi bears/marks up managed service).</li><li>AWS account + billing under Hosi's control; <code>af-south-1</code> (Cape Town) landing zone.</li></ol>
+<h3>17.2 Target architecture</h3>
+<pre class="code">Internet
+   ▼ HTTPS :443
+┌──────────────────────────────────────────────┐
+│ Application Load Balancer (ALB)              │
+│   • TLS (ACM), WAF optional                  │
+└──────────────┬───────────────────────────────┘
+               ▼
+┌──────────────────────────────────────────────┐
+│ ECS Fargate (or EC2 ASG) — sita-backend ×N   │
+│   • sita-frontend (nginx container)          │
+│   • ingestion / processing / dispatch /      │
+│     analytics workers (from GHCR images)     │
+└──────────────┬───────────────────────────────┘
+               ▼
+┌──────────────────────────────────────────────┐
+│ Amazon RDS PostgreSQL (Multi-AZ)             │
+│   • automated backups + PITR                 │
+│   • RDS Proxy (optional pooling)             │
+└──────────────────────────────────────────────┘
+   + ElastiCache Redis (HA)                    │
+   + S3 (dumps, exports, AG attestations)      │
+   + Secrets Manager / SSM Parameter Store     │
+   + CloudWatch (metrics, logs, alarms)        │
+   + Route 53 + ACM (DNS/TLS)                  │
+   + ECR mirror of GHCR images                 │</pre>
+<h3>17.3 Lift-and-shift mapping (compose → AWS)</h3>
+<table><thead><tr><th>Hosi Linux / shipped compose</th><th>AWS (managed by Hosi)</th><th>Change</th></tr></thead><tbody><tr><td><code>postgres</code> container</td><td>RDS PostgreSQL Multi-AZ</td><td>Managed HA + backups</td></tr><tr><td><code>redis</code> container</td><td>ElastiCache Redis</td><td>Managed, multi-AZ optional</td></tr><tr><td><code>backend</code>/<code>frontend</code>/workers</td><td>ECS Fargate tasks/services</td><td><code>deploy.replicas</code> semantics from <code>docker-compose.prod.yml</code> map 1:1 to ECS service count</td></tr><tr><td>nginx <code>:80</code></td><td>ALB + ACM TLS</td><td>TLS handled by load balancer</td></tr><tr><td><code>.env</code> on host</td><td>Secrets Manager / SSM</td><td>No secrets on disk</td></tr><tr><td>host <code>pg_dump</code> cron</td><td>RDS automated snapshots + PITR</td><td>No custom cron needed</td></tr><tr><td><code>sita.conf</code> HTTPS-only</td><td>ALB TLS</td><td>CSP/HSTS preserved at LB layer</td></tr></tbody></table>
+<p>The existing <code>docker-compose.prod.yml</code> (which already expresses replicas, healthchecks, resource limits, workers) is the <strong>draft of the AWS compose</strong> — run it through Compose→ECS conversion, or transcribe services into CDK/Terraform.</p>
+<h3>17.4 Why AWS (Stage C) only when Hosi operates it</h3>
+<table><thead><tr><th>Need</th><th>SITA's environment (Stage B)</th><th>AWS managed by Hosi (Stage C)</th></tr></thead><tbody><tr><td>Ownership</td><td>SITA runs it (their ops)</td><td>Hosi operates on SITA's behalf</td></tr><tr><td>Uptime/HA</td><td>Depends on SITA's host</td><td>Multi-AZ ALB+RDS; autoscaling</td></tr><tr><td>Scaling</td><td>Manual; host-bound</td><td>Elastic (Fargate/ASG)</td></tr><tr><td>Backups/DR</td><td>SITA's responsibility (runbook)</td><td>RDS PITR + snapshots; S3 versioning</td></tr><tr><td>Compliance attestation</td><td>SITA's environment, their audit</td><td>Managed services + audit logs + regions</td></tr><tr><td>Ops burden</td><td>SITA (or Hosi-supported install)</td><td>Hosi-managed operations</td></tr><tr><td>Cost</td><td>SITA bears hosting cost</td><td>Hosi bears/marks up managed service</td></tr></tbody></table>
+<blockquote><strong>Staging logic:</strong> Stage A (Hosi Fourways) proves the containerized platform works. Stage B ships those same containers to SITA's environment — the actual deliverable. Stage C (AWS) applies <strong>only</strong> if Hosi Technologies takes on operating the system as a cloud-based managed service; then AWS provides the scale, HA, DR, and auditability Hosi needs to run it well.</blockquote>
+<h3>17.5 AWS rollout milestones (if Stage C engaged)</h3>
+<table><thead><tr><th>#</th><th>Milestone</th><th>Output</th></tr></thead><tbody><tr><td>C1</td><td>Landing zone (account, org, billing)</td><td><code>af-south-1</code> VPC (3 AZ) + subnets/NAT</td></tr><tr><td>C2</td><td>Data plane</td><td>RDS Postgres Multi-AZ + ElastiCache; import Stage A data</td></tr><tr><td>C3</td><td>App plane</td><td>ECR mirror of GHCR; Fargate services from prod compose; ALB + ACM cert</td></tr><tr><td>C4</td><td>Config & secrets</td><td>Secrets Manager / SSM; parameter validation (<code>:?</code> semantics preserved)</td></tr><tr><td>C5</td><td>Observability</td><td>CloudWatch dashboards/alarms; log groups</td></tr><tr><td>C6</td><td>DR</td><td>RDS PITR test; S3 versioning; cross-region snapshot choice</td></tr><tr><td>C7</td><td>Handover</td><td>runbook for Hosi Ops; cost/billing review</td></tr></tbody></table>
+<p>---</p>
+<h2>18. Rollback Plan</h2>
+<h3>18.1 Stage A</h3>
+<p>If the Hosi Linux deployment fails after cutover:</p>
+<ol><li>Point stakeholders back to the local dev environment (<code>http://localhost:3000</code>) for continuity.</li><li>Fix forward on the host (logs, env, nginx) — the compose image-driven model makes re-deploy fast:</li></ol>
+<pre class="code">cd /opt/sita/sita-platform/infrastructure
+docker compose -f docker-compose.remote.yml --env-file .env pull && docker compose -f docker-compose.remote.yml --env-file .env up -d</pre>
+<ol><li>If the host itself is unusable, rebuild on a fresh Hosi Linux VM from the same compose + <code>.env</code> (data loss limited to Postgres volume; restore from backup §15.2).</li><li><strong>Stage B (SITA) is never blocked by Stage A state</strong> — the same GHCR images and compose are shipped to SITA's environment regardless.</li><li><strong>Stage C (AWS, if Hosi operates it)</strong> restores from the same GHCR images + RDS import; independent of earlier stages.</li></ol>
+<p>Rollback for a Stage B (SITA) deployment is defined in the runbook shipped with the bundle: SITA reverts to their previous environment or to a known-good image tag.</p>
+<h3>18.2 Tag pinning for rollback</h3>
+<ul><li>Before any redeploy, record current image digests: <code>docker inspect --format '{{.Image}}'</code> the running containers.</li><li>Keep the previous known-good tag available in GHCR (publisher keeps history); never <code>untag</code> signed-off images.</li><li>If <code>latest</code> regresses, rollback = <code>docker compose … pull</code> of previous <code>:<sha></code> and <code>up -d</code>.</li></ul>
+<p>---</p>
+<h2>19. Risk Register</h2>
+<table><thead><tr><th>#</th><th>Risk</th><th>Likelihood</th><th>Impact</th><th>Mitigation / Contingency</th><th>Owner</th></tr></thead><tbody><tr><td>R1</td><td>VPN to <code>192.168.101.0/24</code> not provisioned in time</td><td>Med</td><td>High (blocks Phase 2)</td><td>Use <code>hosiai</code> jump today; escalate IT/Arezoo; schedule on-site session</td><td>Hosi IT</td></tr><tr><td>R2</td><td>Port 80 conflict on <code>unified</code></td><td>Low</td><td>Med</td><td>Pre-check <code>ss -ltnp</code>; shift port 8080 temporarily</td><td>Hosi Dev</td></tr><tr><td>R3</td><td>GHCR pull failure on host (egress/FW)</td><td>Low</td><td>Med</td><td>Test <code>curl -I https://ghcr.io</code>; use mirrored registry/offline tar</td><td>Hosi Dev</td></tr><tr><td>R4</td><td>Seed SQL error on first boot</td><td>Low</td><td>Med</td><td>Logs: <code>docker compose logs postgres</code>; fix + boot with fresh volume (with backup)</td><td>Hosi Dev</td></tr><tr><td>R5</td><td>Secrets leak (<code>.env</code>, bootstrap pw)</td><td>Low</td><td>High</td><td>600 perms; not committed; rotate post first login; capture pw at deploy</td><td>Hosi Dev</td></tr><tr><td>R6</td><td>Host disk fills with backups</td><td>Med</td><td>Med</td><td>Retention policy; off-host copy; <code>df</code> alert > 85%</td><td>Hosi Ops</td></tr><tr><td>R7</td><td>Image <code>latest</code> drift after future pushes</td><td>Med</td><td>Med</td><td>Pin <code><sha></code> at sign-off; keep previous tag</td><td>Hosi Dev</td></tr><tr><td>R8</td><td>Windows eval license expiry presses for another path</td><td>—</td><td>—</td><td>Already excluded; Linux verdict locked</td><td>—</td></tr><tr><td>R9</td><td>SITA prefers a different environment than planned</td><td>Med</td><td>Low</td><td>Stage B is environment-agnostic (container deliverable)</td><td>Hosi + SITA</td></tr><tr><td>R10</td><td>No off-host backup during first weeks</td><td>Med</td><td>High</td><td>Stand up rsync/S3 copy D0+1; treat host as single point until then</td><td>Hosi Ops</td></tr></tbody></table>
+<p>Acceptance: residual risk after mitigations reviewed at D0 sign-off; R1 is the only open blocker.</p>
+<p>---</p>
+<h2>20. Detailed Timeline</h2>
+<table><thead><tr><th>Day</th><th>Activity</th><th>Owner</th><th>Status</th></tr></thead><tbody><tr><td>D−3</td><td>VPN access request to IT for <code>192.168.101.0/24</code> (per individual)</td><td>Hosi IT (Arezoo)</td><td>✅ requested</td></tr><tr><td>D−2</td><td>Confirm SSH + host inventory on <code>unified</code>; GHCR pullability</td><td>Hosi Dev</td><td>✅ done (19 Aug)</td></tr><tr><td>D−1</td><td><strong>Deploy stack from GHCR images; verify seeds + health</strong> (Phase 2)</td><td>Hosi Dev</td><td>🔄 executing (blocked on R1)</td></tr><tr><td>D0</td><td>Smoke test UI/API (V1–V9); stakeholder sign-off</td><td>Hosi Dev + stakeholder</td><td>⬜ next</td></tr><tr><td>D+1</td><td>Nightly backup cron verified; off-host copy stood up (R10)</td><td>Hosi Ops</td><td>⬜</td></tr><tr><td>D+1…D+7</td><td>Hypercare; monitoring baseline (Prometheus optional); UFW/SSH-key hardening</td><td>Hosi Dev</td><td>⬜</td></tr><tr><td>D+8…D+30</td><td>Assemble shipping bundle + runbook; Stage B rehearsal on scratch host; agree SITA's environment</td><td>Hosi Dev + SITA</td><td>⬜</td></tr><tr><td>D+30+</td><td>Deploy at SITA (Stage B) and acceptance (§5.4) — and only if Hosi operates the cloud: AWS kickoff (Stage C)</td><td>Hosi + SITA</td><td>⬜</td></tr></tbody></table>
+<p>---</p>
+<h2>21. Open Decisions & Next Actions</h2>
+<table><thead><tr><th>#</th><th>Item</th><th>Decision</th><th>Owner</th><th>Status</th></tr></thead><tbody><tr><td>1</td><td>Host (Stage A)</td><td><strong><code>unified</code> — <code>192.168.101.20</code>, user <code>uni</code>, Ubuntu 26.04</strong></td><td>✅ resolved</td><td></td></tr><tr><td>2</td><td>LAN URL</td><td><code>http://192.168.101.20</code></td><td>✅ resolved</td><td></td></tr><tr><td>3</td><td>TLS on Stage A</td><td>Deferred (HTTP first)</td><td>✅ resolved</td><td></td></tr><tr><td>4</td><td>Access</td><td>VPN-gated LAN; jump via <code>hosiai</code> tailnet</td><td>✅ resolved</td><td></td></tr><tr><td>5</td><td>Data</td><td>Fresh seed + HR system</td><td>✅ resolved</td><td></td></tr><tr><td>6</td><td><strong>VPN access to 192.168.101.0/24</strong></td><td>⬜ provisioned per individual</td><td>Hosi IT</td><td>open (blocks D−1)</td></tr><tr><td>7</td><td><strong>SITA's preferred environment</strong> (on-prem / their cloud / third-party)</td><td>⬜ to be agreed</td><td>Hosi + SITA</td><td>open</td></tr><tr><td>8</td><td><strong>Delivery model</strong> (Hosi-supported install vs SITA-run vs Hosi-managed cloud)</td><td>⬜ to be agreed</td><td>Hosi + SITA</td><td>open</td></tr><tr><td>9</td><td>Air-gapped delivery (media) vs online pull</td><td>⬜ depends on SITA network</td><td>SITA</td><td>open</td></tr><tr><td>10</td><td>AWS only if Hosi operates it — landing zone (account, region <code>af-south-1</code>, VPC), IaC tool</td><td>⬜ conditional on Stage C</td><td>Hosi</td><td>open</td></tr><tr><td>11</td><td>Bootstrap admin email (currently <code>admin@sita.local</code>)</td><td>⬜ set to real mailbox at sign-off</td><td>Hosi Dev</td><td>open</td></tr><tr><td>12</td><td>Sign-off owner + cutover date</td><td>⬜</td><td>stakeholder</td><td>open</td></tr></tbody></table>
+<p>---</p>
+<h2>22. Summary</h2>
+<table><thead><tr><th></th><th>Local dev (today)</th><th>Hosi Fourways Linux (Stage A)</th><th>SITA's environment (Stage B — the deliverable)</th><th>AWS managed by Hosi (Stage C — conditional)</th></tr></thead><tbody><tr><td>Host</td><td>Windows dev box</td><td>Existing Hosi Linux server</td><td>SITA's chosen environment</td><td>AWS managed (RDS/ECS/ALB)</td></tr><tr><td>Images</td><td>Build in Docker Desktop</td><td><strong>Pull GHCR images</strong></td><td>Same GHCR images (or offline tar)</td><td>Same GHCR → ECR</td></tr><tr><td>Cost</td><td>n/a</td><td>Free (existing asset)</td><td>SITA bears hosting cost</td><td>Hosi bears/marks up managed service</td></tr><tr><td>Licensing</td><td>—</td><td>None (Ubuntu LTS)</td><td>Per SITA's host</td><td>None (AWS-managed)</td></tr><tr><td>Accessibility</td><td>Local only</td><td>VPN-gated LAN</td><td>SITA's network</td><td>Public HTTPS</td></tr><tr><td>HA/DR</td><td>None</td><td>Host-level backups</td><td>Per SITA's environment + runbook</td><td>Multi-AZ, PITR, autoscale</td></tr><tr><td>Fit</td><td>Dev</td><td><strong>Now</strong> — cost-effective, accessible</td><td><strong>The customer deliverable</strong> — shipped to SITA</td><td><strong>Only if Hosi runs the cloud</strong> — scale/HA/audit</td></tr></tbody></table>
+<p><strong>Recommendation:</strong> deploy <strong>now</strong> to the Hosi Fourways Linux server from prebuilt GHCR images (Stage A) as the working reference. <strong>Execution is underway</strong> — host <code>unified</code> (<code>192.168.101.20</code>, user <code>uni</code>) is inventoried and the <code>deploy-remote-linux.sh</code> one-shot script is ready to run. The only open blocker is <strong>VPN access to <code>192.168.101.0/24</code></strong> (§21#6); until then, the deploy can proceed via the <code>hosiai</code> jump node with interactive credentials. The real deliverable is <strong>portable Docker containers</strong> shipped to <strong>SITA's preferred environment</strong> (Stage B) with compose files, images, <code>.env.template</code>, and a runbook. <strong>AWS (Stage C) is included only if Hosi Technologies operates the system as a cloud-based managed service</strong>; otherwise it is out of scope and SITA's own environment is the deployment target. The Windows/AnyDesk option is excluded because its evaluation license expires in < 30 days, forcing a high-risk mid-flight re-license for no architectural benefit.</p>
+<p>---</p>
+<h2>23. Change Log</h2>
+<table><thead><tr><th>Version</th><th>Date</th><th>Change</th></tr></thead><tbody><tr><td>1.0</td><td>19 Aug 2026</td><td>Initial deployment strategy (Hosi Fourways → AWS)</td></tr><tr><td>1.1</td><td>19 Aug 2026</td><td>Reframed — ship to SITA (Stage B); AWS only if Hosi-managed</td></tr><tr><td>1.2</td><td>19 Aug 2026</td><td>Finalized with confirmed host, execution status, decisions</td></tr><tr><td>2.0</td><td>19 Aug 2026</td><td><strong>Enriched:</strong> RACI, prerequisites, per-step expected outputs & validation checkpoints, troubleshooting runbook, secrets mgmt, day-2 runbook, acceptance tests, backup/DR procedures, risk register, AWS milestone plan</td></tr></tbody></table>
+
+<footer>Generated from <code>docs/DEPLOYMENT_PLAN.md</code> · SITA Consolidated Security Reporting · Hosi Technologies · SITA Platform — Detailed Deployment Plan</footer>
+</div></body></html>
