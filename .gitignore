@@ -46,3 +46,21 @@ backend/_test_dispatch.py
 admin_credentials.md
 backend/new_credentials.txt
 
+# ECDSA attestation signing keys. security_pki.py generates the pair on first
+# use and prefers AG_SIGNING_PRIVATE_KEY_PEM from the environment. The private
+# key must never enter version control; the directory is regenerated per
+# environment, so both files are ignored.
+backend/certs/
+
+# Scratch intermediates. The generator (build_9day_addendum.py) IS versioned -
+# it is the source of the Addendum B workbook - but everything else in scratch/
+# is a throwaway: staged render, one-off patch scripts, inspection helpers,
+# docx-repair working directories and invoice binaries.
+scratch/*
+!scratch/build_9day_addendum.py
+
+# Excel owner files
+~$*.xlsx
+~$*.docx
+
+

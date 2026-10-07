@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>G2 — AI Report Generation Plan · HOSI-UNIFIED Addendum A</title>
+<style>
+:root{
+  --bg:#080d16; --bg2:#0b1220; --surface:#0f1a2c; --surface2:#152340; --surface3:#1c2f52;
+  --line:#1e3050; --line2:#2a4270;
+  --tx:#e8f0fa; --tx2:#a3b7d0; --tx3:#6c819e;
+  --red:#f87171; --red-d:#3d1414; --amb:#fbbf24; --amb-d:#3a2c0c;
+  --blu:#4d9fff; --blu-d:#0f2b52; --grn:#34d399; --grn-d:#0c3326;
+  --vio:#a78bfa; --vio-d:#241a45; --cyn:#22d3ee; --cyn-d:#0a2c38;
+  --accent:77,159,255;
+  --mono:'JetBrains Mono',ui-monospace,SFMono-Regular,Consolas,monospace;
+  --sans:'Inter',system-ui,-apple-system,'Segoe UI',sansospace;
+}
+html[data-theme="light"]{
+  --bg:#f4f7fb; --bg2:#eef3fa; --surface:#fff; --surface2:#f7fafd; --surface3:#eaf1fa;
+  --line:#d8e2ef; --line2:#b9c9dd;
+  --tx:#0d1b2e; --tx2:#40566f; --tx3:#6c819e;
+  --red:#c62828; --red-d:#fdeaea; --amb:#b07407; --amb-d:#fdf4e0;
+  --blu:#1266c9; --blu-d:#e6f0fc; --grn:#0f7b52; --grn-d:#e3f6ee;
+  --vio:#6b46d6; --vio-d:#eee9fd; --cyn:#0b7f95; --cyn-d:#e2f6fa;
+  --accent:18,102,201;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:150px}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:14.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+a{color:var(--blu);text-decoration:none}
+a:hover{text-decoration:underline}
+code,kbd{font-family:var(--mono);font-size:.87em}
+h1,h2,h3,h4{margin:0;font-weight:650;letter-spacing:-.015em}
+.wrap{max-width:1560px;margin:0 auto;padding:0 22px}
+
+/* ---------- topbar ---------- */
+.topbar{position:sticky;top:0;z-index:120;background:rgba(var(--bg),.93);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.tb-in{display:flex;align-items:center;gap:16px;padding:11px 0;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.brand img{width:30px;height:30px;border-radius:7px;flex:none}
+.brand b{font-size:14.5px;white-space:nowrap}
+.brand span{color:var(--tx3);font-size:11.5px;font-family:var(--mono);display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpis{display:flex;gap:7px;margin-left:auto;flex-wrap:wrap}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:5px 11px;min-width:74px}
+.kpi b{display:block;font-size:15px;font-family:var(--mono);line-height:1.25}
+.kpi span{font-size:9.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em}
+.kpi.warn b{color:var(--amb)} .kpi.bad b{color:var(--red)} .kpi.good b{color:var(--grn)}
+.tb-actions{display:flex;gap:7px}
+.btn{background:var(--surface);border:1px solid var(--line2);color:var(--tx2);border-radius:7px;padding:6px 12px;font-size:12.5px;cursor:pointer;font-family:var(--sans);transition:.14s;white-space:nowrap}
+.btn:hover{background:var(--surface2);color:var(--tx);border-color:var(--blu)}
+.btn.on{background:var(--blu);border-color:var(--blu);color:#fff}
+
+/* ---------- nav ---------- */
+.nav{position:sticky;top:53px;z-index:110;background:var(--bg2);border-bottom:1px solid var(--line);overflow-x:auto;scrollbar-width:none}
+.nav::-webkit-scrollbar{display:none}
+.nav-in{display:flex;gap:2px;padding:0 22px;max-width:1560px;margin:0 auto}
+.nav a{padding:9px 12px;font-size:12.5px;color:var(--tx3);white-space:nowrap;border-bottom:2px solid transparent;transition:.14s}
+.nav a:hover{color:var(--tx);text-decoration:none}
+.nav a.act{color:var(--blu);border-bottom-color:var(--blu)}
+
+/* ---------- layout ---------- */
+.shell{display:grid;grid-template-columns:250px minmax(0,1fr);gap:34px;padding:30px 22px 90px;max-width:1560px;margin:0 auto}
+.rail{position:sticky;top:112px;align-self:start;max-height:calc(100vh - 140px);overflow-y:auto;font-size:12.5px}
+.rail h6{font-size:9.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--tx3);margin:0 0 7px;padding-left:11px}
+.rail a{display:block;padding:5px 11px;color:var(--tx3);border-left:2px solid transparent;border-radius:0 5px 5px 0}
+.rail a:hover{color:var(--tx);background:var(--surface);text-decoration:none}
+.rail a.act{color:var(--blu);border-left-color:var(--blu);background:var(--surface)}
+main{min-width:0}
+
+/* ---------- sections ---------- */
+section{margin-bottom:52px;scroll-margin-top:150px}
+h2.sec{font-size:22px;margin-bottom:6px;display:flex;align-items:center;gap:11px;flex-wrap:wrap}
+h2.sec .n{font-family:var(--mono);font-size:12px;color:var(--blu);background:var(--blu-d);border:1px solid rgba(var(--accent),.3);border-radius:6px;padding:2px 8px}
+.sub{color:var(--tx3);font-size:13px;margin-bottom:18px;max-width:96ch}
+h3.sub2{font-size:16px;margin:26px 0 9px}
+h4.sub3{font-size:13.5px;margin:18px 0 7px;color:var(--tx2)}
+
+/* ---------- cards ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:17px 19px;margin-bottom:13px}
+.card.p{background:var(--surface2)}
+.grid{display:grid;gap:12px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+
+/* ---------- pills / tags ---------- */
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;border:1px solid;white-space:nowrap}
+.p-red{color:var(--red);border-color:var(--red);background:var(--red-d)}
+.p-amb{color:var(--amb);border-color:var(--amb);background:var(--amb-d)}
+.p-grn{color:var(--grn);border-color:var(--grn);background:var(--grn-d)}
+.p-blu{color:var(--blu);border-color:var(--blu);background:var(--blu-d)}
+.p-vio{color:var(--vio);border-color:var(--vio);background:var(--vio-d)}
+.p-cyn{color:var(--cyn);border-color:var(--cyn);background:var(--cyn-d)}
+.p-gry{color:var(--tx3);border-color:var(--line2);background:var(--surface2)}
+.tag{display:inline-block;font-family:var(--mono);font-size:10.5px;color:var(--tx3);background:var(--bg);border:1px solid var(--line);border-radius:5px;padding:1px 6px;margin:1px 3px 1px 0}
+.tag.ref{cursor:pointer}
+.tag.ref:hover{color:var(--blu);border-color:var(--blu)}
+
+/* ---------- tables ---------- */
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:var(--surface);margin-bottom:14px}
+table{border-collapse:collapse;width:100%;font-size:12.8px}
+th{background:var(--surface2);text-align:left;padding:9px 11px;font-weight:600;color:var(--tx2);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--line2);white-space:nowrap;position:sticky;top:0;z-index:2}
+th.s{cursor:pointer;user-select:none}
+th.s:hover{color:var(--blu)}
+th.s::after{content:"\2195";opacity:.28;margin-left:5px;font-size:9px}
+th.s.asc::after{content:"\2191";opacity:1;color:var(--blu)}
+th.s.desc::after{content:"\2193";opacity:1;color:var(--blu)}
+td{padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+tbody tr:hover{background:var(--surface2)}
+tbody tr:last-child td{border-bottom:none}
+tr.click{cursor:pointer}
+tr.open{background:var(--surface2)}
+tr.open td{background:var(--surface3)}
+.num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.mono{font-family:var(--mono);font-size:11.5px;color:var(--tx2)}
+.muted{color:var(--tx3)}
+.nowrap{white-space:nowrap}
+tr.detail>td{background:var(--bg2);padding:0;border-bottom:2px solid var(--line2)}
+.dwrap{padding:13px 16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:13px}
+.dcell{font-size:12.3px}
+.dcell b{display:block;color:var(--tx3);font-size:9.5px;text-transform:uppercase;letter-spacing:.07em;margin-bottom:3px}
+
+/* ---------- filters ---------- */
+.bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:13px}
+.fchip{background:var(--surface);border:1px solid var(--line2);color:var(--tx2);border-radius:20px;padding:4px 12px;font-size:11.8px;cursor:pointer;font-family:var(--sans);transition:.14s}
+.fchip:hover{border-color:var(--blu);color:var(--tx)}
+.fchip.on{background:var(--blu);border-color:var(--blu);color:#fff;font-weight:600}
+.fchip b{opacity:.62;margin-left:4px;font-family:var(--mono);font-size:10px}
+.search{flex:1;min-width:190px;background:var(--surface);border:1px solid var(--line2);color:var(--tx);border-radius:8px;padding:7px 12px;font-size:12.8px;font-family:var(--sans)}
+.search:focus{outline:none;border-color:var(--blu)}
+.search::placeholder{color:var(--tx3)}
+.count{font-size:11.5px;color:var(--tx3);font-family:var(--mono);margin-left:auto;white-space:nowrap}
+
+/* ---------- code ---------- */
+.code{position:relative;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:13px 15px;margin:11px 0;overflow-x:auto;font-family:var(--mono);font-size:11.8px;line-height:1.65}
+.code .cm{color:var(--tx3);font-style:italic}
+.code .kw{color:var(--vio)}
+.code .st{color:var(--grn)}
+.code .fn{color:var(--blu)}
+.code .nm{color:var(--tx)}
+.copy{position:absolute;top:7px;right:7px;background:var(--surface2);border:1px solid var(--line2);color:var(--tx3);border-radius:6px;padding:2px 8px;font-size:10px;cursor:pointer;opacity:0;transition:.14s;font-family:var(--sans)}
+.code:hover .copy{opacity:1}
+.copy:hover{color:var(--blu);border-color:var(--blu)}
+
+/* ---------- gate diagram ---------- */
+.flow{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin:16px 0}
+.gate{flex:1;min-width:172px;background:var(--surface);border:1px solid var(--line);border-radius:11px;padding:14px;cursor:pointer;transition:.16s;position:relative}
+.gate:hover{border-color:var(--blu);transform:translateY(-2px)}
+.gate.on{border-color:var(--blu);background:var(--blu-d);box-shadow:0 0 0 1px var(--blu)}
+.gate b{display:block;font-size:13px;margin-bottom:5px}
+.gate small{color:var(--tx3);font-size:11.2px;line-height:1.5;display:block}
+.gate .st{display:block;margin-top:8px}
+.arw{display:flex;align-items:center;padding:0 7px;color:var(--tx3);font-size:19px;flex:none}
+
+/* ---------- matrix ---------- */
+.mx td.cell{text-align:center;cursor:pointer;font-size:14px}
+.mx td.cell.y{color:var(--grn);font-weight:700}
+.mx td.cell.n{color:var(--tx3);opacity:.4}
+.mx tr.sel td{background:var(--blu-d)}
+.mx tr.sel td:first-child{color:var(--blu);font-weight:600}
+.dt{border-collapse:collapse;width:100%;font-size:12.6px}
+.dt td{padding:5px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+.dt tr:last-child td{border-bottom:none}
+
+/* ---------- gantt ---------- */
+.gt{overflow-x:auto;border:1px solid var(--line);border-radius:11px;background:var(--surface)}
+.gt table{border-collapse:separate;border-spacing:0;min-width:1120px}
+.gt th{position:sticky;top:0;background:var(--surface2);font-size:9.5px;padding:6px 3px;text-align:center;min-width:26px;line-height:1.25}
+.gt th.wn{color:var(--tx3);font-family:var(--mono)}
+.gt th.fz{background:var(--amb-d);color:var(--amb)}
+.gt td.lab{padding:5px 9px;font-size:11.6px;white-space:nowrap;position:sticky;left:0;background:var(--surface);z-index:1;border-right:1px solid var(--line2);max-width:400px;overflow:hidden;text-overflow:ellipsis}
+.gt tr:hover td.lab{background:var(--surface2)}
+.gt td.w{padding:0;border-right:1px solid var(--line);min-width:26px}
+.gt td.w i{display:block;height:17px;background:var(--surface3);border-radius:3px;margin:1.5px}
+.gt td.w.on i{background:var(--blu);cursor:pointer}
+.gt td.w.on i:hover{background:var(--cyn)}
+.gt td.w.risk i{background:var(--red)}
+.gt td.w.ph i{background:rgba(var(--accent),.2)}
+.gt tr.hd td{background:var(--bg2);font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.07em;padding:4px 9px;position:sticky;left:0}
+
+/* ---------- milestones ---------- */
+.ms{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:11px}
+.msc{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--cyn);border-radius:10px;padding:12px 14px;cursor:pointer;transition:.16s}
+.msc:hover{transform:translateY(-2px);border-color:var(--cyn);border-left-color:var(--cyn)}
+.msc b{display:block;font-family:var(--mono);color:var(--cyn);font-size:12px;margin-bottom:4px}
+.msc span{font-size:12.2px;color:var(--tx);display:block;line-height:1.45}
+.msc em{font-style:normal;font-size:10.5px;color:var(--tx3);display:block;margin-top:5px;font-family:var(--mono)}
+
+/* ---------- callouts ---------- */
+.note{border-left:3px solid var(--amb);background:var(--amb-d);border-radius:0 9px 9px 0;padding:11px 15px;margin:13px 0;font-size:12.8px}
+.note.ok{border-color:var(--grn);background:var(--grn-d)}
+.note.bad{border-color:var(--red);background:var(--red-d)}
+.note.info{border-color:var(--blu);background:var(--blu-d)}
+.note b{color:var(--tx)}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 13px;font-size:12.6px;margin:9px 0}
+.kv dt{color:var(--tx3);white-space:nowrap}
+.kv dd{margin:0;font-family:var(--mono);font-size:11.8px}
+
+/* ---------- modal ---------- */
+.ov{position:fixed;inset:0;background:rgba(2,6,14,.8);backdrop-filter:blur(4px);z-index:300;display:none;align-items:center;justify-content:center;padding:22px}
+.ov.open{display:flex}
+.ovc{background:var(--surface);border:1px solid var(--line2);border-radius:15px;max-width:1000px;width:100%;max-height:88vh;overflow-y:auto;padding:26px 30px;position:relative;box-shadow:0 24px 70px rgba(0,0,0,.6)}
+.ovc h3{font-size:18px;margin-bottom:5px;padding-right:32px}
+.ovc .x{position:absolute;top:14px;right:16px;background:var(--surface2);border:1px solid var(--line2);color:var(--tx2);border-radius:7px;width:28px;height:28px;cursor:pointer;font-size:15px;line-height:1}
+.ovc .x:hover{color:var(--red);border-color:var(--red)}
+
+.ttop{position:fixed;right:20px;bottom:20px;z-index:100;opacity:0;pointer-events:none;transition:.2s}
+.ttop.on{opacity:1;pointer-events:auto}
+#hint{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);z-index:110;background:var(--surface2);border:1px solid var(--line2);border-radius:20px;padding:5px 14px;font-size:11px;color:var(--tx3);font-family:var(--mono);opacity:0;transition:.2s}
+#hint.on{opacity:1}
+
+@media(max-width:1180px){.shell{grid-template-columns:1fr}.rail{display:none}.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:1fr}}
+@media(max-width:640px){.g2,.g3,.g4{grid-template-columns:1fr}.kpi{min-width:62px;padding:4px 8px}html{scroll-padding-top:190px}}
+@media print{.topbar,.nav,.rail,.ttop,#hint,.bar,.fchip{display:none!important}.shell{grid-template-columns:1fr;padding-top:0}section{page-break-inside:avoid}.ov{position:static;display:block}.ovc{border:none;box-shadow:none;max-height:none}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap tb-in">
+    <div class="brand">
+      <img src="/sita-logo.gif" alt="SITA" onerror="this.style.visibility='hidden'">
+      <div>
+        <b>G2 · AI Report Generation</b>
+        <span id="bx">HOSI-UNIFIED Addendum A</span>
+      </div>
+    </div>
+    <div class="kpis" id="kpis"></div>
+    <div class="tb-actions">
+      <button class="btn" id="expandAll">Expand all</button>
+      <button class="btn" id="theme">☀ Light</button>
+    </div>
+  </div>
+  <div class="nav"><div class="nav-in" id="nav"></div></div>
+</div>
+
+<div class="shell">
+  <aside class="rail" id="rail"></aside>
+  <main>
+
+<!-- ============================ 1. OVERVIEW ============================ -->
+<section id="overview">
+  <h2 class="sec"><span class="n">00</span> Overview</h2>
+  <p class="sub" id="parentPlan"></p>
+  <div class="note info"><b>Proposal stage.</b> <span id="noticeTxt"></span> Source of schedule truth: <code id="srcXlsx"></code>.</div>
+
+  <div class="grid g4">
+    <div class="card"><h4 class="sub3" style="margin-top:0">Stage placement</h4><p style="margin:0;font-size:12.6px;color:var(--tx2)">Stage 4 (REST API) — <code>api/routers/reports_ai.py</code>. Stages 5–6 consume its JSON. Nothing changes in Stages 1–3.</p></div>
+    <div class="card"><h4 class="sub3" style="margin-top:0">Hosting</h4><p style="margin:0;font-size:12.6px;color:var(--tx2)">Self-hosted / on-prem or sovereign cloud. No security data leaves the environment.</p></div>
+    <div class="card"><h4 class="sub3" style="margin-top:0">Status</h4><p style="margin:0;font-size:12.6px;color:var(--tx2)"><span class="pill p-blu">Not built</span> <span class="pill p-gry">Proposal only</span></p></div>
+    <div class="card"><h4 class="sub3" style="margin-top:0">Relationship</h4><p style="margin:0;font-size:12.6px;color:var(--tx2)">Alternative to the AI-reporting section of <code>G1_AI_Integration_Plan.md</code>.</p></div>
+  </div>
+
+  <h3 class="sub2">Three guarantees by construction</h3>
+  <div class="grid g3">
+    <div class="card p"><h4 style="margin:0 0 6px">1 · Nothing existing changes</h4><p style="margin:0;font-size:12.5px;color:var(--tx2)">No modification to any current router, export, dashboard, prompt or warehouse table. Every file and table is new.</p></div>
+    <div class="card p"><h4 style="margin:0 0 6px">2 · No request without authorisation</h4><p style="margin:0;font-size:12.5px;color:var(--tx2)">RBAC and tenancy resolve <em>before</em> any data is read, into a frozen object every data accessor must accept.</p></div>
+    <div class="card p"><h4 style="margin:0 0 6px">3 · A model cannot widen scope</h4><p style="margin:0;font-size:12.5px;color:var(--tx2)">The prompt receives pre-scoped, disclosure-classed facts. No SQL, no DB handle, no tools.</p></div>
+  </div>
+
+  <h3 class="sub2">Non-interference with existing reports</h3>
+  <p class="sub">The existing reporting surface is frozen. Click a row for detail.</p>
+  <div class="tw"><table id="tblNonInterf"><thead><tr><th>Existing artefact</th><th>Location</th><th>Change</th></tr></thead><tbody></tbody></table></div>
+  <div class="note"><b>Why AI stays out of the AG attestation.</b> <code>build_attestation()</code> is a deterministic pure function unit-tested without a DB. Injecting nondeterministic model output would make the signature attest to text nobody verified deterministically. Keeping AI reports separate preserves that determinism.</div>
+</section>
+
+<!-- ============================ 1. TWO GATES ============================ -->
+<section id="gates">
+  <h2 class="sec"><span class="n">01</span> The two-gate authorisation model</h2>
+  <p class="sub">Every AI report request passes two independent gates, in order, before any warehouse row is read. Click a stage to see its detail.</p>
+  <div class="flow" id="flow"></div>
+  <div class="card" id="gateDetail"><p class="muted" style="margin:0">Select a stage above.</p></div>
+
+  <h3 class="sub2">Why RBAC and tenancy drive the architecture</h3>
+  <div class="tw"><table class="srt"><thead><tr><th>Property of the existing platform</th><th>Consequence for AI reports</th></tr></thead><tbody>
+    <tr><td><code>tenant_filter()</code> is <b>opt-in</b> — there is no middleware</td><td>A forgotten call silently returns the whole estate. Scope must be made <b>impossible to omit</b>.</td></tr>
+    <tr><td>Scope is <b>ambient</b> — passed as <code>claims</code> wherever the author remembered</td><td>Data helpers must take scope <b>explicitly and positionally</b>. No ambient authority.</td></tr>
+    <tr><td><code>tenant_filter()</code> requires <code>department_id</code> + <code>branch_id</code>; it raises <code>AttributeError</code> on <code>ComplianceSnapshot</code>, <code>ComplianceGap</code></td><td>Compliance data is <b>structurally unscopable</b> today. That must become an explicit, typed, disclosed fact — not an accident.</td></tr>
+  </tbody></table></div>
+
+  <h3 class="sub2">Gate 1 — capability RBAC (per report type)</h3>
+  <p class="sub">Existing RBAC is coarse: <code>require_roles("findings")</code> grants the whole findings surface. For AI that is too blunt — a <code>dbsec</code> role holding <code>findings</code> must not request an executive briefing. New additive namespace; <code>ROLES_HIERARCHY</code> is not modified.</p>
+  <div class="code"><button class="copy">copy</button>
+<span class="cm"># backend/app/ai/permissions.py</span>
+<span class="kw">REPORT_AI_PERMISSIONS</span> = {
+    <span class="st">"executive_briefing"</span>: <span class="st">"report_ai:executive"</span>,
+    <span class="st">"soc_shift_handover"</span>:  <span class="st">"report_ai:soc"</span>,
+    <span class="st">"appsec_posture"</span>:      <span class="st">"report_ai:appsec"</span>,
+    <span class="st">"dbsec_posture"</span>:       <span class="st">"report_ai:dbsec"</span>,
+    <span class="st">"compliance_status"</span>:   <span class="st">"report_ai:compliance"</span>,
+    <span class="st">"department_monthly"</span>:  <span class="st">"report_ai:executive"</span>,
+    <span class="st">"peer_benchmark"</span>:      <span class="st">"report_ai:executive"</span>,
+}
+
+<span class="kw">ROLE_REPORT_AI</span> = {
+    <span class="st">"exec"</span>:               frozenset({<span class="st">"report_ai:executive"</span>, <span class="st">"report_ai:compliance"</span>}),
+    <span class="st">"soc"</span>:                frozenset({<span class="st">"report_ai:soc"</span>}),
+    <span class="st">"dbsec"</span>:              frozenset({<span class="st">"report_ai:dbsec"</span>}),
+    <span class="st">"transversal-admin"</span>:  frozenset({<span class="st">"... all ..."</span>}),
+    <span class="cm"># a role absent from this map gets NOTHING — default-deny</span>
+}
+  </div>
+
+  <h3 class="sub2">Gate 2 — tenancy: <code>ReportScope</code>, a frozen value object</h3>
+  <p class="sub">The structural fix. Created once per request, immutable, and a <b>required positional parameter</b> of every data accessor — so a function that reads the warehouse cannot be called without a scope.</p>
+  <div class="code"><button class="copy">copy</button>
+<span class="kw">from</span> dataclasses <span class="kw">import</span> dataclass
+<span class="kw">from</span> typing <span class="kw">import</span> FrozenSet
+
+<span class="kw">@dataclass</span>(frozen=<span class="kw">True</span>, slots=<span class="kw">True</span>)
+<span class="kw">class</span> <span class="fn">ReportScope</span>:
+    <span class="st">"""Immutable, fully-resolved tenant scope. Created once, passed explicitly.
+
+    No `claims` accessor and no `get_current_user()` call lives in this object:
+    the scope is resolved once and cannot drift mid-request.
+    """</span>
+    subject:         <span class="nm">str</span>
+    roles:           <span class="nm">FrozenSet</span>[<span class="nm">str</span>]
+    department_ids:  <span class="nm">FrozenSet</span>[<span class="nm">str</span>]   <span class="cm"># already province-expanded</span>
+    branch_ids:      <span class="nm">FrozenSet</span>[<span class="nm">str</span>]
+    province_ids:    <span class="nm">FrozenSet</span>[<span class="nm">str</span>]
+    nationwide:      <span class="nm">bool</span>
+    scope_class:     <span class="nm">ScopeClass</span>
+    scope_hash:      <span class="nm">str</span>            <span class="cm"># sha256 of the canonical scope tuple</span>
+
+    <span class="kw">def</span> <span class="fn">tenant_filter</span>(<span class="nm">self</span>, model): <span class="cm"># delegates to app.api.auth.tenant_filter</span>
+        ...
+    <span class="kw">def</span> <span class="fn">permits_department</span>(<span class="nm">self</span>, dept_id: <span class="nm">str</span>) -&gt; <span class="nm">bool</span>: ...
+    <span class="kw">def</span> <span class="fn">permits_branch</span>(<span class="nm">self</span>, branch_id: <span class="nm">str</span>) -&gt; <span class="nm">bool</span>: ...
+  </div>
+
+  <h4 class="sub3">Accessors require scope positionally</h4>
+  <div class="grid g2">
+    <div class="card"><span class="pill p-grn">SAFE — scope is mandatory</span><div class="code" style="margin-top:9px"><span class="kw">async def</span> <span class="fn">findings_severity_counts</span>(<span class="nm">scope</span>: <span class="fn">ReportScope</span>, db): ...</div></div>
+    <div class="card"><span class="pill p-red">NEVER WRITTEN</span><div class="code" style="margin-top:9px"><span class="cm"># no scope parameter exists — cannot be called safely</span>
+<span class="kw">async def</span> <span class="fn">findings_severity_counts</span>(db): ...</div></div>
+  </div>
+  <div class="note ok">Test <b>S6</b> enforces this mechanically by signature inspection across the module — the convention fails the build rather than relying on code review. See <a href="#verify">Verification suites</a>.</div>
+
+  <h4 class="sub3">Scope classes — making the compliance gap explicit</h4>
+  <div class="code"><button class="copy">copy</button>
+<span class="kw">class</span> <span class="fn">ScopeClass</span>(<span class="nm">str</span>, Enum):
+    TENANT_SCOPED = <span class="st">"tenant_scoped"</span>   <span class="cm"># filtered by ReportScope.tenant_filter()</span>
+    ESTATE_WIDE   = <span class="st">"estate_wide"</span>     <span class="cm"># structurally unscopable today — MUST be disclosed</span>
+  </div>
+  <p class="sub">Every fact carries one. Estate-wide facts must propagate to the response envelope and be attributed as estate-wide in the narrative — enforced by the verifier, not by prompt politeness.</p>
+
+  <h4 class="sub3">Provable scope non-widening</h4>
+  <ul style="font-size:12.8px;color:var(--tx2);margin:0;padding-left:19px">
+    <li><code>ReportScope</code> is frozen and has no mutator.</li>
+    <li>Accessors never widen — <code>tenant_filter()</code> is applied, never composed away.</li>
+    <li>A nationwide role gets <code>tenant_filter() -&gt; None</code> (existing behaviour). The AI layer preserves this exactly and never re-derives it.</li>
+    <li>A department-scoped role with empty scope gets <code>expression.false()</code> — the existing fail-closed path — and renders empty with an explicit notice, never estate-wide.</li>
+  </ul>
+</section>
+
+<!-- ============================ 2. REPORT CATALOGUE ============================ -->
+<section id="catalogue">
+  <h2 class="sec"><span class="n">02</span> Report catalogue — RBAC × tenancy matrix</h2>
+  <p class="sub"><code>—</code> means Gate 1 denies the role entirely. Click any report type to inspect it.</p>
+  <div class="tw"><table class="mx" id="tblMx"><thead><tr id="mxHead"></tr></thead><tbody id="mxBody"></tbody></table></div>
+  <div class="card" id="mxDetail"><p class="muted" style="margin:0">Click a report type above.</p></div>
+</section>
+
+<!-- ============================ 3. CLAIM PERMISSION ============================ -->
+<section id="claims">
+  <h2 class="sec"><span class="n">03</span> Claim permission — RBAC inside the output</h2>
+  <p class="sub">A role may be permitted to request a report but not to see everything inside it. This layer applies to the generated text, not the request. Click a claim class to see who holds it.</p>
+  <div class="tw"><table id="tblClaims"><thead><tr><th>Claim class</th><th>What it lets the narrative name</th><th>Held by</th></tr></thead><tbody></tbody></table></div>
+  <div class="note"><b>Enforcement.</b> After generation the verifier scans for claim patterns (<code>CVE-\d{4}-\d+</code>, alert UUIDs, department names, rule ids, owner names) and <b>discards</b> any sentence containing a class the role does not hold. A failed verification returns the deterministic template, never the model text.</div>
+  <div class="grid g2">
+    <div class="card"><h4 style="margin:0 0 7px"><span class="pill p-blu">exec</span> sees</h4><p style="margin:0;font-size:12.6px;color:var(--tx2)">"Estate risk is 62, critical exposure concentrated in 4 applications" — no CVE list, no owner names.</p></div>
+    <div class="card"><h4 style="margin:0 0 7px"><span class="pill p-amb">soc</span> sees</h4><p style="margin:0;font-size:12.6px;color:var(--tx2)">"CVE-2026-31429 on payment-gateway, alert a1b2…, owner Payment Ops".</p></div>
+  </div>
+  <p class="sub" style="margin-top:11px">Today the platform differentiates only by <em>which dashboard</em> you land on. This differentiates by <em>what your narrative is permitted to say</em>.</p>
+</section>
+
+<!-- ============================ 4. ENDPOINTS ============================ -->
+<section id="api">
+  <h2 class="sec"><span class="n">04</span> Endpoint contract</h2>
+  <p class="sub"><code>POST</code> routes under <code>/api/v1/reports-ai/…</code> — deliberately avoiding <code>GET</code> paths containing <code>/findings</code>, <code>/metrics</code>, <code>/risks</code>, <code>/compliance</code>, <code>/dashboard</code> or <code>/public/summary</code>, which <code>demoInterceptor.ts</code> silently hijacks in demo mode.</p>
+  <div class="tw"><table id="tblApi"><thead><tr><th>Method</th><th>Path</th><th>Auth</th><th>Purpose</th></tr></thead><tbody></tbody></table></div>
+  <h3 class="sub2">Response envelope</h3>
+  <p class="sub">Authorisation facts are part of the contract, not metadata. Click the tab to switch.</p>
+  <div class="bar"><button class="fchip on" data-tab="env">Response envelope</button><button class="fchip" data-tab="key">Audit row</button><button class="fchip" data-tab="lay">File layout</button><button class="fchip" data-tab="ddl">SQL — schema ai</button><button class="fchip" data-tab="tpl">Prompt template</button></div>
+  <div id="tabEnv" class="tabpane"><div class="code"><button class="copy">copy</button>{
+  <span class="st">"report_id"</span>: <span class="st">"…"</span>,
+  <span class="st">"report_type"</span>: <span class="st">"soc_shift_handover"</span>,
+  <span class="st">"narrative_html"</span>: <span class="st">"&lt;h3&gt;SOC handover — Gauteng&lt;/h3&gt;…"</span>,
+  <span class="st">"authorisation"</span>: {
+    <span class="st">"granted_by_role"</span>: <span class="st">"soc"</span>,
+    <span class="st">"permission"</span>: <span class="st">"report_ai:soc"</span>,
+    <span class="st">"scope_class"</span>: <span class="st">"tenant_scoped"</span>,
+    <span class="st">"scope_hash"</span>: <span class="st">"sha256:9f2c…"</span>,
+    <span class="st">"departments_in_scope"</span>: <span class="nm">13</span>,
+    <span class="st">"claim_classes_applied"</span>: [<span class="st">"headline_metrics"</span>,<span class="st">"app_names"</span>,<span class="st">"cve_ids"</span>]
+  },
+  <span class="st">"disclosure"</span>: [],
+  <span class="st">"provenance"</span>: {
+    <span class="st">"model_id"</span>: <span class="st">"…"</span>, <span class="st">"model_digest"</span>: <span class="st">"sha256:…"</span>,
+    <span class="st">"prompt_id"</span>: <span class="st">"soc_shift_handover"</span>, <span class="st">"prompt_version"</span>: <span class="nm">3</span>,
+    <span class="st">"generated_at"</span>: <span class="st">"2026-11-19T09:14:22Z"</span>, <span class="st">"latency_ms"</span>: <span class="nm">6120</span>
+  },
+  <span class="st">"verification"</span>: { <span class="st">"numerals_checked"</span>: <span class="nm">47</span>, <span class="st">"ungrounded"</span>: <span class="nm">0</span>, <span class="st">"passed"</span>: <span class="kw">true</span> },
+  <span class="st">"fallback_used"</span>: <span class="kw">false</span>
+}</div></div>
+  <div id="tabKey" class="tabpane" hidden><div class="code"><button class="copy">copy</button><span class="kw">ActionAudit</span>(
+    actor=<span class="nm">scope.subject</span>,
+    action=<span class="st">"ai_report_generated"</span>,        <span class="cm"># VARCHAR(50) — distinct from AG rows</span>
+    target=<span class="nm">report_type</span>,
+    tenant_scope={
+        <span class="st">"department_ids"</span>: <span class="fn">sorted</span>(<span class="nm">scope.department_ids</span>),
+        <span class="st">"branch_ids"</span>:     <span class="fn">sorted</span>(<span class="nm">scope.branch_ids</span>),
+        <span class="st">"province_ids"</span>:   <span class="fn">sorted</span>(<span class="nm">scope.province_ids</span>),
+        <span class="st">"scope_class"</span>:     <span class="nm">scope.scope_class</span>.<span class="nm">value</span>,
+    },
+    payload_hash=<span class="nm">report_id_hash</span>,
+)
+<span class="cm"># AI rows never appear in an AG attestation.</span></div></div>
+  <div id="tabLay" class="tabpane" hidden><div class="code"><button class="copy">copy</button>backend/app/api/routers/reports_ai.py   <span class="cm"># Stage 4 surface</span>
+backend/app/ai/
+  permissions.py   <span class="cm"># Gate 1 — per-report-type RBAC namespace</span>
+  scope.py         <span class="cm"># Gate 2 — frozen ReportScope, ScopeClass, scope_hash</span>
+  accessors.py     <span class="cm"># warehouse readers; scope is FIRST POSITIONAL arg</span>
+  context.py       <span class="cm"># pure fact-pack builder</span>
+  disclosure.py    <span class="cm"># DisclosureClass tagging + estate-wide attribution</span>
+  claims.py        <span class="cm"># ClaimMatrix</span>
+  gateway.py       <span class="cm"># httpx → vLLM; CircuitBreaker reuse</span>
+  redaction.py     <span class="cm"># PII scrubber — mandatory pre-egress</span>
+  generate.py      <span class="cm"># assembly → generation → verification → fallback</span>
+  verify.py        <span class="cm"># numeral + claim + scope_hash checks</span>
+  templates/*.yaml <span class="cm"># 7 versioned prompts</span>
+infrastructure/scripts/init-ai-schema.sql</div></div>
+  <div id="tabDdl" class="tabpane" hidden><div class="code"><button class="copy">copy</button><span class="kw">CREATE SCHEMA</span> <span class="kw">IF NOT EXISTS</span> ai;
+
+<span class="kw">CREATE TABLE</span> ai.report (
+  id             uuid <span class="kw">PRIMARY KEY</span> <span class="kw">DEFAULT</span> gen_random_uuid(),
+  report_type    varchar(40)  <span class="kw">NOT NULL</span>,
+  actor          varchar(255) <span class="kw">NOT NULL</span>,
+  scope_hash     varchar(80)  <span class="kw">NOT NULL</span>,
+  scope_class    varchar(20)  <span class="kw">NOT NULL</span>,
+  department_ids jsonb        <span class="kw">NOT NULL</span>,
+  branch_ids     jsonb        <span class="kw">NOT NULL</span>,
+  prompt_version integer      <span class="kw">NOT NULL</span>,
+  model_id       varchar(100) <span class="kw">NOT NULL</span>,
+  model_digest   varchar(80),
+  fact_pack_hash varchar(80)  <span class="kw">NOT NULL</span>,
+  narrative_html text,
+  verification   jsonb,
+  fallback_used  boolean      <span class="kw">NOT NULL</span> <span class="kw">DEFAULT</span> <span class="kw">false</span>,
+  disclosure     jsonb,
+  latency_ms     integer,
+  created_at     timestamptz  <span class="kw">NOT NULL</span> <span class="kw">DEFAULT</span> now()
+);
+<span class="kw">CREATE INDEX</span> ai_report_actor_idx <span class="kw">ON</span> ai.report (actor, created_at <span class="kw">DESC</span>);
+<span class="kw">CREATE INDEX</span> ai_report_scope_idx <span class="kw">ON</span> ai.report (scope_hash);
+<span class="cm">-- Kept out of `warehouse` so existing reporting tables are untouched.</span></div></div>
+  <div id="tabTpl" class="tabpane" hidden><div class="code"><button class="copy">copy</button>report_type: soc_shift_handover
+version: <span class="nm">3</span>
+model_tier: reasoning
+system: |
+  You are a SOC shift-handover writer for a South African government security
+  operations centre. Write only from the FACTS block.
+  If a required figure is absent, write "not tracked in this build" — never estimate.
+  Never state a finding is remediated unless FACTS.status confirms it.
+  Do not name any department outside the SCOPE block.
+  Do not name CVE, alert, owner or rule identifiers — your audience profile does
+  not permit identifier-level claims.
+input:
+  facts_from: context.build_soc_context   <span class="cm"># pure, consumes scope-bound accessors</span>
+  max_tokens: <span class="nm">1200</span>
+  temperature: <span class="nm">0.2</span>                      <span class="cm"># reporting, not creative writing</span>
+constraints:
+  - figures_only_from_facts: <span class="kw">true</span>
+  - allowed_claim_classes: [headline_metrics, app_names, department_names]
+  - estate_wide_attribution: required
+output:
+  schema: narrative_html   <span class="cm"># constrained decode; h3/ul/li/strong only</span></div></div>
+  <div class="note"><b>Cache key</b> = <code>sha256(report_type + scope_hash + fact_pack_hash + prompt_version + model_digest)</code>. Scope is in the key, so cross-scope cache poisoning is not possible by construction.</div>
+</section>
+
+<!-- ============================ 5. VERIFICATION ============================ -->
+<section id="verify">
+  <h2 class="sec"><span class="n">05</span> Verification plan — the actual proof</h2>
+  <p class="sub">RBAC and tenancy claims are only worth as much as their tests. Click a suite for method and pass criterion.</p>
+  <div class="tw"><table id="tblSuites"><thead><tr><th>Suite</th><th>Scope</th><th>Method</th><th>Pass criterion</th><th>Built in</th></tr></thead><tbody></tbody></table></div>
+  <div class="note ok"><b>S6 is the one that prevents regression.</b> It is a signature-inspection test, not a behavioural test — it fails the build if anyone adds a warehouse-reading function without a mandatory scope parameter.</div>
+
+  <h3 class="sub2">Deterministic fallback</h3>
+  <div class="grid g2">
+    <div class="card"><h4 style="margin:0 0 6px">When it engages</h4><p style="margin:0;font-size:12.6px;color:var(--tx2)">Model unavailable · breaker open · verification failed · <code>llm_enabled=false</code>.</p></div>
+    <div class="card"><h4 style="margin:0 0 6px">What renders</h4><p style="margin:0;font-size:12.6px;color:var(--tx2)">A static Jinja2 template driven by the <b>same fact pack</b> — same numbers, no prose flourish. <code>fallback_used:true</code> is returned.</p></div>
+  </div>
+  <div class="note info">Because the fact pack is identical in both paths, a fallback report never shows different numbers from an AI report for the same scope and moment. This also makes the whole capability safely demoable and testable <b>with no GPU at all</b>.</div>
+</section>
+
+<!-- ============================ 6. NON-GOALS ============================ -->
+<section id="nongoals">
+  <h2 class="sec"><span class="n">06</span> Explicit non-goals</h2>
+  <p class="sub">Stated so they are not quietly added later.</p>
+  <div class="grid g2" id="gridNG"></div>
+</section>
+
+<!-- ============================ 7. ACCEPTANCE ============================ -->
+<section id="accept">
+  <h2 class="sec"><span class="n">07</span> Acceptance criteria</h2>
+  <p class="sub">Tick interactively — progress is kept in this browser only.</p>
+  <div class="bar"><button class="btn" id="accReset">Reset ticks</button><span class="count" id="accCount"></span></div>
+  <div id="accList"></div>
+</section>
+
+<!-- ====================== 8. FLIGHT PLAN ALIGNMENT ====================== -->
+<section id="plan">
+  <h2 class="sec"><span class="n">08</span> Addendum A flight plan</h2>
+  <p class="sub" id="planSub"></p>
+  <div id="phBlocks"></div>
+</section>
+
+<section id="activities">
+  <h2 class="sec"><span class="n">09</span> Activity register</h2>
+  <p class="sub">Every activity from the addendum. Filter, search and sort; click a row for full detail. Press <kbd>/</kbd> to search.</p>
+  <div class="bar">
+    <input class="search" id="q" placeholder="Search activities, deliverables, owners, risks…">
+    <span class="count" id="actCount"></span>
+  </div>
+  <div class="bar" id="phaseChips"></div>
+  <div class="bar" id="ownerChips"></div>
+  <div class="bar" id="statusChips"></div>
+  <div class="tw"><table id="tblAct"><thead><tr>
+    <th>Ref</th><th>Activity</th><th>Owner</th><th>Start</th><th>End</th><th class="num">PD</th><th>Status</th>
+  </tr></thead><tbody></tbody></table></div>
+</section>
+
+<section id="effort">
+  <h2 class="sec"><span class="n">10</span> Effort &amp; capacity</h2>
+  <p class="sub">Person-days by phase and by owner. Negative figures are a shortfall, not a surplus.</p>
+  <div class="tw"><table id="tblEffort"><thead><tr><th>Phase</th><th>Name</th><th>Start</th><th>End</th><th class="num">Wks</th><th class="num">Days</th><th class="num">Effort</th><th class="num">Takawira</th><th class="num">Peter</th><th class="num">Other</th><th class="num">Cont.</th><th class="num">Total</th></tr></thead><tbody></tbody></table></div>
+  <h3 class="sub2">Capacity check</h3>
+  <div class="tw"><table id="tblCap"><tbody></tbody></table></div>
+  <div id="capNotes"></div>
+  <h3 class="sub2">Effort by primary owner</h3>
+  <div class="tw"><table id="tblOwners"><thead><tr><th>Primary owner</th><th class="num">Activities</th><th class="num">Effort (PD)</th><th>Share</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section id="gantt">
+  <h2 class="sec"><span class="n">11</span> Weekly Gantt</h2>
+  <p class="sub">Week grid taken verbatim from the addendum. Click any blue cell to open that activity. Click a phase heading to filter everything above.</p>
+  <div class="bar" id="ganttChips"></div>
+  <div class="gt"><table id="tblGantt"><thead id="gHead"></thead><tbody id="gBody"></tbody></table></div>
+  <div class="note" id="ganttNote"></div>
+</section>
+
+<section id="risks">
+  <h2 class="sec"><span class="n">12</span> Risk register</h2>
+  <p class="sub">Score = likelihood × impact. Critical ≥ 15, High ≥ 10, Medium ≥ 5. Click a row for mitigation. Risks marked <span class="pill p-vio" style="font-size:9px">by plan</span> were added by the addendum, not stated in G2.</p>
+  <div class="bar" id="riskChips"></div>
+  <div class="grid g4" id="riskKpis"></div>
+  <div class="tw"><table id="tblRisks"><thead><tr><th>ID</th><th>Risk</th><th>Source</th><th>Ph</th><th class="num">L</th><th class="num">I</th><th class="num">Score</th><th>Rating</th><th>Owner</th></tr></thead><tbody></tbody></table></div>
+</section>
+
+<section id="decisions">
+  <h2 class="sec"><span class="n">13</span> Decisions &amp; milestones</h2>
+  <p class="sub">Every decision carries a default position, so an unclosed decision does not block the build. Click a row to expand.</p>
+  <div class="tw"><table id="tblDec"><thead><tr><th>#</th><th>Decision</th><th>Owner</th><th>Blocks</th><th>Target</th><th>Default if undecided</th><th>Status</th></tr></thead><tbody></tbody></table></div>
+  <h3 class="sub2">Milestones</h3>
+  <div class="ms" id="msGrid"></div>
+</section>
+
+<section id="assumptions">
+  <h2 class="sec"><span class="n">14</span> Assumptions &amp; calendar</h2>
+  <p class="sub">Planning assumptions carried from the addendum. Items marked <span class="pill p-amb" style="font-size:9px">assumption</span> need client confirmation.</p>
+  <div class="tw"><table id="tblAssum"><tbody></tbody></table></div>
+  <h3 class="sub2">Notes</h3>
+  <div class="card" id="notesCard"></div>
+</section>
+
+<footer style="border-top:1px solid var(--line);padding-top:18px;color:var(--tx3);font-size:11.8px">
+  <p style="margin:0 0 5px"><b style="color:var(--tx2)">G2 — AI Report Generation Plan.</b> Alternative to the AI-reporting section of <code>G1_AI_Integration_Plan.md</code>. Stage 4 (REST API), additive. Self-hosted / on-prem or sovereign cloud.</p>
+  <p style="margin:0">Schedule aligned to <code id="footXlsx"></code> · HTML generated <span id="genDate"></span> · <b>No code in this document has been written — proposal for approval.</b></p>
+</footer>
+
+</main>
+</div>
+
+<button class="btn ttop" id="toTop">↑ Top</button>
+<div id="hint">/ to search · Esc clears</div>
+
+<div class="ov" id="ov"><div class="ovc"><button class="x" id="ovX">&times;</button><div id="ovBody"></div></div></div>
+
+<script>
+const DATA = {"meta":{"title":"HOSI-UNIFIED MANAGED SERVICES","subtitle":"Addendum A — G2 AI Report Generation (Stage 4, additive)","parent":"Addendum to HOSI-UNIFIED_DATA_MANAGED_SERVICE_PROJECT_FLIGHT_PLAN_2026 (20 August 2026)","notice":"Proposal stage — dates are planned, not committed, until G2 is approved.","sponsor":"Kagiso Mokgofa","pm":"Jerry Mokone","lead":"Takawira and Peter","xlsx":"HOSI-UNIFIED_FLIGHT_PLAN_ADDENDUM_A_G2_AI_REPORT_GENERATION.xlsx","generated":"2026-10-05","stats":{"Total Activities":"55","Completed":"1","Pending":"54","Total effort (person-days)":"145.5","Planned start":"2026-10-05","Planned go-live":"2027-01-29"}},"blocks":[{"title":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)"},{"title":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)"},{"title":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)"},{"title":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)"}],"phases":[{"title":"Phase 12: Governance, Approval & Open Decisions (Weeks 1-2)","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","no":"12","activities":["12.1","12.2","12.3","12.4","12.5","12.6","12.7","12.8"]},{"title":"Phase 13: Authorisation Foundation - Gate 1 RBAC, Gate 2 ReportScope, ai schema (Weeks 3-4)","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","no":"13","activities":["13.1","13.2","13.3","13.4","13.5","13.6"]},{"title":"Phase 14: Scoped Data Layer - accessors, fact pack, disclosure, claims (Weeks 5-6)","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","no":"14","activities":["14.1","14.2","14.3","14.4","14.5","14.6","14.7"]},{"title":"Phase 15: Generation Engine - gateway, redaction, prompts, orchestration (Weeks 7-8)","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","no":"15","activities":["15.1","15.2","15.3","15.4","15.5","15.6","15.7"]},{"title":"Phase 16: Verification & Deterministic Fallback (Weeks 9-10)","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","no":"16","activities":["16.1","16.2","16.3","16.4","16.5","16.6","16.7"]},{"title":"Phase 17: REST Router, Envelope, Cache & Audit (Weeks 11-12)","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","no":"17","activities":["17.1","17.2","17.3","17.4","17.5","17.6","17.7"]},{"title":"Phase 18: Verification Suites, Security Review & Hardening (Weeks 14-15)","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","no":"18","activities":["18.1","18.2","18.3","18.4","18.5","18.6","18.7"]},{"title":"Phase 19: UAT, Documentation, Go-Live & Contingency (Weeks 16-18)","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","no":"19","activities":["19.1","19.2","19.3","19.4","19.5","19.6"]}],"activities":[{"ref":"12.1","phase":"12","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 12: Governance, Approval & Open Decisions (Weeks 1-2)","desc":"G2 plan drafted (alternative to the G1 AI-reporting section) and issued for approval","status":"Completed","pct":1.0,"start":"2026-10-05","end":"2026-10-05","owner":"Takawira","deliverable":"G2_AI_Report_Generation_Plan (proposal only, nothing built)","risks":"","deps":"G1_AI_Integration_Plan.md","obstacles":"","notes":"Draft dated 2026-10-05","effort":1.0,"primary":"Takawira"},{"ref":"12.2","phase":"12","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 12: Governance, Approval & Open Decisions (Weeks 1-2)","desc":"G2 plan review and approval","status":"Not Started","pct":0.0,"start":"2026-10-06","end":"2026-10-12","owner":"Jerry and Kagiso","deliverable":"Signed-off G2 plan; approval recorded against flight plan","risks":"Stakeholder availability delays","deps":"Phase 12.1","obstacles":"","notes":"Approval is the gate for all build work","effort":1.5,"primary":"Jerry"},{"ref":"12.3","phase":"12","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 12: Governance, Approval & Open Decisions (Weeks 1-2)","desc":"Decision 1 - ai schema in the main DB or a separate reporting DB","status":"Not Started","pct":0.0,"start":"2026-10-06","end":"2026-10-14","owner":"Data Architect and DevOps","deliverable":"Written decision; DDL target confirmed","risks":"Delay blocks DDL in Phase 13.1","deps":"Phase 12.2","obstacles":"","notes":"Default if undecided: separate schema 'ai' in the main DB","effort":1.0,"primary":"DevOps"},{"ref":"12.4","phase":"12","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 12: Governance, Approval & Open Decisions (Weeks 1-2)","desc":"Decision 2 - is estate-wide compliance disclosure acceptable, or wait for tenancy columns on ComplianceSnapshot / ComplianceGap?","status":"Not Started","pct":0.0,"start":"2026-10-06","end":"2026-10-14","owner":"Compliance Analyst","deliverable":"Written decision on compliance_status report","risks":"Compliance data is structurally unscopable today","deps":"Phase 12.2","obstacles":"","notes":"Blocks only the compliance_status report","effort":1.0,"primary":"Compliance Analyst"},{"ref":"12.5","phase":"12","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 12: Governance, Approval & Open Decisions (Weeks 1-2)","desc":"Decisions 3 and 5 - AG narrative stays separate from the attestation; ai.report audit retention","status":"Not Started","pct":0.0,"start":"2026-10-06","end":"2026-10-16","owner":"AG liaison and Compliance Analyst","deliverable":"Written decisions; retention aligned to audit.action_audit","risks":"Low risk: safe default is 'separate'","deps":"Phase 12.2","obstacles":"","notes":"Decision 3 blocks nothing","effort":1.0,"primary":"AG liaison"},{"ref":"12.6","phase":"12","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 12: Governance, Approval & Open Decisions (Weeks 1-2)","desc":"Decision 4 - is DEPARTMENT_NAMES a safe claim class for exec estate-wide?","status":"Not Started","pct":0.0,"start":"2026-10-06","end":"2026-10-16","owner":"Compliance Analyst and AG liaison","deliverable":"Signed-off ROLE_CLAIMS matrix (section 6)","risks":"Provincial sensitivity","deps":"Phase 12.2","obstacles":"","notes":"Needed before claims.py (Phase 14.4)","effort":1.0,"primary":"Compliance Analyst"},{"ref":"12.7","phase":"12","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 12: Governance, Approval & Open Decisions (Weeks 1-2)","desc":"Decision 6 - GPU CAPEX or sovereign-cloud-only hosting","status":"Not Started","pct":0.0,"start":"2026-10-06","end":"2026-10-16","owner":"Kagiso and Jerry","deliverable":"Hosting decision and budget approval","risks":"Procurement lead time may exceed the window","deps":"Phase 12.2","obstacles":"Budget cycle","notes":"Hard stop 6 Nov; otherwise Phase 15.1 slips","effort":2.0,"primary":"Kagiso"},{"ref":"12.8","phase":"12","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 12: Governance, Approval & Open Decisions (Weeks 1-2)","desc":"Risk: decisions 1-6 not closed by 16 Oct","status":"Not Started","pct":0.0,"start":"2026-10-12","end":"2026-10-16","owner":"Jerry","deliverable":"Weekly decision tracker; escalate to Sponsor on 14 Oct; build proceeds on stated defaults","risks":"Mitigation: default positions pre-agreed in G2","deps":"","obstacles":"","notes":"Likelihood: Medium","effort":0.0,"primary":"Jerry"},{"ref":"13.1","phase":"13","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 13: Authorisation Foundation - Gate 1 RBAC, Gate 2 ReportScope, ai schema (Weeks 3-4)","desc":"init-ai-schema.sql - schema ai, ai.report table and indexes","status":"Not Started","pct":0.0,"start":"2026-10-19","end":"2026-10-22","owner":"Peter","deliverable":"infrastructure/scripts/init-ai-schema.sql (19 columns, actor and scope_hash indexes); no change to warehouse.*","risks":"Alembic/DDL conflicts with concurrent dev branches","deps":"Decision 1","obstacles":"","notes":"Immutability hardening stays in G1 Phase 0 (P0-5)","effort":3.0,"primary":"Peter"},{"ref":"13.2","phase":"13","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 13: Authorisation Foundation - Gate 1 RBAC, Gate 2 ReportScope, ai schema (Weeks 3-4)","desc":"permissions.py - per-report-type RBAC namespace (Gate 1)","status":"Not Started","pct":0.0,"start":"2026-10-19","end":"2026-10-22","owner":"Takawira","deliverable":"REPORT_AI_PERMISSIONS, ROLE_REPORT_AI (default-deny, 11 roles), require_report_permission()","risks":"ROLES_HIERARCHY must not be modified","deps":"Phase 12.2","obstacles":"","notes":"Additive namespace only; no new roles","effort":3.0,"primary":"Takawira"},{"ref":"13.3","phase":"13","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 13: Authorisation Foundation - Gate 1 RBAC, Gate 2 ReportScope, ai schema (Weeks 3-4)","desc":"scope.py - frozen ReportScope, ScopeClass, scope_hash (Gate 2)","status":"Not Started","pct":0.0,"start":"2026-10-21","end":"2026-10-28","owner":"Takawira","deliverable":"resolve_report_scope(claims) -> frozen ReportScope; canonical sha256 scope_hash; delegates to tenant_filter()","risks":"Province expansion must match tenant_filter() exactly","deps":"app/api/auth.py tenant_filter; JWT claims","obstacles":"","notes":"Scope is never re-derived from the DB per request","effort":5.0,"primary":"Takawira"},{"ref":"13.4","phase":"13","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 13: Authorisation Foundation - Gate 1 RBAC, Gate 2 ReportScope, ai schema (Weeks 3-4)","desc":"Gate 1 / Gate 2 unit tests (S1 skeleton, scope_hash determinism, fail-closed)","status":"Not Started","pct":0.0,"start":"2026-10-27","end":"2026-10-30","owner":"Peter","deliverable":"pytest suite: unknown role -> 403; empty scope -> expression.false(); scope_hash stable","risks":"","deps":"Phase 13.2, 13.3","obstacles":"","notes":"","effort":3.0,"primary":"Peter"},{"ref":"13.5","phase":"13","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 13: Authorisation Foundation - Gate 1 RBAC, Gate 2 ReportScope, ai schema (Weeks 3-4)","desc":"Deploy ai schema to dev / staging","status":"Not Started","pct":0.0,"start":"2026-10-28","end":"2026-10-30","owner":"Peter","deliverable":"ai.report present in staging; migration rehearsal log","risks":"Access to 192.168.101.0/24 depends on VPN (R1)","deps":"Phase 13.1","obstacles":"VPN access (R1)","notes":"","effort":2.0,"primary":"Peter"},{"ref":"13.6","phase":"13","block":"BLOCK 1 - Governance & Authorisation Foundation (Weeks 1-4)","phase_title":"Phase 13: Authorisation Foundation - Gate 1 RBAC, Gate 2 ReportScope, ai schema (Weeks 3-4)","desc":"Risk: ReportScope diverges from tenant_filter() behaviour","status":"Not Started","pct":0.0,"start":"2026-10-29","end":"2026-10-30","owner":"Takawira","deliverable":"Parity test: ReportScope.tenant_filter() output equals app.api.auth.tenant_filter() for every persona","risks":"Mitigation: delegate, never re-implement","deps":"","obstacles":"","notes":"Likelihood: Low","effort":0.0,"primary":"Takawira"},{"ref":"14.1","phase":"14","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 14: Scoped Data Layer - accessors, fact pack, disclosure, claims (Weeks 5-6)","desc":"accessors.py - scope-first warehouse readers","status":"Not Started","pct":0.0,"start":"2026-11-02","end":"2026-11-09","owner":"Takawira","deliverable":"Readers for findings, risks, alerts, compliance and benchmark (read-only reuse of _build_benchmark); scope is first positional arg","risks":"A forgotten tenant_filter silently returns the whole estate","deps":"Phase 13.3","obstacles":"","notes":"","effort":6.0,"primary":"Takawira"},{"ref":"14.2","phase":"14","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 14: Scoped Data Layer - accessors, fact pack, disclosure, claims (Weeks 5-6)","desc":"S6 structural test - scope first positional parameter on every accessor","status":"Not Started","pct":0.0,"start":"2026-11-05","end":"2026-11-06","owner":"Peter","deliverable":"Signature-inspection test, CI-gated (100% coverage)","risks":"","deps":"Phase 14.1","obstacles":"","notes":"Prevents regression: fails the build if a reader lacks scope","effort":2.0,"primary":"Peter"},{"ref":"14.3","phase":"14","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 14: Scoped Data Layer - accessors, fact pack, disclosure, claims (Weeks 5-6)","desc":"disclosure.py - DisclosureClass tagging and estate-wide attribution","status":"Not Started","pct":0.0,"start":"2026-11-09","end":"2026-11-11","owner":"Takawira","deliverable":"Every fact tagged TENANT_SCOPED / ESTATE_WIDE; ComplianceSnapshot / ComplianceGap disclosed as estate-wide","risks":"Depends on Decision 2","deps":"Phase 12.4","obstacles":"","notes":"","effort":3.0,"primary":"Takawira"},{"ref":"14.4","phase":"14","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 14: Scoped Data Layer - accessors, fact pack, disclosure, claims (Weeks 5-6)","desc":"claims.py - ClaimClass and ROLE_CLAIMS matrix","status":"Not Started","pct":0.0,"start":"2026-11-09","end":"2026-11-12","owner":"Peter and Takawira","deliverable":"Claim classes (9) mapped to exec, soc, appsec, dbsec, compliance","risks":"Depends on Decision 4","deps":"Phase 12.6","obstacles":"","notes":"","effort":3.0,"primary":"Peter"},{"ref":"14.5","phase":"14","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 14: Scoped Data Layer - accessors, fact pack, disclosure, claims (Weeks 5-6)","desc":"context.py - pure fact-pack builders for 7 report types","status":"Not Started","pct":0.0,"start":"2026-11-10","end":"2026-11-13","owner":"Takawira","deliverable":"Fact pack builders plus fact_pack_hash; identical pack feeds AI and fallback paths","risks":"","deps":"Phase 14.1, 14.3","obstacles":"","notes":"","effort":5.0,"primary":"Takawira"},{"ref":"14.6","phase":"14","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 14: Scoped Data Layer - accessors, fact pack, disclosure, claims (Weeks 5-6)","desc":"Scope containment and non-escalation tests (S2, S3) on the fact pack","status":"Not Started","pct":0.0,"start":"2026-11-11","end":"2026-11-13","owner":"Peter","deliverable":"Zero rows outside province-expanded set; out-of-scope request yields empty, never estate-wide","risks":"Test data may not cover cross-province cases","deps":"Phase 14.5","obstacles":"","notes":"","effort":3.0,"primary":"Peter"},{"ref":"14.7","phase":"14","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 14: Scoped Data Layer - accessors, fact pack, disclosure, claims (Weeks 5-6)","desc":"Risk: compliance tables remain unscopable","status":"Not Started","pct":0.0,"start":"2026-11-12","end":"2026-11-13","owner":"Compliance Analyst","deliverable":"Estate-wide disclosure rendered in every compliance response; tenancy columns are a separate approved change","risks":"Mitigation: explicit typed disclosure","deps":"","obstacles":"","notes":"Likelihood: High (structural)","effort":0.0,"primary":"Compliance Analyst"},{"ref":"15.1","phase":"15","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 15: Generation Engine - gateway, redaction, prompts, orchestration (Weeks 7-8)","desc":"Model hosting - vLLM on-prem or sovereign cloud, model digest pinned","status":"Not Started","pct":0.0,"start":"2026-11-16","end":"2026-11-24","owner":"Kagiso and Peter","deliverable":"Running inference endpoint; model_id and model_digest recorded","risks":"GPU / hosting lead time","deps":"Decision 6","obstacles":"Hardware or cloud provisioning","notes":"Development can proceed against a small model; fallback path unaffected","effort":6.0,"primary":"Peter"},{"ref":"15.2","phase":"15","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 15: Generation Engine - gateway, redaction, prompts, orchestration (Weeks 7-8)","desc":"gateway.py - httpx to vLLM, CircuitBreaker reuse, token budget","status":"Not Started","pct":0.0,"start":"2026-11-16","end":"2026-11-20","owner":"Takawira","deliverable":"Gateway with breaker states reused from connector framework; token budget enforced","risks":"","deps":"Phase 15.1 (can stub)","obstacles":"","notes":"","effort":4.0,"primary":"Takawira"},{"ref":"15.3","phase":"15","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 15: Generation Engine - gateway, redaction, prompts, orchestration (Weeks 7-8)","desc":"redaction.py - mandatory pre-egress PII scrubber","status":"Not Started","pct":0.0,"start":"2026-11-17","end":"2026-11-20","owner":"Peter","deliverable":"Scrubber plus tests; sovereign-cloud DR sits behind the same gate","risks":"Over-redaction degrades narrative quality","deps":"","obstacles":"","notes":"","effort":3.0,"primary":"Peter"},{"ref":"15.4","phase":"15","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 15: Generation Engine - gateway, redaction, prompts, orchestration (Weeks 7-8)","desc":"Seven versioned YAML prompt templates","status":"Not Started","pct":0.0,"start":"2026-11-18","end":"2026-11-25","owner":"Takawira","deliverable":"templates/*.yaml (v1) with allowed_claim_classes injected from role; temperature 0.2; constrained narrative_html output","risks":"Prompt injection via warehouse text fields","deps":"Phase 14.4","obstacles":"","notes":"","effort":6.0,"primary":"Takawira"},{"ref":"15.5","phase":"15","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 15: Generation Engine - gateway, redaction, prompts, orchestration (Weeks 7-8)","desc":"generate.py - assembly, generation, verification, fallback orchestration","status":"Not Started","pct":0.0,"start":"2026-11-23","end":"2026-11-27","owner":"Takawira","deliverable":"End-to-end generate() with llm_enabled flag","risks":"","deps":"Phase 15.2-15.4","obstacles":"","notes":"Milestone: first AI narrative in dev","effort":4.0,"primary":"Takawira"},{"ref":"15.6","phase":"15","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 15: Generation Engine - gateway, redaction, prompts, orchestration (Weeks 7-8)","desc":"Golden fact packs and prompt evaluation set","status":"Not Started","pct":0.0,"start":"2026-11-23","end":"2026-11-27","owner":"Peter","deliverable":"Golden packs for 7 report types per role; baseline quality scores","risks":"","deps":"Phase 14.5","obstacles":"","notes":"","effort":3.0,"primary":"Peter"},{"ref":"15.7","phase":"15","block":"BLOCK 2 - Scoped Data Layer & Generation Engine (Weeks 5-8)","phase_title":"Phase 15: Generation Engine - gateway, redaction, prompts, orchestration (Weeks 7-8)","desc":"Risk: GPU / hosting not available by 16 Nov","status":"Not Started","pct":0.0,"start":"2026-11-16","end":"2026-11-20","owner":"Kagiso","deliverable":"Run on deterministic fallback; dev model on existing hardware; no scope impact","risks":"Mitigation: fallback is the safe default","deps":"","obstacles":"","notes":"Likelihood: Medium","effort":0.0,"primary":"Kagiso"},{"ref":"16.1","phase":"16","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 16: Verification & Deterministic Fallback (Weeks 9-10)","desc":"verify.py - numeral fidelity check","status":"Not Started","pct":0.0,"start":"2026-11-30","end":"2026-12-03","owner":"Takawira","deliverable":"Every figure in prose must exist in the fact pack; failure discards the model text","risks":"Too strict a verifier raises fallback rate","deps":"Phase 15.5","obstacles":"","notes":"","effort":4.0,"primary":"Takawira"},{"ref":"16.2","phase":"16","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 16: Verification & Deterministic Fallback (Weeks 9-10)","desc":"Claim-permission filter with sentence discard","status":"Not Started","pct":0.0,"start":"2026-12-02","end":"2026-12-07","owner":"Takawira","deliverable":"Regex scans (CVE ids, alert UUIDs, departments, rule ids, owners); discard not warn","risks":"Pattern coverage gaps","deps":"Phase 14.4","obstacles":"","notes":"","effort":4.0,"primary":"Takawira"},{"ref":"16.3","phase":"16","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 16: Verification & Deterministic Fallback (Weeks 9-10)","desc":"scope_hash match and cross-scope checks","status":"Not Started","pct":0.0,"start":"2026-12-03","end":"2026-12-07","owner":"Peter","deliverable":"Verifier confirms envelope, cache key and audit row carry the same scope_hash","risks":"","deps":"Phase 13.3","obstacles":"","notes":"","effort":2.0,"primary":"Peter"},{"ref":"16.4","phase":"16","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 16: Verification & Deterministic Fallback (Weeks 9-10)","desc":"Deterministic Jinja2 fallback templates (7)","status":"Not Started","pct":0.0,"start":"2026-11-30","end":"2026-12-09","owner":"Peter","deliverable":"Static templates driven by the same fact pack; fallback_used flag; works with no GPU","risks":"","deps":"Phase 14.5","obstacles":"","notes":"Also enables GPU-free demos and tests","effort":7.0,"primary":"Peter"},{"ref":"16.5","phase":"16","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 16: Verification & Deterministic Fallback (Weeks 9-10)","desc":"Numeral-fidelity suite and claim-permission suite (S4)","status":"Not Started","pct":0.0,"start":"2026-12-08","end":"2026-12-11","owner":"Peter and Takawira","deliverable":"exec report contains zero CVE ids, alert ids or owner names","risks":"","deps":"Phase 16.1, 16.2","obstacles":"","notes":"","effort":4.0,"primary":"Peter"},{"ref":"16.6","phase":"16","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 16: Verification & Deterministic Fallback (Weeks 9-10)","desc":"Adversarial prompt and injection testing","status":"Not Started","pct":0.0,"start":"2026-12-09","end":"2026-12-11","owner":"Takawira","deliverable":"Attempts to name other provinces or widen scope fail; findings logged","risks":"","deps":"Phase 16.2","obstacles":"","notes":"","effort":3.0,"primary":"Takawira"},{"ref":"16.7","phase":"16","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 16: Verification & Deterministic Fallback (Weeks 9-10)","desc":"Risk: high fallback rate from over-strict verification","status":"Not Started","pct":0.0,"start":"2026-12-10","end":"2026-12-11","owner":"Takawira","deliverable":"Track fallback_rate per report type; tune patterns on golden packs","risks":"Mitigation: metrics and tuning in Phase 19","deps":"","obstacles":"","notes":"Likelihood: Medium","effort":0.0,"primary":"Takawira"},{"ref":"17.1","phase":"17","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 17: REST Router, Envelope, Cache & Audit (Weeks 11-12)","desc":"reports_ai.py - generate, available and audit endpoints","status":"Not Started","pct":0.0,"start":"2026-12-14","end":"2026-12-18","owner":"Takawira","deliverable":"POST /api/v1/reports-ai/generate; GET /available; GET /audit/{report_id}; POST avoids demoInterceptor GET hijack","risks":"Year-end compression (16 Dec holiday)","deps":"Phase 16","obstacles":"","notes":"","effort":4.0,"primary":"Takawira"},{"ref":"17.2","phase":"17","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 17: REST Router, Envelope, Cache & Audit (Weeks 11-12)","desc":"Response envelope - authorisation, disclosure, provenance, verification","status":"Not Started","pct":0.0,"start":"2026-12-14","end":"2026-12-17","owner":"Takawira","deliverable":"Envelope returned on every response; authorisation and disclosure blocks mandatory","risks":"","deps":"Phase 14.3","obstacles":"","notes":"","effort":3.0,"primary":"Takawira"},{"ref":"17.3","phase":"17","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 17: REST Router, Envelope, Cache & Audit (Weeks 11-12)","desc":"Cache keyed on scope_hash","status":"Not Started","pct":0.0,"start":"2026-12-15","end":"2026-12-18","owner":"Peter","deliverable":"Key = sha256(report_type + scope_hash + fact_pack_hash + prompt_version + model_digest)","risks":"","deps":"Phase 13.3","obstacles":"","notes":"","effort":2.0,"primary":"Peter"},{"ref":"17.4","phase":"17","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 17: REST Router, Envelope, Cache & Audit (Weeks 11-12)","desc":"ActionAudit 'ai_report_generated' and ai.report writes","status":"Not Started","pct":0.0,"start":"2026-12-17","end":"2026-12-21","owner":"Peter","deliverable":"One audit row per generation; AI rows never appear in an attestation","risks":"","deps":"Phase 13.1","obstacles":"","notes":"","effort":3.0,"primary":"Peter"},{"ref":"17.5","phase":"17","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 17: REST Router, Envelope, Cache & Audit (Weeks 11-12)","desc":"Minimal report viewer page (assumption - not in G2 file layout)","status":"Not Started","pct":0.0,"start":"2026-12-18","end":"2026-12-23","owner":"Takawira","deliverable":"Frontend page listing /available reports and showing authorisation, disclosure and fallback_used","risks":"G2 defines no frontend scope; confirm at approval","deps":"Phase 17.1","obstacles":"","notes":"Planning assumption added by this plan","effort":4.0,"primary":"Takawira"},{"ref":"17.6","phase":"17","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 17: REST Router, Envelope, Cache & Audit (Weeks 11-12)","desc":"AG attestation byte-identical regression test","status":"Not Started","pct":0.0,"start":"2026-12-21","end":"2026-12-23","owner":"Peter","deliverable":"build_attestation() output identical to pre-change for the same inputs","risks":"","deps":"Phase 17.4","obstacles":"","notes":"","effort":2.0,"primary":"Peter"},{"ref":"17.7","phase":"17","block":"BLOCK 3 - Verification, Fallback, API & Audit (Weeks 9-12)","phase_title":"Phase 17: REST Router, Envelope, Cache & Audit (Weeks 11-12)","desc":"Risk: year-end freeze compresses Phase 17","status":"Not Started","pct":0.0,"start":"2026-12-21","end":"2026-12-23","owner":"Jerry","deliverable":"Freeze 24 Dec-3 Jan assumed; viewer page can slip to Phase 18 without affecting the API","risks":"Likelihood: High","deps":"","obstacles":"","notes":"","effort":0.0,"primary":"Jerry"},{"ref":"18.1","phase":"18","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 18: Verification Suites, Security Review & Hardening (Weeks 14-15)","desc":"S1 role matrix - 11 roles x 7 report types","status":"Not Started","pct":0.0,"start":"2027-01-04","end":"2027-01-06","owner":"Peter","deliverable":"Exactly the section 5 matrix holds; unknown role -> 403","risks":"","deps":"Phase 17.1","obstacles":"","notes":"","effort":3.0,"primary":"Peter"},{"ref":"18.2","phase":"18","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 18: Verification Suites, Security Review & Hardening (Weeks 14-15)","desc":"S2-S5 suites CI-gated (containment, non-escalation, claims, cache isolation)","status":"Not Started","pct":0.0,"start":"2027-01-05","end":"2027-01-08","owner":"Peter and Takawira","deliverable":"All six suites green in CI; S5 cache miss across scopes","risks":"","deps":"Phase 17.3","obstacles":"","notes":"","effort":4.0,"primary":"Peter"},{"ref":"18.3","phase":"18","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 18: Verification Suites, Security Review & Hardening (Weeks 14-15)","desc":"Semgrep and Bandit scans on new modules","status":"Not Started","pct":0.0,"start":"2027-01-07","end":"2027-01-08","owner":"Takawira","deliverable":"Zero unhandled findings across app/ai and reports_ai.py","risks":"","deps":"Phase 17","obstacles":"","notes":"Same gates as Phase 11","effort":1.0,"primary":"Takawira"},{"ref":"18.4","phase":"18","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 18: Verification Suites, Security Review & Hardening (Weeks 14-15)","desc":"Independent RBAC / tenancy security review","status":"Not Started","pct":0.0,"start":"2027-01-07","end":"2027-01-13","owner":"InfoSec reviewer (TBC)","deliverable":"Review report; findings triaged","risks":"Reviewer availability","deps":"Phase 18.2","obstacles":"","notes":"Reviewer to be named at approval","effort":2.0,"primary":"InfoSec reviewer"},{"ref":"18.5","phase":"18","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 18: Verification Suites, Security Review & Hardening (Weeks 14-15)","desc":"Load test (k6) and model-failure chaos test","status":"Not Started","pct":0.0,"start":"2027-01-11","end":"2027-01-14","owner":"Peter","deliverable":"Breaker opens; fallback serves correct numbers; latency within agreed bound","risks":"Model latency (~6 s example in G2) under concurrency","deps":"Phase 15.1","obstacles":"","notes":"","effort":3.0,"primary":"Peter"},{"ref":"18.6","phase":"18","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 18: Verification Suites, Security Review & Hardening (Weeks 14-15)","desc":"Diff review against main - no existing file modified","status":"Not Started","pct":0.0,"start":"2027-01-14","end":"2027-01-15","owner":"Jerry","deliverable":"Confirmation that routers, exports, dashboards, prompts and warehouse tables are untouched","risks":"","deps":"Phase 18.2","obstacles":"","notes":"","effort":1.0,"primary":"Jerry"},{"ref":"18.7","phase":"18","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 18: Verification Suites, Security Review & Hardening (Weeks 14-15)","desc":"Risk: critical finding from security review","status":"Not Started","pct":0.0,"start":"2027-01-13","end":"2027-01-15","owner":"Takawira","deliverable":"Fix-forward within Phase 19 contingency; go-live gated on closure","risks":"Likelihood: Low","deps":"","obstacles":"","notes":"","effort":0.0,"primary":"Takawira"},{"ref":"19.1","phase":"19","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 19: UAT, Documentation, Go-Live & Contingency (Weeks 16-18)","desc":"UAT with exec, SOC and compliance personas","status":"Not Started","pct":0.0,"start":"2027-01-18","end":"2027-01-22","owner":"Jerry","deliverable":"Signed UAT report per persona","risks":"Stakeholder availability delays","deps":"Phase 18","obstacles":"","notes":"","effort":4.0,"primary":"Jerry"},{"ref":"19.2","phase":"19","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 19: UAT, Documentation, Go-Live & Contingency (Weeks 16-18)","desc":"Prompt tuning and defect fixes","status":"Not Started","pct":0.0,"start":"2027-01-19","end":"2027-01-26","owner":"Takawira","deliverable":"Prompts v2; defect log closed","risks":"","deps":"Phase 19.1","obstacles":"","notes":"","effort":5.0,"primary":"Takawira"},{"ref":"19.3","phase":"19","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 19: UAT, Documentation, Go-Live & Contingency (Weeks 16-18)","desc":"Documentation - API, runbook, stakeholder overview (Word and HTML)","status":"Not Started","pct":0.0,"start":"2027-01-18","end":"2027-01-25","owner":"Takawira","deliverable":"docs/ AI report guide, runbook, role x report matrix","risks":"","deps":"","obstacles":"","notes":"","effort":3.0,"primary":"Takawira"},{"ref":"19.4","phase":"19","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 19: UAT, Documentation, Go-Live & Contingency (Weeks 16-18)","desc":"Production deployment and llm_enabled switch-on","status":"Not Started","pct":0.0,"start":"2027-01-26","end":"2027-01-27","owner":"Peter","deliverable":"Deployed; feature flag enabled per environment","risks":"VPN access to 192.168.101.0/24 (R1)","deps":"Phase 19.2","obstacles":"VPN access (R1)","notes":"Can go live on fallback if model hosting is late","effort":3.0,"primary":"Peter"},{"ref":"19.5","phase":"19","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 19: UAT, Documentation, Go-Live & Contingency (Weeks 16-18)","desc":"Acceptance sign-off against section 14 criteria and hypercare","status":"Not Started","pct":0.0,"start":"2027-01-28","end":"2027-01-29","owner":"Jerry and Kagiso","deliverable":"Signed acceptance checklist","risks":"","deps":"Phase 19.4","obstacles":"","notes":"","effort":2.0,"primary":"Jerry"},{"ref":"19.6","phase":"19","block":"BLOCK 4 - Hardening, UAT & Go-Live (Weeks 14-18; Week 13 = year-end freeze)","phase_title":"Phase 19: UAT, Documentation, Go-Live & Contingency (Weeks 16-18)","desc":"Schedule contingency buffer","status":"Not Started","pct":0.0,"start":"2027-02-01","end":"2027-02-05","owner":"Jerry","deliverable":"Reserved week; released if all gates are met","risks":"","deps":"","obstacles":"","notes":"Release at go-live review","effort":0.0,"primary":"Jerry"}],"effort":[{"phase":"12","name":"Governance & decisions","start":"2026-10-05","end":"2026-10-16","weeks":2.0,"days":10.0,"effort":8.5,"takawira":1.0,"peter":0.0,"other":7.5,"contingency":1.7,"total_incl":10.2},{"phase":"13","name":"Authorisation foundation","start":"2026-10-19","end":"2026-10-30","weeks":2.0,"days":10.0,"effort":16.0,"takawira":8.0,"peter":8.0,"other":0.0,"contingency":3.2,"total_incl":19.2},{"phase":"14","name":"Scoped data layer","start":"2026-11-02","end":"2026-11-13","weeks":2.0,"days":10.0,"effort":22.0,"takawira":14.0,"peter":8.0,"other":0.0,"contingency":4.4,"total_incl":26.4},{"phase":"15","name":"Generation engine","start":"2026-11-16","end":"2026-11-27","weeks":2.0,"days":10.0,"effort":26.0,"takawira":14.0,"peter":12.0,"other":0.0,"contingency":5.2,"total_incl":31.2},{"phase":"16","name":"Verification & fallback","start":"2026-11-30","end":"2026-12-11","weeks":2.0,"days":10.0,"effort":24.0,"takawira":11.0,"peter":13.0,"other":0.0,"contingency":4.8,"total_incl":28.8},{"phase":"17","name":"Router, envelope & audit","start":"2026-12-14","end":"2026-12-23","weeks":2.0,"days":7.0,"effort":18.0,"takawira":11.0,"peter":7.0,"other":0.0,"contingency":3.6,"total_incl":21.6},{"phase":"18","name":"Test suites & hardening","start":"2027-01-04","end":"2027-01-15","weeks":2.0,"days":10.0,"effort":14.0,"takawira":1.0,"peter":10.0,"other":3.0,"contingency":2.8,"total_incl":16.8},{"phase":"19","name":"UAT & go-live","start":"2027-01-18","end":"2027-02-05","weeks":3.0,"days":15.0,"effort":17.0,"takawira":8.0,"peter":3.0,"other":6.0,"contingency":3.4,"total_incl":20.4}],"capacity":[{"label":"Working days, plan start to go-live","value":"77"},{"label":"Developer capacity available to G2 (PD)","value":"123.2"},{"label":"Developer demand - base estimate (PD)","value":"129"},{"label":"Developer demand - incl. contingency (PD)","value":"154.8"},{"label":"Surplus / (shortfall) vs base estimate (PD)","value":"-5.8"},{"label":"Surplus / (shortfall) incl. contingency (PD)","value":"-31.6"},{"label":"Extra developer-days needed to cover contingency","value":"31.6"},{"label":"Equivalent extra FTE over the plan window","value":"0.41038961038961"},{"label":"Primary owner","value":"Activities"},{"label":"AG liaison","value":"1"},{"label":"Compliance Analyst","value":"3"},{"label":"DevOps","value":"1"},{"label":"InfoSec reviewer","value":"1"},{"label":"Jerry","value":"7"},{"label":"Kagiso","value":"2"},{"label":"Peter","value":"19"},{"label":"Takawira","value":"21"}],"owners":[{"owner":"AG liaison","activities":1.0,"effort":1.0},{"owner":"Compliance Analyst","activities":3.0,"effort":2.0},{"owner":"DevOps","activities":1.0,"effort":1.0},{"owner":"InfoSec reviewer","activities":1.0,"effort":2.0},{"owner":"Jerry","activities":7.0,"effort":8.5},{"owner":"Kagiso","activities":2.0,"effort":2.0},{"owner":"Peter","activities":19.0,"effort":61.0},{"owner":"Takawira","activities":21.0,"effort":68.0}],"risks":[{"id":"R01","risk":"GPU CAPEX / hosting decision slips, so no model is available when Phase 15 starts","source":"G2 s13 (6)","phases":"15","likelihood":4.0,"impact":4.0,"score":16.0,"rating":"Critical","mitigation":"Deterministic fallback is the safe default; develop against a small dev model; escalate at 14 Oct and 6 Nov","owner":"Kagiso","status":"Open"},{"id":"R02","risk":"Compliance data is structurally unscopable (no tenancy columns on ComplianceSnapshot / ComplianceGap)","source":"G2 s2, s3.4","phases":"14","likelihood":5.0,"impact":3.0,"score":15.0,"rating":"Critical","mitigation":"Typed ESTATE_WIDE disclosure enforced by the verifier; tenancy columns handled as a separate approved change (Decision 2)","owner":"Compliance Analyst","status":"Open"},{"id":"R03","risk":"A warehouse reader is written without scope, leaking estate-wide rows","source":"G2 s2, s3.3","phases":"14","likelihood":2.0,"impact":5.0,"score":10.0,"rating":"High","mitigation":"Scope is first positional argument; S6 signature test fails the build","owner":"Takawira","status":"Open"},{"id":"R04","risk":"Model states a figure that is not in the fact pack","source":"G2 s6, s10","phases":"16","likelihood":3.0,"impact":4.0,"score":12.0,"rating":"High","mitigation":"Numeral-fidelity check; discard and return deterministic template","owner":"Takawira","status":"Open"},{"id":"R05","risk":"Narrative discloses identifiers the role may not see (CVE, alert, owner)","source":"G2 s6","phases":"16","likelihood":3.0,"impact":4.0,"score":12.0,"rating":"High","mitigation":"Post-generation claim filter with sentence discard; S4 suite","owner":"Takawira","status":"Open"},{"id":"R06","risk":"A cached report is served across scopes","source":"G2 s7","phases":"17","likelihood":1.0,"impact":4.0,"score":4.0,"rating":"Low","mitigation":"scope_hash is part of the cache key; S5 suite","owner":"Peter","status":"Open"},{"id":"R07","risk":"Verifier too strict, giving a high fallback rate and little AI value","source":"Added by plan","phases":"16","likelihood":3.0,"impact":3.0,"score":9.0,"rating":"Medium","mitigation":"Track fallback_rate per report type; tune on golden packs","owner":"Takawira","status":"Open"},{"id":"R08","risk":"Prompt injection through free-text warehouse fields (app names, descriptions)","source":"Added by plan","phases":"16","likelihood":3.0,"impact":4.0,"score":12.0,"rating":"High","mitigation":"Constrained decode; redaction; verifier independent of prompt; adversarial tests in 16.6","owner":"Takawira","status":"Open"},{"id":"R09","risk":"Key-person concentration: most build work sits with Takawira and Peter","source":"Added by plan","phases":"All","likelihood":4.0,"impact":4.0,"score":16.0,"rating":"Critical","mitigation":"Pair on Gate 1/2 and verifier; document as built; third engineer or reduced scope if capacity gap persists","owner":"Jerry","status":"Open"},{"id":"R10","risk":"Year-end freeze and public holidays compress Phases 17-18","source":"Added by plan","phases":"17-18","likelihood":4.0,"impact":3.0,"score":12.0,"rating":"High","mitigation":"Freeze assumed 24 Dec-3 Jan; viewer page may slip; buffer week 1-5 Feb","owner":"Jerry","status":"Open"},{"id":"R11","risk":"Existing reports or the AG attestation are changed by accident","source":"G2 s1","phases":"17-18","likelihood":2.0,"impact":4.0,"score":8.0,"rating":"Medium","mitigation":"Diff review against main; byte-identical attestation test","owner":"Jerry","status":"Open"},{"id":"R12","risk":"VPN access to the SITA environment (R1 in flight plan) still blocks deployment","source":"Flight plan (Phase 11 row)","phases":"13, 19","likelihood":3.0,"impact":4.0,"score":12.0,"rating":"High","mitigation":"Escalate access early; deploy to Linux Stage A; fallback-only go-live if needed","owner":"Kagiso","status":"Open"},{"id":"R13","risk":"Model latency (G2 example ~6 s) is unacceptable under concurrency","source":"G2 s7 example","phases":"18","likelihood":3.0,"impact":3.0,"score":9.0,"rating":"Medium","mitigation":"k6 load test; cache; asynchronous generation; breaker to fallback","owner":"Peter","status":"Open"},{"id":"R14","risk":"ai schema approval delayed (Decision 1)","source":"G2 s13 (1)","phases":"13","likelihood":3.0,"impact":2.0,"score":6.0,"rating":"Medium","mitigation":"Default to schema 'ai' in the main DB; configurable target","owner":"Peter","status":"Open"},{"id":"R15","risk":"PII or security data leaves the environment via DR or egress","source":"G2 s12 (6)","phases":"15","likelihood":1.0,"impact":5.0,"score":5.0,"rating":"Medium","mitigation":"Mandatory redaction gate; self-hosted only; sovereign cloud as DR only","owner":"Peter","status":"Open"},{"id":"R16","risk":"Scope creep: AG asks for AI text inside the attestation","source":"G2 s13 (3)","phases":"19","likelihood":2.0,"impact":3.0,"score":6.0,"rating":"Medium","mitigation":"Treated as separate change request; attestation stays deterministic","owner":"Jerry","status":"Open"},{"id":"R17","risk":"Stakeholder or reviewer availability (decisions, UAT, security review)","source":"Flight plan (Phase 1 row)","phases":"12, 18, 19","likelihood":3.0,"impact":3.0,"score":9.0,"rating":"Medium","mitigation":"Named owners and dates in this plan; decision tracker reviewed weekly","owner":"Jerry","status":"Open"}],"riskSummary":{"Critical":3,"High":6,"Medium":7,"Low":1},"decisions":[{"n":1,"decision":"Approve the ai schema in the main DB, or use a separate reporting DB","owner":"Data Architect and DevOps","blocks":"Phase 13.1 (DDL)","target":"2026-10-14","default":"Default: schema ai in main DB","status":"Open"},{"n":2,"decision":"Is estate-wide compliance disclosure acceptable, or must compliance reports wait for tenancy columns?","owner":"Compliance Analyst","blocks":"compliance_status report","target":"2026-10-14","default":"Default: disclose as estate-wide","status":"Open"},{"n":3,"decision":"Does the AG require an AI narrative inside the attestation?","owner":"AG liaison","blocks":"Nothing","target":"2026-10-16","default":"Default: keep separate","status":"Open"},{"n":4,"decision":"Is DEPARTMENT_NAMES safe for exec estate-wide, given provincial sensitivity?","owner":"Compliance Analyst and AG liaison","blocks":"ROLE_CLAIMS sign-off (Phase 14.4)","target":"2026-10-16","default":"Default: exec sees department names; confirm","status":"Open"},{"n":5,"decision":"Audit retention for ai.report - same as audit.action_audit?","owner":"Compliance Analyst","blocks":"Phase 13.1 / 17.4","target":"2026-10-16","default":"Default: same as audit.action_audit","status":"Open"},{"n":6,"decision":"GPU CAPEX, or sovereign-cloud-only hosting?","owner":"Kagiso and Jerry","blocks":"Phase 15.1 (hosting)","target":"2026-10-16","default":"Hard stop 6 Nov; fallback-only otherwise","status":"Open"}],"milestones":[{"id":"M1","milestone":"Plan approved and decisions 1-6 closed","date":"2026-10-16","days":"11"},{"id":"M2","milestone":"Authorisation foundation live in staging","date":"2026-10-30","days":"25"},{"id":"M3","milestone":"Scoped fact pack complete; S6 test green","date":"2026-11-13","days":"39"},{"id":"M4","milestone":"First AI narrative generated in dev","date":"2026-11-27","days":"53"},{"id":"M5","milestone":"Verifier and deterministic fallback complete","date":"2026-12-11","days":"67"},{"id":"M6","milestone":"API feature-complete with envelope, cache and audit","date":"2026-12-23","days":"79"},{"id":"M7","milestone":"All six CI suites green; security review closed","date":"2027-01-15","days":"102"},{"id":"M8","milestone":"UAT signed off","date":"2027-01-22","days":"109"},{"id":"M9","milestone":"Go-live and acceptance sign-off","date":"2027-01-29","days":"116"}],"assumptions":[{"label":"Plan start","value":"2026-10-05"},{"label":"Committed go-live","value":"2027-01-29"},{"label":"Contingency buffer ends","value":"2027-02-05"},{"label":"Developers on G2 (Takawira, Peter)","value":"2"},{"label":"Developer allocation to G2","value":"0.8"},{"label":"Estimate contingency","value":"0.2"},{"label":"Day of Reconciliation (public holiday)","value":"2026-12-16"},{"label":"Year-end freeze (assumed)","value":"2026-12-24"},{"label":"Christmas Day (public holiday)","value":"2026-12-25"},{"label":"Year-end freeze (assumed)","value":"2026-12-28"},{"label":"Year-end freeze (assumed)","value":"2026-12-29"},{"label":"Year-end freeze (assumed)","value":"2026-12-30"},{"label":"Year-end freeze (assumed)","value":"2026-12-31"},{"label":"New Year's Day (public holiday)","value":"2027-01-01"},{"label":"Effort figures are planning estimates prepared for this addendum; G2 itself contains no durations or effort. Validate with Takawira and Peter before approval.","value":""},{"label":"Joint-owner activities are assigned to one Primary Owner for roll-up (column O on the main sheet).","value":""},{"label":"Year-end freeze 24 Dec - 3 Jan is an assumption; confirm with the client change calendar.","value":""},{"label":"Dates are planned, not committed, until Phase 12 closes. Week 1 starts Mon 5 Oct 2026.","value":""},{"label":"Status vocabulary follows the master plan (Completed / WIP) plus 'Not Started'. Column headers copy the master verbatim, including its spellings.","value":""},{"label":"Report viewer page (17.5) is not in G2's file layout; it is included because G2 s11 says fallback_used is surfaced in the UI.","value":""}],"notes":[],"gantt":[{"ref":"12.1","activity":"G2 plan drafted (alternative to the G1 AI-reporting section) and issued for approval","phase":"12","start":"2026-10-05","end":"2026-10-05","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"12.2","activity":"G2 plan review and approval","phase":"12","start":"2026-10-06","end":"2026-10-12","marks":{"2026-10-12":1,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"12.3","activity":"Decision 1 - ai schema in the main DB or a separate reporting DB","phase":"12","start":"2026-10-06","end":"2026-10-14","marks":{"2026-10-12":1,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"12.4","activity":"Decision 2 - is estate-wide compliance disclosure acceptable, or wait for tenancy columns on ComplianceSnapshot / ComplianceGap?","phase":"12","start":"2026-10-06","end":"2026-10-14","marks":{"2026-10-12":1,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"12.5","activity":"Decisions 3 and 5 - AG narrative stays separate from the attestation; ai.report audit retention","phase":"12","start":"2026-10-06","end":"2026-10-16","marks":{"2026-10-12":1,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"12.6","activity":"Decision 4 - is DEPARTMENT_NAMES a safe claim class for exec estate-wide?","phase":"12","start":"2026-10-06","end":"2026-10-16","marks":{"2026-10-12":1,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"12.7","activity":"Decision 6 - GPU CAPEX or sovereign-cloud-only hosting","phase":"12","start":"2026-10-06","end":"2026-10-16","marks":{"2026-10-12":1,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"12.8","activity":"Risk: decisions 1-6 not closed by 16 Oct","phase":"12","start":"2026-10-12","end":"2026-10-16","marks":{"2026-10-12":1,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"13.1","activity":"init-ai-schema.sql - schema ai, ai.report table and indexes","phase":"13","start":"2026-10-19","end":"2026-10-22","marks":{"2026-10-12":0,"2026-10-19":1,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"13.2","activity":"permissions.py - per-report-type RBAC namespace (Gate 1)","phase":"13","start":"2026-10-19","end":"2026-10-22","marks":{"2026-10-12":0,"2026-10-19":1,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"13.3","activity":"scope.py - frozen ReportScope, ScopeClass, scope_hash (Gate 2)","phase":"13","start":"2026-10-21","end":"2026-10-28","marks":{"2026-10-12":0,"2026-10-19":1,"2026-10-26":1,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"13.4","activity":"Gate 1 / Gate 2 unit tests (S1 skeleton, scope_hash determinism, fail-closed)","phase":"13","start":"2026-10-27","end":"2026-10-30","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":1,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"13.5","activity":"Deploy ai schema to dev / staging","phase":"13","start":"2026-10-28","end":"2026-10-30","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":1,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"13.6","activity":"Risk: ReportScope diverges from tenant_filter() behaviour","phase":"13","start":"2026-10-29","end":"2026-10-30","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":1,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"14.1","activity":"accessors.py - scope-first warehouse readers","phase":"14","start":"2026-11-02","end":"2026-11-09","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":1,"2026-11-09":1,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"14.2","activity":"S6 structural test - scope first positional parameter on every accessor","phase":"14","start":"2026-11-05","end":"2026-11-06","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":1,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"14.3","activity":"disclosure.py - DisclosureClass tagging and estate-wide attribution","phase":"14","start":"2026-11-09","end":"2026-11-11","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":1,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"14.4","activity":"claims.py - ClaimClass and ROLE_CLAIMS matrix","phase":"14","start":"2026-11-09","end":"2026-11-12","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":1,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"14.5","activity":"context.py - pure fact-pack builders for 7 report types","phase":"14","start":"2026-11-10","end":"2026-11-13","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":1,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"14.6","activity":"Scope containment and non-escalation tests (S2, S3) on the fact pack","phase":"14","start":"2026-11-11","end":"2026-11-13","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":1,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"14.7","activity":"Risk: compliance tables remain unscopable","phase":"14","start":"2026-11-12","end":"2026-11-13","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":1,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"15.1","activity":"Model hosting - vLLM on-prem or sovereign cloud, model digest pinned","phase":"15","start":"2026-11-16","end":"2026-11-24","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":1,"2026-11-23":1,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"15.2","activity":"gateway.py - httpx to vLLM, CircuitBreaker reuse, token budget","phase":"15","start":"2026-11-16","end":"2026-11-20","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":1,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"15.3","activity":"redaction.py - mandatory pre-egress PII scrubber","phase":"15","start":"2026-11-17","end":"2026-11-20","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":1,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"15.4","activity":"Seven versioned YAML prompt templates","phase":"15","start":"2026-11-18","end":"2026-11-25","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":1,"2026-11-23":1,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"15.5","activity":"generate.py - assembly, generation, verification, fallback orchestration","phase":"15","start":"2026-11-23","end":"2026-11-27","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":1,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"15.6","activity":"Golden fact packs and prompt evaluation set","phase":"15","start":"2026-11-23","end":"2026-11-27","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":1,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"15.7","activity":"Risk: GPU / hosting not available by 16 Nov","phase":"15","start":"2026-11-16","end":"2026-11-20","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":1,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"16.1","activity":"verify.py - numeral fidelity check","phase":"16","start":"2026-11-30","end":"2026-12-03","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":1,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"16.2","activity":"Claim-permission filter with sentence discard","phase":"16","start":"2026-12-02","end":"2026-12-07","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":1,"2026-12-07":1,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"16.3","activity":"scope_hash match and cross-scope checks","phase":"16","start":"2026-12-03","end":"2026-12-07","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":1,"2026-12-07":1,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"16.4","activity":"Deterministic Jinja2 fallback templates (7)","phase":"16","start":"2026-11-30","end":"2026-12-09","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":1,"2026-12-07":1,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"16.5","activity":"Numeral-fidelity suite and claim-permission suite (S4)","phase":"16","start":"2026-12-08","end":"2026-12-11","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":1,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"16.6","activity":"Adversarial prompt and injection testing","phase":"16","start":"2026-12-09","end":"2026-12-11","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":1,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"16.7","activity":"Risk: high fallback rate from over-strict verification","phase":"16","start":"2026-12-10","end":"2026-12-11","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":1,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"17.1","activity":"reports_ai.py - generate, available and audit endpoints","phase":"17","start":"2026-12-14","end":"2026-12-18","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":1,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"17.2","activity":"Response envelope - authorisation, disclosure, provenance, verification","phase":"17","start":"2026-12-14","end":"2026-12-17","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":1,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"17.3","activity":"Cache keyed on scope_hash","phase":"17","start":"2026-12-15","end":"2026-12-18","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":1,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"17.4","activity":"ActionAudit 'ai_report_generated' and ai.report writes","phase":"17","start":"2026-12-17","end":"2026-12-21","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":1,"2026-12-21":1,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"17.5","activity":"Minimal report viewer page (assumption - not in G2 file layout)","phase":"17","start":"2026-12-18","end":"2026-12-23","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":1,"2026-12-21":1,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"17.6","activity":"AG attestation byte-identical regression test","phase":"17","start":"2026-12-21","end":"2026-12-23","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":1,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"17.7","activity":"Risk: year-end freeze compresses Phase 17","phase":"17","start":"2026-12-21","end":"2026-12-23","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":1,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"18.1","activity":"S1 role matrix - 11 roles x 7 report types","phase":"18","start":"2027-01-04","end":"2027-01-06","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":1,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"18.2","activity":"S2-S5 suites CI-gated (containment, non-escalation, claims, cache isolation)","phase":"18","start":"2027-01-05","end":"2027-01-08","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":1,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"18.3","activity":"Semgrep and Bandit scans on new modules","phase":"18","start":"2027-01-07","end":"2027-01-08","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":1,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"18.4","activity":"Independent RBAC / tenancy security review","phase":"18","start":"2027-01-07","end":"2027-01-13","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":1,"2027-01-11":1,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"18.5","activity":"Load test (k6) and model-failure chaos test","phase":"18","start":"2027-01-11","end":"2027-01-14","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":1,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"18.6","activity":"Diff review against main - no existing file modified","phase":"18","start":"2027-01-14","end":"2027-01-15","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":1,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"18.7","activity":"Risk: critical finding from security review","phase":"18","start":"2027-01-13","end":"2027-01-15","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":1,"2027-01-18":0,"2027-01-25":0,"2027-02-01":0}},{"ref":"19.1","activity":"UAT with exec, SOC and compliance personas","phase":"19","start":"2027-01-18","end":"2027-01-22","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":1,"2027-01-25":0,"2027-02-01":0}},{"ref":"19.2","activity":"Prompt tuning and defect fixes","phase":"19","start":"2027-01-19","end":"2027-01-26","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":1,"2027-01-25":1,"2027-02-01":0}},{"ref":"19.3","activity":"Documentation - API, runbook, stakeholder overview (Word and HTML)","phase":"19","start":"2027-01-18","end":"2027-01-25","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":1,"2027-01-25":1,"2027-02-01":0}},{"ref":"19.4","activity":"Production deployment and llm_enabled switch-on","phase":"19","start":"2027-01-26","end":"2027-01-27","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":1,"2027-02-01":0}},{"ref":"19.5","activity":"Acceptance sign-off against section 14 criteria and hypercare","phase":"19","start":"2027-01-28","end":"2027-01-29","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":1,"2027-02-01":0}},{"ref":"19.6","activity":"Schedule contingency buffer","phase":"19","start":"2027-02-01","end":"2027-02-05","marks":{"2026-10-12":0,"2026-10-19":0,"2026-10-26":0,"2026-11-02":0,"2026-11-09":0,"2026-11-16":0,"2026-11-23":0,"2026-11-30":0,"2026-12-07":0,"2026-12-14":0,"2026-12-21":0,"2026-12-28":0,"2027-01-04":0,"2027-01-11":0,"2027-01-18":0,"2027-01-25":0,"2027-02-01":1}}],"weeks":["2026-10-12","2026-10-19","2026-10-26","2026-11-02","2026-11-09","2026-11-16","2026-11-23","2026-11-30","2026-12-07","2026-12-14","2026-12-21","2026-12-28","2027-01-04","2027-01-11","2027-01-18","2027-01-25","2027-02-01"],"ganttHeader":{}};
+
+const $  = (s,r)=> (r||document).querySelector(s);
+const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pill = (t,c)=> `<span class="pill p-${c}">${esc(t)}</span>`;
+const numf = n => (Math.round(n*10)/10).toLocaleString('en-ZA');
+const ratingPill = r => pill(r, r==='Critical'?'red':r==='High'?'amb':r==='Medium'?'cyn':'gry');
+const statusPill = s => s==='Completed'?pill('Completed','grn'):s==='WIP'?pill('WIP','amb'):pill(s||'Not Started','gry');
+
+/* ---------------- theme ---------------- */
+const root=document.documentElement;
+function setTheme(t){ root.dataset.theme=t; localStorage.setItem('g2theme',t); $('#theme').textContent = t==='dark'?'☀ Light':'☾ Dark'; }
+$('#theme').onclick=()=>setTheme(root.dataset.theme==='dark'?'light':'dark');
+setTheme(localStorage.getItem('g2theme')||'dark');
+
+/* ---------------- nav + rail + scrollspy ---------------- */
+const SECTIONS=[
+ ['overview','Overview'],['gates','Two gates'],['catalogue','Report catalogue'],['claims','Claim permission'],
+ ['api','API contract'],['verify','Verification'],['nongoals','Non-goals'],['accept','Acceptance'],
+ ['plan','Flight plan'],['activities','Activities'],['effort','Effort & capacity'],['gantt','Gantt'],
+ ['risks','Risks'],['decisions','Decisions & milestones'],['assumptions','Assumptions']
+];
+$('#nav').innerHTML = SECTIONS.map(([id,t])=>`<a href="#${id}">${t}</a>`).join('');
+$('#rail').innerHTML = '<h6>Plan</h6>'+SECTIONS.slice(0,8).map(([id,t])=>`<a href="#${id}">${t}</a>`).join('')
+                      + '<h6 style="margin-top:14px">Addendum A</h6>'+SECTIONS.slice(8).map(([id,t])=>`<a href="#${id}">${t}</a>`).join('');
+
+const navA=$$('#nav a'), railA=$$('#rail a');
+const io=new IntersectionObserver(es=>{
+  es.filter(e=>e.isIntersecting).sort((a,b)=>b.intersectionRatio-a.intersectionRatio).forEach(e=>{
+    const id=e.target.id;
+    navA.concat(railA).forEach(a=>a.classList.toggle('act', a.getAttribute('href')==='#'+id));
+  });
+},{rootMargin:'-150px 0px -55% 0px',threshold:[0,.15,.4]});
+SECTIONS.forEach(([id])=>io.observe($('#'+id)));
+
+/* ---------------- header ---------------- */
+const M=DATA.meta;
+$('#bx').textContent = M.parent.slice(0,64)+'…';
+$('#parentPlan').textContent = M.parent;
+$('#noticeTxt').textContent = M.notice;
+$('#srcXlsx').textContent = M.xlsx;
+$('#footXlsx').textContent = M.xlsx;
+$('#genDate').textContent = M.generated;
+$('#planSub').innerHTML = `<b>${esc(M.title)}</b> — ${esc(M.subtitle)}. Sponsor ${esc(M.sponsor)} · PM ${esc(M.pm)} · Lead ${esc(M.lead)}.`;
+const S=M.stats||{};
+$('#kpis').innerHTML = [
+  ['Activities', S['Total Activities']||DATA.activities.length, ''],
+  ['Effort', (S['Total effort (person-days)']||'')+' PD', ''],
+  ['Phases', DATA.phases.length, ''],
+  ['Risks', DATA.risks.length, (DATA.riskSummary.Critical||0)+' critical'],
+  ['Decisions', DATA.decisions.length, 'open'],
+  ['Go-live', (S['Planned go-live']||'').slice(0,10), 'good']
+].map(([l,v,c])=>`<div class="kpi ${c}"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join('');
+
+/* ---------------- 1. non-interference ---------------- */
+const NI=[
+ ['AG compliance attestation','app/api/routers/exports_ag.py — build_attestation()','None. AI narrative is <b>not</b> embedded; it is a separate, unsigned report.'],
+ ['CSV exports','app/api/routers/exports.py','None'],
+ ['Provincial benchmark','app/api/routers/benchmark.py — _build_benchmark()','None. Read-only reuse as a data source.'],
+ ['Static dashboard narratives','frontend/src/data/explanations.ts','None. The AI report is a <i>separate</i> surface.'],
+ ['Marketing pipeline copy','frontend/src/pages/HomePage.tsx — PIPELINE_STAGES','None'],
+ ['Stage diagram','architecture.html:936-941','None. Stage 4 is already REST API; no re-numbering.'],
+ ['Warehouse tables','warehouse.*','None. AI artefacts go to a <b>new ai schema</b>.'],
+ ['Risk / alert / compliance engines','app/processing/','None']
+];
+$('#tblNonInterf tbody').innerHTML=NI.map(r=>`<tr class="click" onclick="nd(this)"><td><b>${esc(r[0])}</b></td><td><span class="mono">${esc(r[1])}</span></td><td>${pill('No change','gry')}</td></tr><tr class="detail" hidden><td colspan="3"><div class="dwrap"><div class="dcell" style="grid-column:1/-1">${r[2]}</div></div></td></tr>`).join('');
+function nd(tr){const d=tr.nextElementSibling;if(!d)return;const o=!d.hidden;d.hidden=o;tr.classList.toggle('open',!o)}
+
+/* ---------------- 2. gates ---------------- */
+const GATES=[
+ {id:'g1',t:'Gate 1 · Capability RBAC',p:'p-blu',s:'report_ai:*',d:'Per-report-type permission namespace. <code>ROLE_REPORT_AI</code> maps each role to the report types it may request. A role absent from the map receives <b>nothing</b> — default-deny. Runs before any query is built.',
+  sub:[['Additive only','ROLES_HIERARCHY and role definitions are not modified'],['Why not require_roles','require_roles("findings") is too coarse — a dbsec role must not reach an executive briefing'],['Audit','actor, permission and report type land in the envelope and the audit row']]},
+ {id:'g2',t:'Gate 2 · Tenancy',p:'p-vio',s:'ReportScope',d:'Resolves the JWT claims into a frozen <code>ReportScope</code>. Province expansion happens once. A canonical <code>scope_hash</code> is computed and propagated to the response, the cache key and the audit row.',
+  sub:[['Frozen &amp; explicit','Every accessor takes scope as its first positional argument'],['No ambient authority','No claims accessor or get_current_user() inside the object'],['scope_hash','sha256 of the canonical scope tuple — present in all three places']]},
+ {id:'fp',t:'Fact pack',p:'p-cyn',s:'scope-bound reads',d:'Built <b>only</b> through the frozen scope. Every fact carries a <code>DisclosureClass</code> of <code>TENANT_SCOPED</code> or <code>ESTATE_WIDE</code>. A <code>fact_pack_hash</code> fixes the exact input set.',
+  sub:[['Pure functions','Unit-testable without a database'],['One pack, two paths','The same pack feeds the AI path and the fallback path'],['Compliance','ComplianceSnapshot / ComplianceGap are tagged ESTATE_WIDE and disclosed']]},
+ {id:'pr',t:'Prompt',p:'p-amb',s:'no DB, no SQL, no tools',d:'The model receives pre-scoped, disclosure-classed facts and nothing else. <code>allowed_claim_classes</code> is injected from the caller’s role. The prompt states the restriction; it is not the control.',
+  sub:[['Scope is in code','Scope is enforced by Gate 2, never by prompt text'],['temperature 0.2','Reporting needs reproducibility, not variety'],['Constrained decode','Output schema restricted to narrative_html']]},
+ {id:'vf',t:'Verifier',p:'p-grn',s:'discard, not warn',d:'Independent of the prompt. Confirms every numeral exists in the fact pack, every named entity is a claim class the role holds, and <code>scope_hash</code> matches across envelope, cache and audit.',
+  sub:[['Failure action','Output discarded; deterministic template returned'],['Estate-wide attribution','A figure must be described as estate-wide'],['Fallback flag','fallback_used is returned and surfaced']]}
+];
+$('#flow').innerHTML = GATES.map((g,i)=>
+ (i?'<div class="arw">&rarr;</div>':'')+
+ `<div class="gate" data-g="${g.id}"><b>${g.t}</b><small>${g.d}</small><span class="st ${g.p}">${g.p.split('-')[1]} · ${g.s}</span></div>`).join('');
+$$('#flow .gate').forEach(el=>el.onclick=()=>{
+  const g=GATES.find(x=>x.id===el.dataset.g);
+  $$('#flow .gate').forEach(x=>x.classList.toggle('on',x===el));
+  $('#gateDetail').innerHTML=`<h3 style="margin:0 0 8px">${g.t} ${pill(g.s,g.p.split('-')[1])}</h3><p style="margin:0 0 12px;font-size:12.7px;color:var(--tx2)">${g.d}</p>
+   <div class="grid g3">${g.sub.map(([h,p])=>`<div><b style="font-size:11.5px">${h}</b><div style="font-size:12.2px;color:var(--tx2)">${p}</div></div>`).join('')}</div>`;
+});
+$('#flow .gate').click();
+
+/* ---------------- 3. report matrix ---------------- */
+const REPORTS=[
+ ['executive_briefing','exec','compliance','transversal-admin','report_ai:executive','tenant (province/estate)','Feeds the executive dashboard AI tab'],
+ ['peer_benchmark','exec','compliance','transversal-admin','report_ai:executive','tenant + anonymised peers','Reuses benchmark.py _build_benchmark'],
+ ['compliance_status','exec','compliance','transversal-admin','report_ai:compliance','ESTATE-WIDE — disclosed','ComplianceSnapshot/Gap have no tenancy columns'],
+ ['department_monthly','','transversal-admin','dept-admin, province-dept-admin, appsec, dbsec','report_ai:executive','tenant (single dept)','Month-over-month movement'],
+ ['soc_shift_handover','','transversal-admin','soc, province-soc-lead','report_ai:soc','tenant','Alert backlog, MTTD/MTTR, open criticals'],
+ ['appsec_posture','','transversal-admin','appsec, local-appsec','report_ai:appsec','tenant','Severity mix, shadow APIs, fix rate'],
+ ['dbsec_posture','','transversal-admin','dbsec','report_ai:dbsec','tenant','Inventory coverage, DAM findings']
+];
+const ROLES=['exec','compliance','soc','appsec','dbsec','transversal-admin'];
+const roleHas=(r,rt)=>{const x=REPORTS.find(z=>z[0]===rt);return (x[1]===r||x[2]===r||x[3]==='transversal-admin'&&r==='transversal-admin'||x[3].split(',').map(s=>s.trim()).includes(r))};
+$('#mxHead').innerHTML='<th>Report type</th>'+ROLES.map(r=>`<th class="nowrap">${esc(r)}</th>`).join('')+'<th>Scope class</th>';
+$('#mxBody').innerHTML=REPORTS.map(x=>{
+  const ew=x[5].startsWith('ESTATE');
+  return `<tr class="click" data-rt="${x[0]}"><td class="mono">${esc(x[0])}</td>`+
+   ROLES.map(r=>`<td class="cell ${roleHas(r,x[0])?'y':'n'}">${roleHas(r,x[0])?'●':'—'}</td>`).join('')+
+   `<td>${pill(ew?'estate-wide':'tenant-scoped',ew?'amb':'grn')}</td></tr>`;
+}).join('');
+$('#mxBody').parentElement.addEventListener('click',e=>{
+  const tr=e.target.closest('tr[data-rt]'); if(!tr) return;
+  $$('#mxBody tr').forEach(r=>r.classList.toggle('sel',r===tr));
+  const x=REPORTS.find(z=>z[0]===tr.dataset.rt);
+  const roles=ROLES.filter(r=>roleHas(r,x[0]));
+  $('#mxDetail').innerHTML=`<h3 style="margin:0 0 8px" class="mono">${esc(x[0])}</h3>
+   <dl class="kv"><dt>Gate 1 permission</dt><dd>${esc(x[4])}</dd>
+   <dt>Roles allowed</dt><dd>${roles.length?roles.map(r=>pill(r,'blu')).join(' '):'<span class="muted">none</span>'}</dd>
+   <dt>Scope class</dt><dd>${pill(x[5], x[5].startsWith('ESTATE')?'amb':'grn')}</dd>
+   <dt>Notes</dt><dd style="font-family:var(--sans)">${esc(x[6])}</dd></dl>`;
+});
+$('#mxBody tr[data-rt="executive_briefing"]').click();
+
+/* ---------------- 4. claims ---------------- */
+const CLAIMS=[
+ ['HEADLINE_METRICS','headline_metrics','Fused risk score, open findings, alert counts, fix rate','exec, compliance, soc, appsec, dbsec'],
+ ['RISK_BUCKETS','risk_buckets','safe / monitored / critical distribution','exec, appsec, dbsec, compliance'],
+ ['APP_NAMES','app_names','Application and database names','exec, soc, appsec, dbsec'],
+ ['DEPARTMENT_NAMES','department_names','Department names in the narrative','soc, compliance'],
+ ['CVE_IDS','cve_ids','CVE identifiers','soc, appsec'],
+ ['ALERT_IDS','alert_ids','Alert identifiers and rule ids','soc'],
+ ['OWNER_NAMES','owner_names','Owner and team from app_catalog.yaml / enriched_data','soc'],
+ ['RULE_IDS','rule_ids','Alert rule identifiers','soc'],
+ ['AGGREGATE_COMPLIANCE','aggregate_compliance','Compliance posture — aggregate only, no control-level detail','exec, compliance']
+];
+$('#tblClaims tbody').innerHTML=CLAIMS.map(c=>{
+  const holders=c[3].split(', ');
+  return `<tr class="click" onclick="nd(this)"><td><span class="tag">${esc(c[1])}</span></td><td>${esc(c[2])}</td><td>${holders.map(r=>pill(r,'cyn')).join(' ')}</td></tr>
+    <tr class="detail" hidden><td colspan="3"><div class="dwrap">
+      <div class="dcell" style="grid-column:1/-1"><b>Verdict if a role does NOT hold this class</b>Any sentence in the generated narrative naming an entity of this class is <b>discarded</b>; if that empties the report, the deterministic template is returned instead.</div>
+      ${ROLES.map(r=>`<div class="dcell"><b>${esc(r)}</b>${pill(holders.includes(r)?'may name':'names filtered out',holders.includes(r)?'grn':'gry')}</div>`).join('')}
+    </div></td></tr>`}).join('');
+
+/* ---------------- 5. api ---------------- */
+const API=[
+ ['POST','/api/v1/reports-ai/generate','Gate 1 + Gate 2','Generate a report. Body: report_type, period?, format (narrative|html|markdown), force_refresh?'],
+ ['GET','/api/v1/reports-ai/available','Gate 1','Returns only the report types <b>this caller</b> may request'],
+ ['GET','/api/v1/reports-ai/audit/{report_id}','Owner of the report only','Reveals nothing about scope size'],
+ ['POST','/api/v1/reports-ai/{report_id}/regenerate','Gate 1 + Gate 2','Bust the cache and regenerate from the same fact pack'],
+ ['GET','/api/v1/reports-ai/grounding/{report_id}','Owner of the report only','The exact fact pack the narrative was written from']
+];
+$('#tblApi tbody').innerHTML=API.map(r=>`<tr><td>${pill(r[0],r[0]==='POST'?'grn':'blu')}</td><td class="mono">${esc(r[1])}</td><td><span class="muted">${esc(r[2])}</span></td><td>${r[3]}</td></tr>`).join('');
+
+/* ---------------- 6. verification suites ---------------- */
+const SUITES=[
+ ['S1','RBAC','For each of the 11 roles × 7 report types, call the endpoint','Exactly the matrix in §02 holds; unknown role → 403','13.4 / 18.1'],
+ ['S2','Tenancy','A <code>soc</code> user in Gauteng requests a report; inspect every returned figure','Zero rows with <code>department_id</code> outside the province-expanded set','14.6 / 18.2'],
+ ['S3','Tenancy','A provincially-scoped user attempts to name another province via the prompt','Verifier rejects; <code>expression.false()</code> yields empty, never estate-wide','14.6 / 18.2'],
+ ['S4','RBAC','An <code>exec</code> request is scanned for CVE ids, alert UUIDs, owner names','Zero violations of unheld claim classes','16.5 / 18.2'],
+ ['S5','Cache','Generate as provincial user, replay the cache key as national user','Different <code>scope_hash</code> → cache miss, no cross-serve','18.2'],
+ ['S6','Structural','Import <code>accessors.py</code>; assert <code>scope: ReportScope</code> is the first positional param on every public function','100% compliance — fails the build otherwise','14.2'],
+ ['NF','Numeral fidelity','Every figure in generated prose must exist in the fact pack','Failure → discard → deterministic fallback','16.1 / 16.5']
+];
+$('#tblSuites tbody').innerHTML=SUITES.map(s=>`<tr><td><span class="pill p-blu">${s[0]}</span></td><td>${pill(s[1],s[1]==='RBAC'?'vio':s[1]==='Tenancy'?'cyn':s[1]==='Cache'?'amb':'grn')}</td><td>${s[2]}</td><td>${s[3]}</td><td class="mono nowrap">${esc(s[4])}</td></tr>`).join('');
+
+/* ---------------- 7. non-goals ---------------- */
+const NG=[
+ 'No change to any existing report, export, dashboard, prompt or warehouse table.',
+ 'No AI text inside the AG attestation. A separate signed artefact would be required.',
+ 'No model-generated SQL, ever. Not for reports, not for the copilot.',
+ 'No scope held in prompt text. Scope is enforced in code; the prompt only discloses it.',
+ 'No new role names and no modification to ROLES_HIERARCHY. An additive permission namespace only.',
+ 'No SaaS LLM. Self-hosted; sovereign cloud only as DR, behind the same redaction gate.',
+ 'No default-allow. A role absent from ROLE_REPORT_AI gets nothing.'
+];
+$('#gridNG').innerHTML=NG.map((t,i)=>`<div class="card"><span class="pill p-red">${i+1}</span><p style="margin:8px 0 0;font-size:12.6px;color:var(--tx2)">${esc(t)}</p></div>`).join('');
+
+/* ---------------- 8. acceptance ---------------- */
+const ACC=[
+ 'No existing router, export, dashboard, prompt or warehouse table is modified — verified by diff review against main.',
+ 'Every role × report-type combination behaves exactly as the §02 matrix.',
+ '<code>accessors.py</code> has 100% scope-first-positional coverage, enforced by suite S6.',
+ 'A provincial user cannot retrieve any figure from outside their province, verified by S2 and S3.',
+ 'An <code>exec</code> report contains zero CVE ids, alert ids or owner names, verified by S4.',
+ '<code>scope_hash</code> is equal across the response, the cache key and the audit row.',
+ 'Every response carries <code>authorisation</code> and <code>disclosure</code> blocks; neither is optional.',
+ 'Estate-wide compliance figures are attributed as estate-wide in the prose.',
+ 'With the model unavailable, all 7 reports still render with correct numbers via the Jinja2 fallback.',
+ '<code>ai.report</code> and <code>audit.action_audit</code> rows exist for every generation; AG attestation output is byte-identical to pre-change for the same inputs.',
+ 'Backend <code>pytest</code> passes.'
+];
+const KEY='g2acc';
+const done=new Set(JSON.parse(localStorage.getItem(KEY)||'[]'));
+$('#accList').innerHTML=ACC.map((t,i)=>`<label class="card p" style="display:flex;gap:11px;cursor:pointer;align-items:flex-start" data-i="${i}">
+  <input type="checkbox" style="margin-top:3px" ${done.has(i)?'checked':''}>
+  <span style="font-size:12.8px;color:var(--tx2)" class="at">${t}</span></label>`).join('');
+const upd=()=>{const n=$$('#accList input:checked').length;$('#accCount').textContent=`${n} / ${ACC.length} complete`};
+$('#accList').onchange=e=>{const l=e.target.closest('label');if(!l)return;const i=+l.dataset.i;
+  e.target.checked?done.add(i):done.delete(i);localStorage.setItem(KEY,JSON.stringify([...done]));l.style.opacity=e.target.checked?.5:1;upd()};
+$$('#accList label').forEach(l=>{const i=+l.dataset.i;if(done.has(i))l.style.opacity=.5});
+upd();
+$('#accReset').onclick=()=>{done.clear();localStorage.removeItem(KEY);
+  $$('#accList input').forEach(i=>{i.checked=false;i.closest('label').style.opacity=1});upd()};
+
+/* ================= flight plan ================= */
+$('#phBlocks').innerHTML = DATA.blocks.map((b,bi)=>{
+  const phs=DATA.phases.filter(p=>p.block===b.title);
+  return `<div class="card" style="margin-bottom:14px">
+    <h3 style="margin:0 0 4px;font-size:14.5px">${esc(b.title)}</h3>
+    <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(215px,1fr));gap:10px;margin-top:11px">
+    ${phs.map(p=>{
+      const acts=DATA.activities.filter(a=>a.phase===p.no);
+      const pd=acts.reduce((t,a)=>t+a.effort,0);
+      const risks=acts.filter(a=>a.risks).length;
+      return `<div class="card p" data-phase="${p.no}" style="cursor:pointer;margin:0">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+          <b style="font-size:13px">Phase ${esc(p.no)}</b>${pill(pd+' PD', pd>20?'amb':'gry')}
+        </div>
+        <div style="font-size:11.8px;color:var(--tx2);margin-top:4px;line-height:1.45">${esc(p.title.replace(/^Phase\s*\d+:\s*/,'').split('(')[0].trim())}</div>
+        <div style="margin-top:7px">${pill(acts.length+' activities','blu')} ${risks?pill(risks+' risks','red'):''}</div>
+      </div>`}).join('')}
+    </div></div>`;
+}).join('');
+$$('#phBlocks [data-phase]').forEach(el=>el.onclick=()=>{
+  setPhase(el.dataset.phase);
+  location.hash='#activities';
+  document.querySelector('#activities').scrollIntoView();
+});
+
+/* ---------------- activities ---------------- */
+const A=DATA.activities;
+let fPhase='all',fOwner='all',fStatus='all',fQ='',sortK='ref',sortD=1,openRows=new Set();
+const owners=[...new Set(A.map(a=>a.primary||a.owner))].sort();
+const statuses=[...new Set(A.map(a=>a.status))];
+
+function chipBar(el,items,get,set,allLabel){
+  el.innerHTML=`<button class="fchip on" data-v="all">${allLabel} <b>${items.length}</b></button>`+
+   items.map(i=>`<button class="fchip" data-v="${esc(i)}">${esc(i)} <b>${get(i)}</b></button>`).join('');
+  el.onclick=e=>{const c=e.target.closest('.fchip');if(!c)return;
+    $$('.fchip',el).forEach(x=>x.classList.toggle('on',x===c));set(c.dataset.v);draw();syncChips();};
+}
+function syncChips(){
+  [['#phaseChips',fPhase],['#ownerChips',fOwner],['#statusChips',fStatus]].forEach(([s,v])=>{
+    $$(s+' .fchip').forEach(c=>c.classList.toggle('on',c.dataset.v===v));});
+  $$('#ganttChips .fchip').forEach(c=>c.classList.toggle('on',c.dataset.v===fPhase));
+  const eff=fPhase==='all'?0:A.filter(a=>a.phase===fPhase).reduce((t,a)=>t+a.effort,0);
+  $('#ganttChips .fchip[data-v="all"]').innerHTML=`All phases <b>${numf(A.reduce((t,a)=>t+a.effort,0))} PD</b>`;
+  $$('#ganttChips .fchip').forEach(c=>{const p=c.dataset.v;
+    if(p==='all')return; const e=A.filter(a=>a.phase===p).reduce((t,a)=>t+a.effort,0);
+    c.innerHTML=`Phase ${p} <b>${numf(e)} PD</b>`;});
+}
+function setPhase(p){fPhase=p;draw();syncChips();}
+function rows(){
+  let r=A.filter(a=>
+    (fPhase==='all'||a.phase===fPhase)&&
+    (fOwner==='all'||(a.primary||a.owner)===fOwner)&&
+    (fStatus==='all'||a.status===fStatus)&&
+    (!fQ||(a.desc+a.deliverable+a.owner+a.primary+a.risks+a.notes+a.ref).toLowerCase().includes(fQ)));
+  r.sort((x,y)=>{let p=x[sortK],q=y[sortK];
+    if(typeof p==='number'&&typeof q==='number')return (p-q)*sortD;
+    return String(p).localeCompare(String(q))*sortD});
+  return r;
+}
+function draw(){
+  const r=rows(), tb=$('#tblAct tbody');
+  if(!r.length){tb.innerHTML=`<tr><td colspan="7" class="muted" style="padding:26px;text-align:center">No activities match these filters.</td></tr>`;$('#actCount').textContent='0 shown';return}
+  tb.innerHTML=r.map(a=>`<tr class="click" data-ref="${a.ref}" onclick="tog(this)">
+      <td><span class="tag ref">${esc(a.ref)}</span></td>
+      <td>${esc(a.desc)}${a.risks?' '+pill('risk','red'):''}</td>
+      <td class="nowrap">${esc(a.primary||a.owner)}</td>
+      <td class="mono nowrap">${esc(a.start)}</td>
+      <td class="mono nowrap">${esc(a.end)}</td>
+      <td class="num">${a.effort?numf(a.effort):'<span class="muted">—</span>'}</td>
+      <td>${statusPill(a.status)}</td></tr>
+    <tr class="detail" data-for="${a.ref}" hidden><td colspan="7"><div class="dwrap">
+      <div class="dcell"><b>Deliverable</b>${esc(a.deliverable)||'<span class="muted">—</span>'}</div>
+      <div class="dcell"><b>Risks</b>${esc(a.risks)||'<span class="muted">—</span>'}</div>
+      <div class="dcell"><b>Dependencies</b>${esc(a.deps)||'<span class="muted">—</span>'}</div>
+      <div class="dcell"><b>Obstacles</b>${esc(a.obstacles)||'<span class="muted">—</span>'}</div>
+      <div class="dcell"><b>Notes</b>${esc(a.notes)||'<span class="muted">—</span>'}</div>
+      <div class="dcell"><b>Phase</b><span class="mono">${esc(a.phase_title)}</span></div>
+    </div></td></tr>`).join('');
+  const pd=r.reduce((t,a)=>t+a.effort,0);
+  $('#actCount').textContent=`${r.length} of ${A.length} activities · ${numf(pd)} PD`;
+}
+function tog(tr){
+  const ref=tr.dataset.ref, d=$(`tr.detail[data-for="${CSS.escape(ref)}"]`);
+  const willOpen=!openRows.has(ref);
+  willOpen?openRows.add(ref):openRows.delete(ref);
+  tr.classList.toggle('open',willOpen); d.hidden=!willOpen;
+}
+$$('#tblAct thead th').forEach((th,i)=>{if(i>1&&i<6)return;th.classList.add('s');
+  th.onclick=()=>{const k=['ref','desc','owner','start','end','effort','status'][i];
+    if(sortK===k)sortD*=-1;else{sortK=k;sortD=1}
+    $$('#tblAct thead th').forEach(x=>x.classList.remove('asc','desc'));
+    th.classList.add(sortD>0?'asc':'desc');draw()}});
+$('#q').oninput=e=>{fQ=e.target.value.trim().toLowerCase();draw()};
+chipBar($('#phaseChips'),[...new Set(A.map(a=>a.phase))].sort((x,y)=>x-y),p=>A.filter(a=>a.phase===p).length,v=>{fPhase=v},'All phases');
+chipBar($('#ownerChips'),owners,o=>A.filter(a=>(a.primary||a.owner)===o).length,v=>{fOwner=v},'All owners');
+chipBar($('#statusChips'),statuses,o=>A.filter(a=>a.status===o).length,v=>{fStatus=v},'All statuses');
+draw();
+
+/* ---------------- effort ---------------- */
+$('#tblEffort tbody').innerHTML=DATA.effort.map(e=>`<tr class="click" onclick="setPhase('${e.phase}');location.hash='#activities'">
+  <td><span class="pill p-blu">${esc(e.phase)}</span></td><td><b>${esc(e.name)}</b></td>
+  <td class="mono nowrap">${esc(e.start)}</td><td class="mono nowrap">${esc(e.end)}</td>
+  <td class="num">${numf(e.weeks)}</td><td class="num">${numf(e.days)}</td>
+  <td class="num"><b>${numf(e.effort)}</b></td><td class="num">${numf(e.takawira)||'—'}</td>
+  <td class="num">${numf(e.peter)||'—'}</td><td class="num">${numf(e.other)||'—'}</td>
+  <td class="num">${numf(e.contingency)||'—'}</td><td class="num"><b>${numf(e.total_incl)}</b></td></tr>`).join('');
+$('#tblCap tbody').innerHTML=DATA.capacity.map(c=>{
+  const neg=/shortfall/i.test(c.label)&&/-/.test(c.value);
+  return `<tr><td>${esc(c.label)}</td><td class="num" style="${neg?'color:var(--red);font-weight:700':''}">${esc(c.value)}</td></tr>`}).join('');
+const short=DATA.capacity.find(c=>/incl\. contingency/i.test(c.label)&&/-/.test(c.value));
+if(short)$('#capNotes').innerHTML=`<div class="note bad"><b>Capacity shortfall.</b> ${esc(short.label)} = ${esc(short.value)} person-days. The plan is over-committed — a third engineer, reduced scope, or dropping the estimate contingency is required. See risk R09 (key-person concentration, rated Critical).</div>`;
+const mx=Math.max(...DATA.owners.map(o=>o.effort))||1;
+$('#tblOwners tbody').innerHTML=DATA.owners.sort((a,b)=>b.effort-a.effort).map(o=>`<tr class="click" onclick="fOwner='${esc(o.owner)}';$$('#ownerChips .fchip').forEach((c,i)=>c.classList.toggle('on',i===0));draw();location.hash='#activities'">
+  <td><b>${esc(o.owner)}</b></td><td class="num">${numf(o.activities)}</td><td class="num">${numf(o.effort)}</td>
+  <td style="width:34%"><div style="height:8px;background:var(--surface3);border-radius:5px;overflow:hidden">
+    <div style="height:100%;width:${(o.effort/mx*100).toFixed(1)}%;background:var(--blu)"></div></div></td></tr>`).join('');
+
+/* ---------------- gantt ---------------- */
+const W=DATA.weeks;
+$('#ganttChips').innerHTML=`<button class="fchip on" data-v="all">All phases <b>0</b></button>`+
+  [...new Set(A.map(a=>a.phase))].sort((x,y)=>x-y).map(p=>`<button class="fchip" data-v="${p}">Phase ${p} <b>0</b></button>`).join('');
+$('#ganttChips').onclick=e=>{const c=e.target.closest('.fchip');if(!c)return;setPhase(c.dataset.v);
+  document.querySelector('#activities').scrollIntoView()};
+const isRisk=ref=>{const a=A.find(x=>x.ref===ref);return a&&a.risks?1:0};
+$('#gHead').innerHTML='<th style="text-align:left">Activity</th>'+W.map((w,i)=>{
+  const fz=w>='2026-12-24'&&w<'2027-01-04';
+  return `<th class="wn ${fz?'fz':''}" title="${w}">W${i+1}<br>${w.slice(5)}</th>`}).join('');
+const seen=new Set();
+$('#gBody').innerHTML=DATA.gantt.map(g=>{
+  const hdr=!seen.has(g.phase);
+  if(hdr)seen.add(g.phase);
+  const row=(hdr?`<tr class="hd"><td colspan="${W.length+1}" data-gp="${g.phase}" style="cursor:pointer">Phase ${esc(g.phase)} — ${esc((DATA.phases.find(p=>p.no===g.phase)||{}).title||'').replace(/^Phase\s*\d+:\s*/,'')} ▸ click to filter</td></tr>`:'');
+  return row+`<tr><td class="lab" title="${esc(g.activity)}">${esc(g.ref)} · ${esc(g.activity)}</td>`+
+   W.map(w=>{const on=g.marks[w];
+     return `<td class="w ${on?(isRisk(g.ref)?'risk':'on'):''}" ${on?`data-gr="${g.ref}"`:''}><i></i></td>`}).join('')+`</tr>`;
+}).join('');
+$('#tblGantt').addEventListener('click',e=>{
+  const w=e.target.closest('td[data-gr]'), p=e.target.closest('[data-gp]');
+  if(p){setPhase(p.dataset.gp);document.querySelector('#activities').scrollIntoView();return}
+  if(!w)return;
+  const a=A.find(x=>x.ref===w.dataset.gr); if(!a)return;
+  openModal(`<h3><span class="tag">${esc(a.ref)}</span> ${esc(a.desc)}</h3>
+   <div class="bar" style="margin:12px 0">${statusPill(a.status)} ${pill(a.effort+' PD','blu')} ${pill(a.primary||a.owner,'cyn')}</div>
+   <dl class="kv"><dt>Start / End</dt><dd>${esc(a.start)} → ${esc(a.end)}</dd>
+   <dt>Deliverable</dt><dd style="font-family:var(--sans)">${esc(a.deliverable)||'—'}</dd>
+   <dt>Risks</dt><dd style="font-family:var(--sans)">${esc(a.risks)||'—'}</dd>
+   <dt>Dependencies</dt><dd style="font-family:var(--sans)">${esc(a.deps)||'—'}</dd>
+   <dt>Notes</dt><dd style="font-family:var(--sans)">${esc(a.notes)||'—'}</dd></dl>`);
+});
+$('#ganttNote').innerHTML='Week 13 (28 Dec) is the assumed year-end freeze — highlighted. The addendum\'s Gantt grid covers W1–W17; activity <b>19.6</b> (contingency buffer, 1–5 Feb) sits in <b>Week 18</b> and therefore falls outside the sheet\'s grid. It is shown in the flight plan and effort tables but has no Gantt cell.';
+
+/* ---------------- risks ---------------- */
+const RT=['Critical','High','Medium','Low'];
+$('#riskKpis').innerHTML=RT.map(r=>{
+  const n=DATA.risks.filter(x=>x.rating===r).length;
+  const c=r==='Critical'?'bad':r==='High'?'warn':'';
+  return `<div class="kpi ${c}" style="cursor:pointer" onclick="fRisk('${r}')"><b>${n}</b><span>${r}</span></div>`}).join('');
+$('#riskChips').innerHTML=`<button class="fchip on" data-v="all">All risks <b>${DATA.risks.length}</b></button>`+
+ RT.map(r=>`<button class="fchip" data-v="${r}">${r} <b>${DATA.risks.filter(x=>x.rating===r).length}</b></button>`).join('')
+ +`<button class="fchip" data-v="added">Added by plan <b>${DATA.risks.filter(x=>/added by plan/i.test(x.source)).length}</b></button>`;
+let fRisk_='all';
+$('#riskChips').onclick=e=>{const c=e.target.closest('.fchip');if(!c)return;
+  $$('#riskChips .fchip').forEach(x=>x.classList.toggle('on',x===c));fRisk_=c.dataset.v;drawRisks()};
+function fRisk(r){const c=$(`#riskChips .fchip[data-v="${r}"]`);if(c)c.click()}
+function drawRisks(){
+  const r=DATA.risks.filter(x=>fRisk_==='all'||x.rating===fRisk_||(fRisk_==='added'&&/added by plan/i.test(x.source)));
+  $('#tblRisks tbody').innerHTML=r.length?r.map(x=>`<tr class="click" onclick="tog2(this)">
+    <td><span class="tag">${esc(x.id)}</span></td>
+    <td>${esc(x.risk)}${/added by plan/i.test(x.source)?' '+pill('by plan','vio'):''}</td>
+    <td class="mono muted">${esc(x.source)}</td><td class="nowrap">${esc(x.phases)}</td>
+    <td class="num">${x.likelihood}</td><td class="num">${x.impact}</td>
+    <td class="num"><b>${x.score}</b></td><td>${ratingPill(x.rating)}</td>
+    <td class="nowrap">${esc(x.owner)}</td></tr>
+    <tr class="detail" hidden><td colspan="9"><div class="dwrap">
+      <div class="dcell" style="grid-column:1/-1"><b>Mitigation</b>${esc(x.mitigation)}</div>
+      <div class="dcell"><b>Phases</b>${esc(x.phases)}</div>
+      <div class="dcell"><b>Owner</b>${esc(x.owner)}</div>
+      <div class="dcell"><b>Status</b>${pill(x.status,'gry')}</div>
+      <div class="dcell"><b>Source</b>${esc(x.source)}</div>
+    </div></td></tr>`).join('')
+   :`<tr><td colspan="9" class="muted" style="padding:24px;text-align:center">No risks in this rating.</td></tr>`;
+}
+function tog2(tr){const d=tr.nextElementSibling;const o=!d.hidden;d.hidden=o;tr.classList.toggle('open',!o)}
+drawRisks();
+
+/* ---------------- decisions ---------------- */
+$('#tblDec tbody').innerHTML=DATA.decisions.map(d=>`<tr class="click" onclick="tog2(this)">
+  <td><span class="tag">D${d.n}</span></td><td><b>${esc(d.decision)}</b></td>
+  <td class="nowrap">${esc(d.owner)}</td><td class="muted">${esc(d.blocks)}</td>
+  <td class="mono nowrap">${esc(d.target)}</td><td>${esc(d.default)}</td>
+  <td>${pill(d.status,'amb')}</td></tr>
+  <tr class="detail" hidden><td colspan="7"><div class="dwrap">
+    <div class="dcell" style="grid-column:1/-1"><b>Default position if the decision is not closed by its target date</b>${esc(d.default)}</div>
+    <div class="dcell"><b>Blocks</b>${esc(d.blocks)}</div>
+    <div class="dcell"><b>Owner</b>${esc(d.owner)}</div>
+    <div class="dcell"><b>Target date</b>${esc(d.target)}</div>
+  </div></td></tr>`).join('');
+$('#msGrid').innerHTML=DATA.milestones.map(m=>`<div class="msc" data-ms="${esc(m.id)}">
+  <b>${esc(m.id)} · ${esc(m.date)}</b><span>${esc(m.milestone)}</span><em>day ${esc(m.days)} from plan start</em></div>`).join('');
+$$('#msGrid .msc').forEach(el=>el.onclick=()=>{
+  const m=DATA.milestones.find(x=>x.id===el.dataset.ms);
+  const near=DATA.activities.filter(a=>a.end&&m.date&&a.end>=String(m.date).slice(0,10))
+    .sort((x,y)=>x.end.localeCompare(y.end)).slice(0,5);
+  openModal(`<h3>${esc(m.id)} · ${esc(m.milestone)}</h3>
+    <div class="bar" style="margin:12px 0">${pill(m.date,'cyn')} ${pill('day '+m.days,'gry')}</div>
+    <h4 class="sub3">Activities completing on or before this date</h4>
+    <table class="dt">${near.map(a=>`<tr><td><span class="tag">${esc(a.ref)}</span></td><td>${esc(a.desc)}</td><td class="mono">${esc(a.end)}</td></tr>`).join('')||'<tr><td class="muted">None</td></tr>'}</table>`);
+});
+
+/* ---------------- assumptions ---------------- */
+$('#tblAssum tbody').innerHTML=DATA.assumptions.map(a=>{
+  const aw=/assumption|confirm/i.test(a.label);
+  const hol=/holiday|freeze/i.test(a.label);
+  return `<tr><td>${aw?pill('assumption','amb'):hol?pill('calendar','cyn'):''} ${esc(a.label)}</td>
+   <td>${/^\d{4}-\d{2}-\d{2}$/.test(a.value)?`<span class="mono">${esc(a.value)}</span>`:esc(a.value)}</td></tr>`}).join('');
+$('#notesCard').innerHTML=DATA.notes.map(n=>`<p style="margin:0 0 9px;font-size:12.6px;color:var(--tx2)">— ${esc(n)}</p>`).join('');
+
+/* ---------------- modal ---------------- */
+function openModal(html){$('#ovBody').innerHTML=html;$('#ov').classList.add('open')}
+$('#ov').onclick=e=>{if(e.target.id==='ov')$('#ov').classList.remove('open')};
+$('#ovX').onclick=()=>$('#ov').classList.remove('open');
+
+/* ---------------- tabs ---------------- */
+$$('[data-tab]').forEach(b=>b.onclick=()=>{
+  $$('[data-tab]').forEach(x=>x.classList.toggle('on',x===b));
+  const k=b.dataset.tab;
+  $$('.tabpane').forEach(p=>p.hidden=!p.id.startsWith('tab'+k[0].toUpperCase()+k.slice(1)));
+});
+
+/* ---------------- expand all ---------------- */
+$('#expandAll').onclick=function(){
+  const willOpen=this.dataset.on!=='1';
+  this.dataset.on=willOpen?'1':'0'; this.textContent=willOpen?'Collapse all':'Expand all';
+  $$('#tblAct tr.click').forEach(tr=>{const d=$(`tr.detail[data-for="${CSS.escape(tr.dataset.ref)}"]`);
+    if(d){d.hidden=!willOpen;tr.classList.toggle('open',willOpen)}});
+  $$('#tblRisks tr.click,#tblDec tr.click').forEach(tr=>{const d=tr.nextElementSibling;
+    if(d&&d.classList.contains('detail')){d.hidden=!willOpen;tr.classList.toggle('open',willOpen)}});
+};
+
+/* ---------------- keyboard + scroll ---------------- */
+document.addEventListener('keydown',e=>{
+  if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();$('#q').focus()}
+  if(e.key==='Escape'){ $('#q').value='';fQ='';draw(); $('#ov').classList.remove('open');
+    fPhase=fOwner=fStatus='all';draw();syncChips(); }
+  if(e.key==='t'&&document.activeElement.tagName!=='INPUT')scrollTo({top:0,behavior:'smooth'});
+});
+const hint=$('#hint'); setTimeout(()=>{hint.classList.add('on');setTimeout(()=>hint.classList.remove('on'),2600)},700);
+const tt=$('#toTop');
+addEventListener('scroll',()=>{tt.classList.toggle('on',scrollY>600)},{passive:true});
+tt.onclick=()=>scrollTo({top:0,behavior:'smooth'});
+syncChips();
+</script>
+</body>
+</html>

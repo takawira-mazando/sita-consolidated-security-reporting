@@ -27,6 +27,11 @@ from app.db import get_session
 from app.models.audit import ActionAudit
 from app.models.compliance import ComplianceGap, ComplianceSnapshot
 from app.models.risk_score import RiskScore
+from app.security_pki import (
+    get_ec_public_key_pem,
+    sign_canonical_payload,
+    verify_canonical_payload,
+)
 from app.tenant import PROVINCES
 
 router = APIRouter(tags=["exports-ag"])
@@ -197,7 +202,9 @@ async def export_ag_compliance(
     }
 
     payload = build_attestation(framework, snapshot, list(gaps), risk_rows, scope_meta)
-    integrity_hash = sha256_hex(payload)
+    canon_bytes = canonical_json(payload).encode("utf-8")
+    integrity_hash = hashlib.sha256(canon_bytes).hexdigest()
+    digital_signature = sign_canonical_payload(canon_bytes)
 
     audit = ActionAudit(
         actor=claims.email or claims.sub,
@@ -216,7 +223,25 @@ async def export_ag_compliance(
     return {
         "attestation": payload,
         "integrity_hash": integrity_hash,
+        "signature": digital_signature,
+        "signing_algorithm": "ECDSA_P256_SHA256",
+        "public_key_url": "/api/v1/exports/ag-compliance/public-key",
         "verify_url": f"/api/v1/exports/ag-compliance/verify/{integrity_hash}",
+    }
+
+
+@router.get("/exports/ag-compliance/public-key")
+async def get_ag_compliance_public_key():
+    """Public key for offline Auditor-General cryptographic verification."""
+    return {
+        "algorithm": "ECDSA_P256_SHA256",
+        "curve": "secp256r1 (NIST P-256)",
+        "key_format": "X.509 SubjectPublicKeyInfo (PEM)",
+        "public_key_pem": get_ec_public_key_pem(),
+        "offline_verification_instructions": {
+            "openssl": "openssl dgst -sha256 -verify ag_public_key.pem -signature attestation.sig canonical_attestation.json",
+            "python": "from cryptography.hazmat.primitives.asymmetric import ec; pubkey.verify(sig, data, ec.ECDSA(hashes.SHA256()))"
+        },
     }
 
 
@@ -241,4 +266,6 @@ async def verify_ag_compliance(
         "target": row.target,
         "tenant_scope": row.tenant_scope,
         "recorded_at": row.created_at.isoformat() if row.created_at else None,
+        "signing_algorithm": "ECDSA_P256_SHA256",
+        "public_key_url": "/api/v1/exports/ag-compliance/public-key",
     }

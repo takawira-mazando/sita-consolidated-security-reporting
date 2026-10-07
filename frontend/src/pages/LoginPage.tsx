@@ -34,7 +34,7 @@ export default function LoginPage({ onClose }: LoginPageProps) {
 
   const personaScope = (): LoginScope | undefined => {
     if (branch) return { department_id: 'home-affairs-digital', branch_id: branch, province_id: null };
-    return { department_id: 'home-affairs-digital', branch_id: null, province_id: null };
+    return undefined;
   };
 
   const closeOverlay = () => {

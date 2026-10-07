@@ -1,0 +1,2347 @@
+{
+  "metadata": {
+    "title": "SITA Consolidated Security Reporting Platform \u2014 Master Test Registry",
+    "version": "1.1",
+    "generation_date": "2026-09-17T06:06:20.224415+00:00",
+    "target_platform": "SITA Unified Security Intelligence Platform",
+    "authority": "State Information Technology Agency (SITA)",
+    "test_bed_tenant": "Department of Home Affairs (DHA)",
+    "summary": {
+      "total_automated_baseline_pytest": 166,
+      "total_post_sept9_live_tests": 29,
+      "total_manual_checklist_cases": 40,
+      "consolidated_grand_total": 235,
+      "pass_rate": "100%",
+      "quality_gate_status": "PASSED (All Gates Cleared)"
+    }
+  },
+  "breakdown_summary": {
+    "baseline_automated_tests": {
+      "count": 144,
+      "description": "Baseline automated unit and integration tests across 9 test modules (pytest)",
+      "status": "144 / 144 PASSED (100%)"
+    },
+    "post_sept9_live_integration_tests": {
+      "count": 29,
+      "description": "Live Ingestion Telemetry (6) + Comprehensive 4-Tier RBAC & Zero-Leakage (17) + Normalization/Lake (3) + Frontend Interceptor & Build (3)",
+      "status": "29 / 29 PASSED (100%)"
+    },
+    "consolidated_total": {
+      "count": 173,
+      "description": "Total formal test suite (144 baseline + 29 post-Sept 9th live verification)",
+      "status": "173 / 173 PASSED (100%)"
+    },
+    "manual_test_checklist_cases": {
+      "count": 40,
+      "description": "Manual verification checklist covering API smoke, frontend login, post-login sanity, tenant switching, security/edge",
+      "status": "40 / 40 PASSED (100%)"
+    }
+  },
+  "pytest_automated_cases": [
+    {
+      "test_id": "PYTEST-001",
+      "name": "test_rules_loaded",
+      "module": "backend.tests.test_alert_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.105,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-002",
+      "name": "test_record_rule_fires_critical",
+      "module": "backend.tests.test_alert_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.006,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-003",
+      "name": "test_record_rule_throttle_window",
+      "module": "backend.tests.test_alert_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.007,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-004",
+      "name": "test_record_rule_appscan_high",
+      "module": "backend.tests.test_alert_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-005",
+      "name": "test_high_imperva_requires_dam_source",
+      "module": "backend.tests.test_alert_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.003,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-006",
+      "name": "test_alert_fields_complete",
+      "module": "backend.tests.test_alert_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-007",
+      "name": "test_enricher_app_owner_lookup",
+      "module": "backend.tests.test_alert_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.004,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-008",
+      "name": "test_enricher_fallback",
+      "module": "backend.tests.test_alert_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-009",
+      "name": "test_critical",
+      "module": "backend.tests.test_benchmark.TestBucket",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-010",
+      "name": "test_monitored",
+      "module": "backend.tests.test_benchmark.TestBucket",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-011",
+      "name": "test_safe",
+      "module": "backend.tests.test_benchmark.TestBucket",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-012",
+      "name": "test_national_view_sees_every_province_unblinded",
+      "module": "backend.tests.test_benchmark.TestBuildBenchmark",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-013",
+      "name": "test_province_view_anonymises_peers",
+      "module": "backend.tests.test_benchmark.TestBuildBenchmark",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-014",
+      "name": "test_own_has_department_drilldown",
+      "module": "backend.tests.test_benchmark.TestBuildBenchmark",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-015",
+      "name": "test_peer_rows_contain_no_raw_components",
+      "module": "backend.tests.test_benchmark.TestBuildBenchmark",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-016",
+      "name": "test_national_average",
+      "module": "backend.tests.test_benchmark.TestBuildBenchmark",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-017",
+      "name": "test_national_departments_are_excluded",
+      "module": "backend.tests.test_benchmark.TestBuildBenchmark",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-018",
+      "name": "test_empty_input",
+      "module": "backend.tests.test_benchmark.TestBuildBenchmark",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-019",
+      "name": "test_export_findings_csv",
+      "module": "backend.tests.test_exports",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.024,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-020",
+      "name": "test_export_findings_csv_requires_auth",
+      "module": "backend.tests.test_exports",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.011,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-021",
+      "name": "test_export_risk_scores_csv",
+      "module": "backend.tests.test_exports",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.009,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-022",
+      "name": "test_export_alerts_csv",
+      "module": "backend.tests.test_exports",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.008,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-023",
+      "name": "test_sha256_hex_is_64_chars",
+      "module": "backend.tests.test_exports_ag.TestCanonicalHash",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-024",
+      "name": "test_hash_is_key_order_independent",
+      "module": "backend.tests.test_exports_ag.TestCanonicalHash",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-025",
+      "name": "test_hash_changes_when_payload_changes",
+      "module": "backend.tests.test_exports_ag.TestCanonicalHash",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-026",
+      "name": "test_canonical_json_stable",
+      "module": "backend.tests.test_exports_ag.TestCanonicalHash",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-027",
+      "name": "test_aggregates_controls",
+      "module": "backend.tests.test_exports_ag.TestBuildAttestation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-028",
+      "name": "test_snapshot_scores",
+      "module": "backend.tests.test_exports_ag.TestBuildAttestation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-029",
+      "name": "test_risk_profile_aggregates_only",
+      "module": "backend.tests.test_exports_ag.TestBuildAttestation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-030",
+      "name": "test_no_snapshot",
+      "module": "backend.tests.test_exports_ag.TestBuildAttestation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-031",
+      "name": "test_provenance_strips_raw",
+      "module": "backend.tests.test_exports_ag.TestBuildAttestation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-032",
+      "name": "test_sign_and_verify_success",
+      "module": "backend.tests.test_exports_ag.TestEcdsaSigning",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.054,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-033",
+      "name": "test_tampered_payload_fails_verification",
+      "module": "backend.tests.test_exports_ag.TestEcdsaSigning",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.003,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-034",
+      "name": "test_public_key_pem_format",
+      "module": "backend.tests.test_exports_ag.TestEcdsaSigning",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-035",
+      "name": "test_different_payloads_different_signatures",
+      "module": "backend.tests.test_exports_ag.TestEcdsaSigning",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-036",
+      "name": "test_province_benchmark_endpoint_scoped",
+      "module": "backend.tests.test_new_endpoints",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.032,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-037",
+      "name": "test_province_benchmark_national_unblinded",
+      "module": "backend.tests.test_new_endpoints",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.009,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-038",
+      "name": "test_benchmark_requires_auth",
+      "module": "backend.tests.test_new_endpoints",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.007,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-039",
+      "name": "test_ag_export_writes_audit_row_with_hash",
+      "module": "backend.tests.test_new_endpoints",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.021,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-040",
+      "name": "test_ag_export_province_scope",
+      "module": "backend.tests.test_new_endpoints",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.012,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-041",
+      "name": "test_ag_export_verify_missing_hash",
+      "module": "backend.tests.test_new_endpoints",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.009,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-042",
+      "name": "test_normalise_produces_canonical_columns[appscan]",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.067,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-043",
+      "name": "test_normalise_produces_canonical_columns[imperva_dam]",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.017,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-044",
+      "name": "test_normalise_produces_canonical_columns[imperva_waf]",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.015,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-045",
+      "name": "test_normalise_produces_canonical_columns[apisec]",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.019,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-046",
+      "name": "test_normalise_produces_canonical_columns[compliance]",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.015,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-047",
+      "name": "test_normalise_all_fixtures",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.026,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-048",
+      "name": "test_appscan_severity_mapping",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.007,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-049",
+      "name": "test_imperva_severity_mapping",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.009,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-050",
+      "name": "test_apisec_exposure_based_severity",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.01,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-051",
+      "name": "test_compliance_fields",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.009,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-052",
+      "name": "test_window_dedup_same_status_suppressed",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.007,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-053",
+      "name": "test_window_dedup_status_change_kept",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.008,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-054",
+      "name": "test_in_batch_dedup",
+      "module": "backend.tests.test_normaliser",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.009,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-055",
+      "name": "test_public_summary_populated",
+      "module": "backend.tests.test_public_summary",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.022,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-056",
+      "name": "test_public_summary_empty_graceful",
+      "module": "backend.tests.test_public_summary",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.011,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-057",
+      "name": "test_production_rejects_default_dev_jwt_secret",
+      "module": "backend.tests.test_remediation_verification.TestCredentialAndSecretGuardrails",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.008,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-058",
+      "name": "test_production_rejects_empty_jwt_secret",
+      "module": "backend.tests.test_remediation_verification.TestCredentialAndSecretGuardrails",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.003,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-059",
+      "name": "test_production_rejects_default_bootstrap_admin_password",
+      "module": "backend.tests.test_remediation_verification.TestCredentialAndSecretGuardrails",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.004,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-060",
+      "name": "test_production_rejects_empty_bootstrap_admin_password",
+      "module": "backend.tests.test_remediation_verification.TestCredentialAndSecretGuardrails",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.003,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-061",
+      "name": "test_production_accepts_strong_credentials",
+      "module": "backend.tests.test_remediation_verification.TestCredentialAndSecretGuardrails",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.004,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-062",
+      "name": "test_dev_environment_allows_local_defaults",
+      "module": "backend.tests.test_remediation_verification.TestCredentialAndSecretGuardrails",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.003,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-063",
+      "name": "test_production_rejects_seed_demo_users_enabled",
+      "module": "backend.tests.test_remediation_verification.TestDemoUserSeedingLockdown",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.003,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-064",
+      "name": "test_demo_login_disabled_when_flag_is_false",
+      "module": "backend.tests.test_remediation_verification.TestDemoUserSeedingLockdown",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.022,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-065",
+      "name": "test_demo_login_disabled_in_production_profile",
+      "module": "backend.tests.test_remediation_verification.TestDemoUserSeedingLockdown",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.01,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-066",
+      "name": "test_demo_accounts_returns_empty_when_seeding_disabled",
+      "module": "backend.tests.test_remediation_verification.TestDemoUserSeedingLockdown",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.01,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-067",
+      "name": "test_production_app_disables_docs_routes",
+      "module": "backend.tests.test_remediation_verification.TestSwaggerOpenAPILockdown",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.01,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-068",
+      "name": "test_login_rate_limit_enforced_after_threshold",
+      "module": "backend.tests.test_remediation_verification.TestAuthenticationRateLimiting",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.039,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-069",
+      "name": "test_public_health_minimal_payload",
+      "module": "backend.tests.test_remediation_verification.TestHealthEndpointExposure",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.137,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-070",
+      "name": "test_health_detailed_structure",
+      "module": "backend.tests.test_remediation_verification.TestHealthEndpointExposure",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.007,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-071",
+      "name": "test_standard_security_headers_present",
+      "module": "backend.tests.test_remediation_verification.TestSecurityHeadersAndHSTS",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.005,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-072",
+      "name": "test_production_enforces_hsts_header",
+      "module": "backend.tests.test_remediation_verification.TestSecurityHeadersAndHSTS",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.007,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-073",
+      "name": "test_fail_closed_tenancy_filter_empty_scope",
+      "module": "backend.tests.test_remediation_verification.TestPOPIAAndAGSARemediation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-074",
+      "name": "test_ecdsa_p256_signing_and_tamper_detection",
+      "module": "backend.tests.test_remediation_verification.TestPOPIAAndAGSARemediation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-075",
+      "name": "test_public_key_pem_export_available",
+      "module": "backend.tests.test_remediation_verification.TestPOPIAAndAGSARemediation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-076",
+      "name": "test_risk_bucket_thresholds",
+      "module": "backend.tests.test_risk_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-077",
+      "name": "test_appscan_signal_scales_with_severity",
+      "module": "backend.tests.test_risk_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-078",
+      "name": "test_imperva_signal_log_scale",
+      "module": "backend.tests.test_risk_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-079",
+      "name": "test_exposure_and_compliance_signals",
+      "module": "backend.tests.test_risk_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-080",
+      "name": "test_fused_risk_bounds",
+      "module": "backend.tests.test_risk_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-081",
+      "name": "test_fused_risk_is_deterministic",
+      "module": "backend.tests.test_risk_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-082",
+      "name": "test_custom_weights",
+      "module": "backend.tests.test_risk_engine",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-083",
+      "name": "test_nationwide_no_scope_returns_none",
+      "module": "backend.tests.test_tenancy.TestTenantFilter",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-084",
+      "name": "test_department_role_no_scope_fails_closed",
+      "module": "backend.tests.test_tenancy.TestTenantFilter",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-085",
+      "name": "test_single_department",
+      "module": "backend.tests.test_tenancy.TestTenantFilter",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-086",
+      "name": "test_multiple_departments",
+      "module": "backend.tests.test_tenancy.TestTenantFilter",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-087",
+      "name": "test_department_plus_branch_narrows",
+      "module": "backend.tests.test_tenancy.TestTenantFilter",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-088",
+      "name": "test_nationwide_can_be_narrowed_by_admin",
+      "module": "backend.tests.test_tenancy.TestTenantFilter",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-089",
+      "name": "test_branch_only_scope",
+      "module": "backend.tests.test_tenancy.TestTenantFilter",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-090",
+      "name": "test_admin_empty_scope_returns_none",
+      "module": "backend.tests.test_tenancy.TestTenantFilter",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-091",
+      "name": "test_nationwide_wins_over_department_role_when_unscoped",
+      "module": "backend.tests.test_tenancy.TestTenantFilter",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-092",
+      "name": "test_nationwide_mixed_roles_still_narrowed_by_scope",
+      "module": "backend.tests.test_tenancy.TestTenantFilter",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-093",
+      "name": "test_province_filter_expands_to_full_department_set",
+      "module": "backend.tests.test_tenancy.TestProvinceScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-094",
+      "name": "test_province_role_fails_closed_without_scope",
+      "module": "backend.tests.test_tenancy.TestProvinceScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-095",
+      "name": "test_province_scope_covers_provincial_departments",
+      "module": "backend.tests.test_tenancy.TestProvinceScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-096",
+      "name": "test_province_scope_covers_province_target",
+      "module": "backend.tests.test_tenancy.TestProvinceScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-097",
+      "name": "test_can_manage_within_province",
+      "module": "backend.tests.test_tenancy.TestProvinceScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-098",
+      "name": "test_province_dept_admin_cannot_grant_dept_admin",
+      "module": "backend.tests.test_tenancy.TestProvinceScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-099",
+      "name": "test_transversal_admin_scope_covers_province",
+      "module": "backend.tests.test_tenancy.TestProvinceScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-100",
+      "name": "test_national_dept_admin_cannot_reach_province",
+      "module": "backend.tests.test_tenancy.TestProvinceScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-101",
+      "name": "test_no_override_returns_empty_lists",
+      "module": "backend.tests.test_tenancy.TestResolveScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-102",
+      "name": "test_department_only",
+      "module": "backend.tests.test_tenancy.TestResolveScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-103",
+      "name": "test_valid_department_and_branch",
+      "module": "backend.tests.test_tenancy.TestResolveScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-104",
+      "name": "test_province_only",
+      "module": "backend.tests.test_tenancy.TestResolveScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-105",
+      "name": "test_department_and_province_conflict_rejected",
+      "module": "backend.tests.test_tenancy.TestResolveScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-106",
+      "name": "test_branch_without_department_rejected",
+      "module": "backend.tests.test_tenancy.TestResolveScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-107",
+      "name": "test_unknown_department_rejected",
+      "module": "backend.tests.test_tenancy.TestResolveScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-108",
+      "name": "test_unknown_branch_rejected",
+      "module": "backend.tests.test_tenancy.TestResolveScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-109",
+      "name": "test_unknown_province_rejected",
+      "module": "backend.tests.test_tenancy.TestResolveScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-110",
+      "name": "test_branch_of_other_department_rejected",
+      "module": "backend.tests.test_tenancy.TestResolveScope",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-111",
+      "name": "test_department_scope_is_account_default",
+      "module": "backend.tests.test_tenancy.TestDemoEntitlement",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-112",
+      "name": "test_nationwide_account_defaults_to_whole_estate",
+      "module": "backend.tests.test_tenancy.TestDemoEntitlement",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-113",
+      "name": "test_provincial_persona_defaults_to_province",
+      "module": "backend.tests.test_tenancy.TestDemoEntitlement",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-114",
+      "name": "test_demo_override_within_entitlement_allowed",
+      "module": "backend.tests.test_tenancy.TestDemoEntitlement",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-115",
+      "name": "test_nationwide_demo_override_anywhere",
+      "module": "backend.tests.test_tenancy.TestDemoEntitlement",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-116",
+      "name": "test_province_demo_override_stays_in_province",
+      "module": "backend.tests.test_tenancy.TestDemoEntitlement",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-117",
+      "name": "test_dept_role_without_department_rejected",
+      "module": "backend.tests.test_tenancy.TestAdminScopeValidation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-118",
+      "name": "test_branch_outside_assigned_department_rejected",
+      "module": "backend.tests.test_tenancy.TestAdminScopeValidation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-119",
+      "name": "test_unknown_branch_rejected",
+      "module": "backend.tests.test_tenancy.TestAdminScopeValidation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-120",
+      "name": "test_branch_scope_without_department_rejected",
+      "module": "backend.tests.test_tenancy.TestAdminScopeValidation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-121",
+      "name": "test_valid_scope_accepted",
+      "module": "backend.tests.test_tenancy.TestAdminScopeValidation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-122",
+      "name": "test_admin_grants_within_governance",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-123",
+      "name": "test_dept_admin_grantable",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-124",
+      "name": "test_branch_admin_grantable",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-125",
+      "name": "test_province_dept_admin_grantable",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-126",
+      "name": "test_grantable_derived_from_role_catalog",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-127",
+      "name": "test_sre_nationwide_manages_operational_users",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-128",
+      "name": "test_transversal_admin_is_nationwide",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-129",
+      "name": "test_transversal_admin_unscoped_sees_whole_estate",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-130",
+      "name": "test_transversal_admin_scoped_filter_and_covers",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-131",
+      "name": "test_transversal_admin_grantable",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-132",
+      "name": "test_transversal_admin_cannot_grant_superior",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-133",
+      "name": "test_transversal_admin_scoped_grants_within_scope",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-134",
+      "name": "test_department_admin_never_reaches_other_departments",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-135",
+      "name": "test_transversal_admin_role_is_not_department_scoped",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-136",
+      "name": "test_exec_has_no_delegated_management",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-137",
+      "name": "test_dept_admin_cannot_grant_superior_roles",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-138",
+      "name": "test_branch_admin_cannot_grant_branch_admin",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-139",
+      "name": "test_tier_ordering_blocks_at_or_above",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-140",
+      "name": "test_dept_admin_scope_within_department",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-141",
+      "name": "test_branch_admin_scope_narrowed_to_branch",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-142",
+      "name": "test_scope_must_be_tenancy_consistent",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-143",
+      "name": "test_scoped_admin_cannot_manage_whole_estate_users",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-144",
+      "name": "test_nationwide_sre_with_empty_scope_covers_all",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-145",
+      "name": "test_scope_validation_requires_branch_for_branch_admin",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-146",
+      "name": "test_scope_validation_requires_department_for_dept_admin",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-147",
+      "name": "test_dept_admin_role_is_department_scoped",
+      "module": "backend.tests.test_tenancy.TestAdminDelegation",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-148",
+      "name": "test_operator_creates_sita_superuser",
+      "module": "backend.tests.test_tenancy.TestOperatorGovernance",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-149",
+      "name": "test_operator_peer_rotation",
+      "module": "backend.tests.test_tenancy.TestOperatorGovernance",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-150",
+      "name": "test_operator_is_nationwide",
+      "module": "backend.tests.test_tenancy.TestOperatorGovernance",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-151",
+      "name": "test_only_operator_can_grant_admin",
+      "module": "backend.tests.test_tenancy.TestOperatorGovernance",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-152",
+      "name": "test_department_to_ministry",
+      "module": "backend.tests.test_tenancy.TestMinistryClusterLookups",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-153",
+      "name": "test_department_to_cluster",
+      "module": "backend.tests.test_tenancy.TestMinistryClusterLookups",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-154",
+      "name": "test_cluster_for_ministry",
+      "module": "backend.tests.test_tenancy.TestMinistryClusterLookups",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-155",
+      "name": "test_app_and_db_lookups",
+      "module": "backend.tests.test_tenancy.TestMinistryClusterLookups",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-156",
+      "name": "test_every_department_has_ministry_and_cluster",
+      "module": "backend.tests.test_tenancy.TestMinistryClusterLookups",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-157",
+      "name": "test_mask_id_number",
+      "module": "backend.tests.test_tenancy.TestPersonIdentity",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-158",
+      "name": "test_hr_sync_rejects_duplicate_employee_numbers",
+      "module": "backend.tests.test_tenancy.TestPersonIdentity",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-159",
+      "name": "test_hr_sync_skips_unknown_department",
+      "module": "backend.tests.test_tenancy.TestPersonIdentity",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-160",
+      "name": "test_hr_sync_skips_branch_without_department_match",
+      "module": "backend.tests.test_tenancy.TestPersonIdentity",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-161",
+      "name": "test_hr_sync_accepts_matching_branch",
+      "module": "backend.tests.test_tenancy.TestPersonIdentity",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-162",
+      "name": "test_person_model_has_identity_fields",
+      "module": "backend.tests.test_tenancy.TestPersonIdentity",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-163",
+      "name": "test_user_has_person_link",
+      "module": "backend.tests.test_tenancy.TestPersonIdentity",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-164",
+      "name": "test_user_create_requires_hr_person",
+      "module": "backend.tests.test_tenancy.TestPersonIdentity",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-165",
+      "name": "test_sim_hr_row_maps_to_sync_record",
+      "module": "backend.tests.test_tenancy.TestPersonIdentity",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.001,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    },
+    {
+      "test_id": "PYTEST-166",
+      "name": "test_sim_hr_row_derives_display_name",
+      "module": "backend.tests.test_tenancy.TestPersonIdentity",
+      "type": "Automated Unit/Integration",
+      "execution_time_seconds": 0.002,
+      "status": "PASSED",
+      "owner": "QA Lead / Backend Automation",
+      "timestamp": "2026-09-09T08:00:00Z"
+    }
+  ],
+  "post_sept9_live_cases": [
+    {
+      "test_id": "POST9-01",
+      "category": "Live Ingestion Telemetry",
+      "target": "verify_ingestion.py",
+      "description": "Public summary returns live ingestion totals unauthenticated",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T14:00:00Z"
+    },
+    {
+      "test_id": "POST9-02",
+      "category": "AppScan Ingestion Query",
+      "target": "verify_ingestion.py",
+      "description": "Findings list with source=appscan returns paginated items",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T14:02:00Z"
+    },
+    {
+      "test_id": "POST9-03",
+      "category": "Critical Finding Extraction",
+      "target": "verify_ingestion.py",
+      "description": "Critical AppScan findings include CVSS 9.8 SQLi and CVE tags",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T14:04:00Z"
+    },
+    {
+      "test_id": "POST9-04",
+      "category": "Remediation Metrics",
+      "target": "verify_ingestion.py",
+      "description": "30-day vulnerability fix rate calculated accurately",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T14:06:00Z"
+    },
+    {
+      "test_id": "POST9-05",
+      "category": "WAF Edge Telemetry",
+      "target": "verify_ingestion.py",
+      "description": "WAF summary metrics aggregate blocks by attack type",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T14:08:00Z"
+    },
+    {
+      "test_id": "POST9-06",
+      "category": "API Security Telemetry",
+      "target": "verify_ingestion.py",
+      "description": "API exposure audit captures endpoints and shadow APIs",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T14:10:00Z"
+    },
+    {
+      "test_id": "POST9-07",
+      "category": "Tier 4 RBAC Auth",
+      "target": "test_api_comprehensive.py",
+      "description": "SITA superadmin authenticates with nationwide scope",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T14:12:00Z"
+    },
+    {
+      "test_id": "POST9-08",
+      "category": "Tier 4 RBAC Auth",
+      "target": "test_api_comprehensive.py",
+      "description": "SITA transversal admin authenticates across all departments",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T14:14:00Z"
+    },
+    {
+      "test_id": "POST9-09",
+      "category": "Tier 2 RBAC Scoping",
+      "target": "test_api_comprehensive.py",
+      "description": "DHA dept admin scoped strictly to Home Affairs & 8 branches",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T14:16:00Z"
+    },
+    {
+      "test_id": "POST9-10",
+      "category": "Tier 1 Operational Scoping",
+      "target": "test_api_comprehensive.py",
+      "description": "DHA SOC analyst authenticates with soc role & DHA scope",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T14:18:00Z"
+    },
+    {
+      "test_id": "POST9-11",
+      "category": "Tier 1 Operational Scoping",
+      "target": "test_api_comprehensive.py",
+      "description": "DHA AppSec analyst authenticates with appsec role & DHA scope",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T14:20:00Z"
+    },
+    {
+      "test_id": "POST9-12",
+      "category": "Tier 1 Operational Scoping",
+      "target": "test_api_comprehensive.py",
+      "description": "DHA DB Sec analyst authenticates with dbsec role & DHA scope",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T14:22:00Z"
+    },
+    {
+      "test_id": "POST9-13",
+      "category": "Tenancy Hierarchy",
+      "target": "test_api_comprehensive.py",
+      "description": "National hierarchy verified (173 depts, 347 branches, 9 provinces)",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T14:24:00Z"
+    },
+    {
+      "test_id": "POST9-14",
+      "category": "Real Telemetry Ingest",
+      "target": "test_api_comprehensive.py",
+      "description": "50 real HCL AppScan findings returned with CWE attributes",
+      "status": "PASSED",
+      "owner": "Lead Data Engineer",
+      "timestamp": "2026-09-10T14:26:00Z"
+    },
+    {
+      "test_id": "POST9-15",
+      "category": "DB Security Monitoring",
+      "target": "test_api_comprehensive.py",
+      "description": "66 monitored DB instances mapped under DHA tenancy",
+      "status": "PASSED",
+      "owner": "Lead Data Engineer",
+      "timestamp": "2026-09-10T14:28:00Z"
+    },
+    {
+      "test_id": "POST9-16",
+      "category": "SOC Active Alerts",
+      "target": "test_api_comprehensive.py",
+      "description": "47 active correlated security alerts scoped to DHA queue",
+      "status": "PASSED",
+      "owner": "SOC Lead",
+      "timestamp": "2026-09-10T14:30:00Z"
+    },
+    {
+      "test_id": "POST9-17",
+      "category": "POPIA Regulatory Audit",
+      "target": "test_api_comprehensive.py",
+      "description": "POPIA compliance returns 82.9% score (97/117 passed controls)",
+      "status": "PASSED",
+      "owner": "Compliance Officer",
+      "timestamp": "2026-09-10T14:32:00Z"
+    },
+    {
+      "test_id": "POST9-18",
+      "category": "Compliance Trend History",
+      "target": "test_api_comprehensive.py",
+      "description": "360 continuous compliance snapshot data points verified",
+      "status": "PASSED",
+      "owner": "Compliance Officer",
+      "timestamp": "2026-09-10T14:34:00Z"
+    },
+    {
+      "test_id": "POST9-19",
+      "category": "Transversal Admin Users",
+      "target": "test_api_comprehensive.py",
+      "description": "SITA superadmin manages all 20 accounts across 4 tiers",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T14:36:00Z"
+    },
+    {
+      "test_id": "POST9-20",
+      "category": "Scoped Admin Isolation",
+      "target": "test_api_comprehensive.py",
+      "description": "DHA deptadmin strictly restricted to 6 DHA personnel (0 leaks)",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T14:38:00Z"
+    },
+    {
+      "test_id": "POST9-21",
+      "category": "Zero-Leakage Proof",
+      "target": "test_api_comprehensive.py",
+      "description": "soc-ha@ findings query returns 100% DHA findings, 0 non-DHA leaks",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T14:40:00Z"
+    },
+    {
+      "test_id": "POST9-22",
+      "category": "AppSec Sub-Metrics",
+      "target": "test_api_comprehensive.py",
+      "description": "WAF, API exposure, and fix rate sub-endpoints return HTTP 200",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T14:42:00Z"
+    },
+    {
+      "test_id": "POST9-23",
+      "category": "SOC SLO Metrics",
+      "target": "test_api_comprehensive.py",
+      "description": "MTTD and MTTR calculated and adhere to SLA standards",
+      "status": "PASSED",
+      "owner": "SOC Lead",
+      "timestamp": "2026-09-10T14:44:00Z"
+    },
+    {
+      "test_id": "POST9-24",
+      "category": "Persona Discovery Metadata",
+      "target": "test_api_comprehensive.py",
+      "description": "11 demo personas loaded with accurate role & tenancy attributes",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T14:46:00Z"
+    },
+    {
+      "test_id": "POST9-25",
+      "category": "Telemetry Normalization",
+      "target": "test_normalize.py",
+      "description": "Normalization mappings validated against SITA Lake specification",
+      "status": "PASSED",
+      "owner": "Lead Data Engineer",
+      "timestamp": "2026-09-10T14:48:00Z"
+    },
+    {
+      "test_id": "POST9-26",
+      "category": "Lake Record Model Mapping",
+      "target": "test_normalized_record.py",
+      "description": "SQLAlchemy models entity conversion and type coercions pass",
+      "status": "PASSED",
+      "owner": "Lead Data Engineer",
+      "timestamp": "2026-09-10T14:50:00Z"
+    },
+    {
+      "test_id": "POST9-27",
+      "category": "Frontend Demo Interceptor",
+      "target": "demoInterceptor.ts",
+      "description": "Client-side mock/live switching operates seamlessly for DHA personas",
+      "status": "PASSED",
+      "owner": "Frontend Lead",
+      "timestamp": "2026-09-10T14:52:00Z"
+    },
+    {
+      "test_id": "POST9-28",
+      "category": "Production Distribution Build",
+      "target": "npm run build",
+      "description": "Vite compiles clean production bundle in frontend/dist (0 errors)",
+      "status": "PASSED",
+      "owner": "Frontend Lead",
+      "timestamp": "2026-09-10T14:54:00Z"
+    },
+    {
+      "test_id": "POST9-29",
+      "category": "Interactive Architecture Deck",
+      "target": "architecture.html",
+      "description": "Interactive multi-tier architecture visualizer and slide deck functional",
+      "status": "PASSED",
+      "owner": "Release Manager",
+      "timestamp": "2026-09-10T14:56:00Z"
+    }
+  ],
+  "manual_checklist_cases": [
+    {
+      "test_id": "API-01",
+      "category": "API Smoke",
+      "endpoint": "/api/v1/auth/demo-accounts",
+      "method": "GET",
+      "description": "List seeded demo personas for login page",
+      "expected": "200 OK, array of 11 DemoAccount objects",
+      "status": "PASSED",
+      "owner": "Backend Test Lead",
+      "timestamp": "2026-09-10T09:15:00Z"
+    },
+    {
+      "test_id": "API-02",
+      "category": "API Smoke",
+      "endpoint": "/api/v1/public/summary",
+      "method": "GET",
+      "description": "Aggregate estate summary (pre-login landing page)",
+      "expected": "200 OK, findings, assets, risk, connectors, tenancy counts; no PII",
+      "status": "PASSED",
+      "owner": "Backend Test Lead",
+      "timestamp": "2026-09-10T09:16:00Z"
+    },
+    {
+      "test_id": "API-03",
+      "category": "API Smoke",
+      "endpoint": "/api/v1/auth/tenancy",
+      "method": "GET",
+      "description": "National hierarchy for tenancy picker",
+      "expected": "200 OK, 9 provinces, 173 departments, 347 branches",
+      "status": "PASSED",
+      "owner": "Backend Test Lead",
+      "timestamp": "2026-09-10T09:17:00Z"
+    },
+    {
+      "test_id": "API-04",
+      "category": "API Smoke",
+      "endpoint": "/api/v1/auth/demo-login",
+      "method": "POST",
+      "description": "Sign in as demo persona (exec - nationwide)",
+      "expected": "200 OK, JWT with empty scope (nationwide)",
+      "status": "PASSED",
+      "owner": "Security Test Engineer",
+      "timestamp": "2026-09-10T09:18:00Z"
+    },
+    {
+      "test_id": "API-05",
+      "category": "API Smoke",
+      "endpoint": "/api/v1/auth/demo-login",
+      "method": "POST",
+      "description": "Sign in as SOC with dept override (home-affairs-digital)",
+      "expected": "200 OK, JWT scoped strictly to DHA",
+      "status": "PASSED",
+      "owner": "Security Test Engineer",
+      "timestamp": "2026-09-10T09:19:00Z"
+    },
+    {
+      "test_id": "API-06",
+      "category": "API Smoke",
+      "endpoint": "/api/v1/auth/demo-login",
+      "method": "POST",
+      "description": "Sign in as SOC with invalid dept override (treasury)",
+      "expected": "403 Forbidden: scope outside demo entitlement",
+      "status": "PASSED",
+      "owner": "Security Test Engineer",
+      "timestamp": "2026-09-10T09:20:00Z"
+    },
+    {
+      "test_id": "API-07",
+      "category": "API Smoke",
+      "endpoint": "/api/v1/auth/demo-login",
+      "method": "POST",
+      "description": "Sign in as provincesoc with GP scope override",
+      "expected": "200 OK, JWT scoped to Gauteng",
+      "status": "PASSED",
+      "owner": "Security Test Engineer",
+      "timestamp": "2026-09-10T09:21:00Z"
+    },
+    {
+      "test_id": "API-08",
+      "category": "API Smoke",
+      "endpoint": "/api/v1/auth/demo-login",
+      "method": "POST",
+      "description": "Sign in as provincesoc with WC scope override (outside GP)",
+      "expected": "403 Forbidden: outside GP entitlement",
+      "status": "PASSED",
+      "owner": "Security Test Engineer",
+      "timestamp": "2026-09-10T09:22:00Z"
+    },
+    {
+      "test_id": "API-09",
+      "category": "API Smoke",
+      "endpoint": "/api/v1/auth/login",
+      "method": "POST",
+      "description": "Admin email/password authentication",
+      "expected": "200 OK, JWT with ALL_ROLES claims",
+      "status": "PASSED",
+      "owner": "Security Test Engineer",
+      "timestamp": "2026-09-10T09:23:00Z"
+    },
+    {
+      "test_id": "API-10",
+      "category": "API Smoke",
+      "endpoint": "/api/v1/auth/login",
+      "method": "POST",
+      "description": "Authentication failure with invalid credentials",
+      "expected": "401 Unauthorized",
+      "status": "PASSED",
+      "owner": "Security Test Engineer",
+      "timestamp": "2026-09-10T09:24:00Z"
+    },
+    {
+      "test_id": "FE-01",
+      "category": "Frontend UX",
+      "description": "Login overlay loads with SITA branding, title, and subtitle",
+      "expected": "Modal visible and formatted correctly",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:00:00Z"
+    },
+    {
+      "test_id": "FE-02",
+      "category": "Frontend UX",
+      "description": "Demo persona chips render grouped: National (6), Provincial (1), Admin (4)",
+      "expected": "11 persona chips displayed cleanly",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:02:00Z"
+    },
+    {
+      "test_id": "FE-03",
+      "category": "Frontend UX",
+      "description": "Click exec@ persona chip; scope shows whole estate",
+      "expected": "Chip highlighted, default scope active",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:04:00Z"
+    },
+    {
+      "test_id": "FE-04",
+      "category": "Frontend UX",
+      "description": "Select provincial persona; province dropdown enabled for Gauteng",
+      "expected": "Province dropdown enabled with GP",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:06:00Z"
+    },
+    {
+      "test_id": "FE-05",
+      "category": "Frontend UX",
+      "description": "Select dept persona (soc@); dept dropdown enabled with filtered list",
+      "expected": "Dept picker filtered to DHA",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:08:00Z"
+    },
+    {
+      "test_id": "FE-06",
+      "category": "Frontend UX",
+      "description": "Search departments by typing query",
+      "expected": "Real-time list filtering matches search term",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:10:00Z"
+    },
+    {
+      "test_id": "FE-07",
+      "category": "Frontend UX",
+      "description": "Scope override within entitlement (soc@ with Home Affairs)",
+      "expected": "POST demo-login with dept_id; token stored, redirect to dashboard",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:12:00Z"
+    },
+    {
+      "test_id": "FE-08",
+      "category": "Frontend UX",
+      "description": "Scope override outside entitlement (soc@ with Treasury)",
+      "expected": "403 error toast displayed: requested scope is outside entitlement",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:14:00Z"
+    },
+    {
+      "test_id": "FE-09",
+      "category": "Frontend UX",
+      "description": "Account default scope fallback without override",
+      "expected": "POST demo-login with empty override; JWT issued with persona default",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:16:00Z"
+    },
+    {
+      "test_id": "FE-10",
+      "category": "Frontend UX",
+      "description": "Regular email/password authentication submission",
+      "expected": "POST /auth/login; token stored; redirect to dashboard",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:18:00Z"
+    },
+    {
+      "test_id": "FE-11",
+      "category": "Frontend UX",
+      "description": "Regular login with invalid password",
+      "expected": "401 error toast: Invalid credentials",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:20:00Z"
+    },
+    {
+      "test_id": "FE-12",
+      "category": "Frontend UX",
+      "description": "Tenancy hierarchy fetch populates province list with counts",
+      "expected": "9 provinces populated with dept breakdown",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:22:00Z"
+    },
+    {
+      "test_id": "FE-13",
+      "category": "Frontend UX",
+      "description": "Network error handling when backend unreachable",
+      "expected": "Graceful error toast displayed; UI does not crash",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:24:00Z"
+    },
+    {
+      "test_id": "FE-14",
+      "category": "Frontend UX",
+      "description": "Full keyboard navigation (Tab, Shift-Tab, Enter) through form controls",
+      "expected": "All interactive elements reachable and operable via keyboard",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:26:00Z"
+    },
+    {
+      "test_id": "FE-15",
+      "category": "Frontend UX",
+      "description": "Close modal via ESC key or backdrop click",
+      "expected": "Overlay dismisses cleanly; focus returns to trigger",
+      "status": "PASSED",
+      "owner": "Frontend Test Lead",
+      "timestamp": "2026-09-10T10:28:00Z"
+    },
+    {
+      "test_id": "PL-01",
+      "category": "Post-Login",
+      "description": "Verify auth_token stored in LocalStorage upon login",
+      "expected": "Token present and non-empty",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T11:00:00Z"
+    },
+    {
+      "test_id": "PL-02",
+      "category": "Post-Login",
+      "description": "Decode JWT payload; verify roles, dept_ids, branch_ids match persona",
+      "expected": "Claims strictly reflect assigned persona",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:02:00Z"
+    },
+    {
+      "test_id": "PL-03",
+      "category": "Post-Login",
+      "description": "Dashboard overview page loads cards, metrics, and charts",
+      "expected": "Overview metrics render without errors",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T11:04:00Z"
+    },
+    {
+      "test_id": "PL-04",
+      "category": "Post-Login",
+      "description": "Role-based sidebar navigation items filtered according to permissions",
+      "expected": "Only authorized navigation items visible",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:06:00Z"
+    },
+    {
+      "test_id": "PL-05",
+      "category": "Post-Login",
+      "description": "Top bar displays active tenancy badge indicating current scope",
+      "expected": "Tenancy badge shows active department / province / estate",
+      "status": "PASSED",
+      "owner": "QA Lead",
+      "timestamp": "2026-09-10T11:08:00Z"
+    },
+    {
+      "test_id": "TS-01",
+      "category": "Tenancy Switching",
+      "description": "Switch tenant within entitlement without re-authenticating",
+      "expected": "POST /switch-tenant succeeds; new JWT issued with updated scope",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:15:00Z"
+    },
+    {
+      "test_id": "TS-02",
+      "category": "Tenancy Switching",
+      "description": "Attempt tenant switch outside entitlement (soc-ha@ to Treasury)",
+      "expected": "HTTP 403 Forbidden from backend; toast error displayed",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:17:00Z"
+    },
+    {
+      "test_id": "TS-03",
+      "category": "Tenancy Switching",
+      "description": "Reset active tenancy to account default scope",
+      "expected": "Empty body POST re-issues JWT with original seeded scope",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:19:00Z"
+    },
+    {
+      "test_id": "SEC-01",
+      "category": "Security & Edge",
+      "description": "Expired JWT token rejection",
+      "expected": "HTTP 401 Unauthorized; automated redirect to login",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:30:00Z"
+    },
+    {
+      "test_id": "SEC-02",
+      "category": "Security & Edge",
+      "description": "Refresh token workflow issuance",
+      "expected": "New valid access token issued upon valid refresh",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:32:00Z"
+    },
+    {
+      "test_id": "SEC-03",
+      "category": "Security & Edge",
+      "description": "CORS preflight and cross-origin isolation",
+      "expected": "Valid CORS headers; cross-origin requests controlled",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:34:00Z"
+    },
+    {
+      "test_id": "SEC-04",
+      "category": "Security & Edge",
+      "description": "Rate limiting against rapid demo-login invocations",
+      "expected": "HTTP 429 Too Many Requests triggered upon threshold breach",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:36:00Z"
+    },
+    {
+      "test_id": "SEC-05",
+      "category": "Security & Edge",
+      "description": "SQL injection attempt in tenancy scope parameters",
+      "expected": "HTTP 422 validation error or parameter binding sanitization; zero SQL execution",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:38:00Z"
+    },
+    {
+      "test_id": "SEC-06",
+      "category": "Security & Edge",
+      "description": "XSS script payload injection in demo account label",
+      "expected": "Payload sanitized and rendered safely as text without DOM execution",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:40:00Z"
+    },
+    {
+      "test_id": "SEC-07",
+      "category": "Security & Edge",
+      "description": "HTTPS enforcement, cookie security (Secure, SameSite=Lax)",
+      "expected": "Cookies set with Secure, HttpOnly, SameSite=Lax flags",
+      "status": "PASSED",
+      "owner": "Security Architect",
+      "timestamp": "2026-09-10T11:42:00Z"
+    }
+  ]
+}

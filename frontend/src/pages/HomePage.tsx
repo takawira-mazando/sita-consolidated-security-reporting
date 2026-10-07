@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import LoginPage from './LoginPage';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../context/DemoContext';
@@ -198,6 +198,21 @@ function PreviewTrend({ values }: { values: number[] }) {
   );
 }
 
+const NAV_SECTIONS = [
+  { id: 'problem', label: 'The Problem' },
+  { id: 'preview', label: 'Live Preview' },
+  { id: 'tenancy', label: 'Tenanting Model' },
+  { id: 'pipeline', label: 'How It Works' },
+  { id: 'estate', label: 'Live Estate' },
+  { id: 'matrix', label: 'Role Matrix' },
+] as const;
+
+const RESOURCE_LINKS = [
+  { href: '/presentation.html', label: 'Executive Deck', icon: '📊', accent: 'amber' },
+  { href: '/handover_presentation.html', label: 'Handover Deck', icon: '🤝', accent: 'emerald' },
+  { href: '/architecture.html', label: 'Architecture', icon: '🏛️', accent: 'blue' },
+] as const;
+
 export default function HomePage() {
   const { loginDemo, demoAccounts } = useAuth();
   const { demoMode, toggleDemoMode } = useDemoMode();
@@ -205,6 +220,9 @@ export default function HomePage() {
   const [isDark, setIsDark] = useState(() => document.body.dataset.theme !== 'light');
   const [summary, setSummary] = useState<PublicSummary | null>(null);
   const [demoLoginLoading, setDemoLoginLoading] = useState(false);
+  const [resourcesOpen, setResourcesOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<string>('');
+  const resourcesRef = useRef<HTMLDivElement | null>(null);
 
   const loginAsDemo = async () => {
     setDemoLoginLoading(true);
@@ -251,6 +269,45 @@ export default function HomePage() {
     };
   }, []);
 
+  // Highlight the nav link for the section currently in view.
+  useEffect(() => {
+    const onScroll = () => {
+      const probe = window.innerHeight * 0.3;
+      let current = '';
+      for (const { id } of NAV_SECTIONS) {
+        const el = document.getElementById(id);
+        if (el && el.getBoundingClientRect().top <= probe) current = id;
+      }
+      setActiveSection(current);
+    };
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
+    };
+  }, []);
+
+  // Close the Resources menu on outside click or Escape.
+  useEffect(() => {
+    if (!resourcesOpen) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (resourcesRef.current && !resourcesRef.current.contains(e.target as Node)) {
+        setResourcesOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setResourcesOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [resourcesOpen]);
+
   const openModal = () => {
     setModalOpen(true);
     document.body.style.overflow = 'hidden';
@@ -275,8 +332,22 @@ export default function HomePage() {
       }))
     : PREVIEW_APPS;
   const heroTrend = summary && summary.risk.trend.length ? summary.risk.trend : PREVIEW_TREND;
-  const gaugeScore = summary && summary.risk.trend.length ? Math.round(summary.risk.trend[summary.risk.trend.length - 1].avg_score) : 82;
-  const gaugeBucket = summary?.top_risky_apps[0]?.bucket || 'critical';
+  const liveTrend = summary?.risk.trend ?? [];
+  const gaugeScore = summary
+    ? liveTrend.length
+      ? Math.round(liveTrend[liveTrend.length - 1].avg_score)
+      : heroApps.length
+        ? Math.round(heroApps.reduce((acc, a) => acc + a.score, 0) / heroApps.length)
+        : null
+    : null;
+  const gaugeBucket =
+    gaugeScore === null
+      ? null
+      : gaugeScore > 70
+        ? 'critical'
+        : gaugeScore > 30
+          ? 'monitored'
+          : 'safe';
   const connectorText = summary
     ? `${summary.connectors.healthy}/${summary.connectors.total} connectors healthy`
     : '4 sources fused';
@@ -294,15 +365,50 @@ export default function HomePage() {
           <a href="#" className="logo">
             <img className="home-logo-img" src="/sita-logo.gif" alt="SITA" />
           </a>
-          <nav className="primary">
-            <a href="#problem">The Problem</a>
-            <a href="#preview">Live Preview</a>
-            <a href="#tenancy">Tenanting Model</a>
-            <a href="#pipeline">How It Works</a>
-            <a href="#estate">Live Estate</a>
-            <a href="#matrix">Role Matrix</a>
-            <a href="/presentation.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--amber, #f59e0b)', fontWeight: 600 }}>📊 Executive Deck</a>
-            <a href="/architecture.html" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue, #3b82f6)', fontWeight: 600 }}>🏛️ Architecture</a>
+          <nav className="primary" aria-label="Section navigation">
+            {NAV_SECTIONS.map(({ id, label }) => (
+              <a
+                key={id}
+                href={`#${id}`}
+                className={activeSection === id ? 'is-active' : undefined}
+                aria-current={activeSection === id ? 'true' : undefined}
+              >
+                {label}
+              </a>
+            ))}
+            <div className="nav-resources" ref={resourcesRef}>
+              <button
+                type="button"
+                className={`nav-resources-trigger${resourcesOpen ? ' is-open' : ''}`}
+                aria-expanded={resourcesOpen}
+                aria-haspopup="true"
+                onClick={() => setResourcesOpen((v) => !v)}
+              >
+                Resources
+                <span className="caret" aria-hidden="true" />
+              </button>
+              {resourcesOpen && (
+                <div className="nav-resources-menu" role="menu">
+                  {RESOURCE_LINKS.map(({ href, label, icon, accent }) => (
+                    <a
+                      key={href}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      role="menuitem"
+                      className={`nav-resource-item accent-${accent}`}
+                    >
+                      <span className="nav-resource-icon" aria-hidden="true">{icon}</span>
+                      <span className="nav-resource-text">
+                        <span className="nav-resource-label">{label}</span>
+                        <span className="nav-resource-hint">Opens in new tab</span>
+                      </span>
+                      <span className="nav-resource-arrow" aria-hidden="true">↗</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
           </nav>
           <div className="home-actions">
             <button className="theme-toggle" onClick={toggleTheme}>
@@ -331,6 +437,9 @@ export default function HomePage() {
               <a href="/presentation.html" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <span>📊</span> Executive Deck ↗
               </a>
+              <a href="/handover_presentation.html" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: 'rgba(16, 185, 129, 0.4)', color: 'var(--emerald, #10b981)' }}>
+                <span>🤝</span> Handover Deck ↗
+              </a>
               <a href="/architecture.html" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <span>🏛️</span> Architecture ↗
               </a>
@@ -345,17 +454,21 @@ export default function HomePage() {
               </div>
               <div className="preview-body">
                 <div className="preview-score">
-                  <div className="gauge-ring" style={{ background: `conic-gradient(var(--flare-1) 0deg ${(gaugeScore / 100) * 360}deg, var(--line) ${(gaugeScore / 100) * 360}deg 360deg)` }}>
+                  <div className="gauge-ring" style={{ background: `conic-gradient(var(--flare-1) 0deg ${((gaugeScore ?? 0) / 100) * 360}deg, var(--line) ${((gaugeScore ?? 0) / 100) * 360}deg 360deg)` }}>
                     <div className="inner">
-                      <span className="pct">{gaugeScore}</span>
+                      <span className="pct">{gaugeScore ?? '—'}</span>
                       <span className="lbl">/ 100</span>
                     </div>
                   </div>
                   <div>
                     <div className="preview-score-l">Estate avg risk score</div>
-                    <div className={`preview-score-bucket ${gaugeBucket ? `b-${gaugeBucket}` : ''}`}>{gaugeBucket || '—'} · {connectorText}</div>
+                    <div className={`preview-score-bucket ${gaugeBucket ? `b-${gaugeBucket}` : ''}`}>{gaugeBucket ? `${gaugeBucket} · ` : ''}{summary ? 'scored live' : connectorText}</div>
                     <div className="preview-score-note">
-                      {summary?.risk.latest_score_date ? `latest scoring ${summary.risk.latest_score_date}` : 'recomputed every 5 min'}
+                      {summary
+                        ? summary.risk.latest_score_date
+                          ? `latest scoring ${summary.risk.latest_score_date}`
+                          : 'no scores computed yet'
+                        : 'awaiting live data'}
                     </div>
                   </div>
                 </div>

@@ -4,6 +4,11 @@ from __future__ import annotations
 from datetime import date
 
 from app.api.routers.exports_ag import build_attestation, canonical_json, sha256_hex
+from app.security_pki import (
+    get_ec_public_key_pem,
+    sign_canonical_payload,
+    verify_canonical_payload,
+)
 
 
 class _Row:
@@ -102,3 +107,35 @@ class TestBuildAttestation:
         payload = canonical_json(out)
         for leak in ("sql_injection", "SQLi", "192.168", "id_number", "password"):
             assert leak.lower() not in payload.lower()
+
+
+class TestEcdsaSigning:
+    def test_sign_and_verify_success(self):
+        payload = {"framework": "popia", "score": 82.9, "status": "approved"}
+        canon_bytes = canonical_json(payload).encode("utf-8")
+        sig_b64 = sign_canonical_payload(canon_bytes)
+        assert isinstance(sig_b64, str)
+        assert len(sig_b64) > 64
+        # Verify valid signature
+        assert verify_canonical_payload(canon_bytes, sig_b64) is True
+
+    def test_tampered_payload_fails_verification(self):
+        payload = {"framework": "popia", "score": 82.9}
+        canon_bytes = canonical_json(payload).encode("utf-8")
+        sig_b64 = sign_canonical_payload(canon_bytes)
+
+        # Tampered payload (score changed from 82.9 to 99.9)
+        tampered = canonical_json({"framework": "popia", "score": 99.9}).encode("utf-8")
+        assert verify_canonical_payload(tampered, sig_b64) is False
+
+    def test_public_key_pem_format(self):
+        pem = get_ec_public_key_pem()
+        assert pem.startswith("-----BEGIN PUBLIC KEY-----")
+        assert pem.strip().endswith("-----END PUBLIC KEY-----")
+
+    def test_different_payloads_different_signatures(self):
+        p1 = canonical_json({"a": 1}).encode("utf-8")
+        p2 = canonical_json({"a": 2}).encode("utf-8")
+        sig1 = sign_canonical_payload(p1)
+        sig2 = sign_canonical_payload(p2)
+        assert sig1 != sig2

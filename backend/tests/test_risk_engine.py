@@ -3,12 +3,14 @@ from __future__ import annotations
 
 from app.processing.risk_engine import (
     RiskInputs,
+    calibrate_appscan_ceiling,
     compute_signal_appscan,
     compute_signal_compliance,
     compute_signal_exposure,
     compute_signal_imperva,
     fused_risk,
     risk_bucket,
+    weighted_severity_total,
 )
 
 
@@ -76,3 +78,58 @@ def test_custom_weights():
     default = fused_risk(inputs)
     appscan_only = fused_risk(inputs, {"appscan": 1.0, "imperva": 0.0, "exposure": 0.0, "compliance": 0.0})
     assert appscan_only >= default
+
+
+def test_weighted_severity_total_applies_severity_weights():
+    assert weighted_severity_total({"critical": 2, "high": 1}) == 2.6
+    assert weighted_severity_total({}) == 0.0
+
+
+def test_calibrated_ceiling_tracks_estate_volume():
+    estate = [0.1] * 90 + [1.0] * 8 + [4.47, 20.6]
+    ceiling = calibrate_appscan_ceiling(estate)
+    assert ceiling > 1.0
+    assert ceiling <= 20.6
+
+
+def test_calibrated_ceiling_floors_near_clean_estate():
+    assert calibrate_appscan_ceiling([]) >= 1.0
+    assert calibrate_appscan_ceiling([0.0, 0.0]) >= 1.0
+    assert calibrate_appscan_ceiling([0.01]) >= 1.0
+
+
+def test_calibrated_ceiling_is_deterministic():
+    estate = [0.1, 0.2, 0.3, 0.4, 4.47, 20.6]
+    assert calibrate_appscan_ceiling(estate) == calibrate_appscan_ceiling(estate)
+
+
+def test_appscan_signal_uses_calibrated_ceiling():
+    counts = {"critical": 2}
+    assert compute_signal_appscan(counts, 2.0) == 100.0
+    assert compute_signal_appscan(counts, 4.0) == 50.0
+    assert compute_signal_appscan(counts, 2.0) > compute_signal_appscan(counts, 4.0)
+
+
+def test_appscan_signal_caps_at_100():
+    assert compute_signal_appscan({"critical": 1000}, 1.0) == 100.0
+
+
+def test_fused_risk_accepts_calibrated_ceiling():
+    inputs = RiskInputs(
+        appscan_severity_counts={"critical": 5},
+        imperva_violation_count=0,
+        api_exposure_scores=[],
+        compliance_pct=100.0,
+    )
+    tight = fused_risk(inputs, appscan_ceiling=5.0)
+    loose = fused_risk(inputs, appscan_ceiling=50.0)
+    assert tight > loose
+    assert 0 <= loose <= 100
+
+
+def test_calibrated_ceiling_lifts_typical_app_above_floor():
+    """A mid-estate app must not collapse to a near-zero signal."""
+    estate = [0.1] * 90 + [1.0] * 8 + [4.47, 20.6]
+    ceiling = calibrate_appscan_ceiling(estate)
+    typical = compute_signal_appscan({"critical": 1, "high": 1}, ceiling)
+    assert typical > 20.0

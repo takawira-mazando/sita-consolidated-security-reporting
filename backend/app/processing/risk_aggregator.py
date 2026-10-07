@@ -6,7 +6,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.compliance import ComplianceSnapshot
 from app.models.finding import Finding, Severity
 from app.processing.risk_engine import (
+    SEVERITY_WEIGHTS,
     RiskInputs,
+    calibrate_appscan_ceiling,
     compute_signal_appscan,
     compute_signal_compliance,
     compute_signal_exposure,
@@ -16,7 +18,25 @@ from app.processing.risk_engine import (
 )
 
 
-async def compute_risk_for_app(session: AsyncSession, app_name: str) -> dict | None:
+async def estate_appscan_ceiling(session: AsyncSession) -> float:
+    """Calibrate the AppScan signal ceiling from current estate volume."""
+    rows = (
+        await session.execute(
+            select(Finding.app_name, Finding.severity).where(Finding.source == "appscan")
+        )
+    ).all()
+    totals: dict[str, float] = {}
+    for app_name, severity in rows:
+        sev = severity.value if isinstance(severity, Severity) else str(severity)
+        totals[app_name] = totals.get(app_name, 0.0) + SEVERITY_WEIGHTS.get(sev, 0.0)
+    return calibrate_appscan_ceiling(list(totals.values()))
+
+
+async def compute_risk_for_app(
+    session: AsyncSession,
+    app_name: str,
+    appscan_ceiling: float | None = None,
+) -> dict | None:
     rows = (
         await session.execute(
             select(
@@ -63,14 +83,14 @@ async def compute_risk_for_app(session: AsyncSession, app_name: str) -> dict | N
         api_exposure_scores=exposure_scores,
         compliance_pct=compliance_pct,
     )
-    score = fused_risk(inputs)
+    score = fused_risk(inputs, appscan_ceiling=appscan_ceiling)
     bucket = risk_bucket(score)
 
     return {
         "app_name": app_name,
         "score_date": date.today(),
         "fused_score": score,
-        "signal_appscan": round(compute_signal_appscan(appscan_counts), 1),
+        "signal_appscan": round(compute_signal_appscan(appscan_counts, appscan_ceiling), 1),
         "signal_imperva": round(compute_signal_imperva(imperva_count), 1),
         "signal_api_exposure": round(compute_signal_exposure(exposure_scores), 1),
         "signal_compliance_penalty": round(compute_signal_compliance(compliance_pct), 1),
@@ -82,9 +102,10 @@ async def compute_all_risk_scores(session: AsyncSession) -> list[dict]:
     apps = (
         await session.execute(select(Finding.app_name).distinct())
     ).scalars().all()
+    ceiling = await estate_appscan_ceiling(session)
     results = []
     for app in apps:
-        row = await compute_risk_for_app(session, app)
+        row = await compute_risk_for_app(session, app, appscan_ceiling=ceiling)
         if row is not None:
             results.append(row)
     return results

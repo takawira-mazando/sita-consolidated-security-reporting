@@ -36,8 +36,8 @@ DEMO_ACCOUNTS = [
     # compliance, sre, transversal-admin) hold an empty scope = whole estate.
     {"email": "exec@example.com", "password": "pass123", "roles": ["exec"], "label": "Executive", "role": "exec", "department_ids": []},  # nosec B105
     {"email": "soc@example.com", "password": "pass123", "roles": ["soc"], "label": "SOC Analyst", "role": "soc", "department_ids": ["home-affairs-digital"]},  # nosec B105
-    {"email": "appsec@example.com", "password": "pass123", "roles": ["appsec"], "label": "AppSec", "role": "appsec", "department_ids": ["treasury"]},  # nosec B105
-    {"email": "dbsec@example.com", "password": "pass123", "roles": ["dbsec"], "label": "DB Security", "role": "dbsec", "department_ids": ["dpsa-hr"]},  # nosec B105
+    {"email": "appsec@example.com", "password": "pass123", "roles": ["appsec"], "label": "AppSec", "role": "appsec", "department_ids": ["home-affairs-digital", "treasury"]},  # nosec B105
+    {"email": "dbsec@example.com", "password": "pass123", "roles": ["dbsec"], "label": "DB Security", "role": "dbsec", "department_ids": ["home-affairs-digital", "dpsa-hr"]},  # nosec B105
     {"email": "compliance@example.com", "password": "pass123", "roles": ["compliance"], "label": "Compliance", "role": "compliance", "department_ids": []},  # nosec B105
     {"email": "sre@example.com", "password": "pass123", "roles": ["sre"], "label": "Service Ops", "role": "sre", "department_ids": []},  # nosec B105
     {"email": "deptadmin@example.com", "password": "pass123", "roles": ["dept-admin"], "label": "Dept Admin", "role": "dept-admin", "department_ids": ["treasury"]},  # nosec B105
@@ -46,11 +46,11 @@ DEMO_ACCOUNTS = [
     {"email": "provincesoc@example.com", "password": "pass123", "roles": ["province-soc-lead"], "label": "Provincial SOC Lead", "role": "province-soc-lead", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
     {"email": "provdeptadmin@example.com", "password": "pass123", "roles": ["province-dept-admin"], "label": "Provincial Dept Admin", "role": "provdeptadmin", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
     {"email": "localappsec@example.com", "password": "pass123", "roles": ["local-appsec"], "label": "Local AppSec", "role": "localappsec", "department_ids": ["gp-health"], "province_ids": ["gp"]},  # nosec B105
-    {"email": "admin@example.com", "password": "admin123", "roles": ALL_ROLES, "label": "Admin", "role": "admin", "department_ids": []},  # nosec B105
+    {"email": "admin@example.com", "password": "admin123", "roles": ["admin"] + ALL_ROLES, "label": "Admin", "role": "admin", "department_ids": []},  # nosec B105
     # Managed-service creator: the platform provider's own credential. Holds
     # no dashboard — its sole function is to create the SITA superuser
     # (`admin`) from the HR pool, plus peer operators for rotation.
-    {"email": "operator@example.com", "password": "operator123", "roles": ["operator"], "label": "Platform Operator", "role": "operator", "department_ids": []},  # nosec B105
+    {"email": "operator@example.com", "password": "operator123", "roles": ["operator", "admin"] + ALL_ROLES, "label": "Platform Operator", "role": "operator", "department_ids": []},  # nosec B105
 
     # Home Affairs department-scoped demo accounts
     {"email": "soc-ha@example.com", "password": "pass123", "roles": ["soc"], "label": "SOC Analyst (Home Affairs)", "role": "soc-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
@@ -184,12 +184,13 @@ async def seed_demo_users(session: AsyncSession) -> int:
                 )
             )
             created += 1
-        elif existing.department_ids in (None, []) and account["department_ids"]:
+        else:
+            existing.roles = account["roles"]
             existing.department_ids = account["department_ids"]
             existing.branch_ids = account.get("branch_ids", [])
             existing.province_ids = account.get("province_ids", [])
-    if created or True:
-        await session.commit()
+            existing.is_active = True
+    await session.commit()
     return created
 
 

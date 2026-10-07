@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITA Consolidated Security Reporting &mdash; Executive Overview</title>
+<style>
+:root {
+  --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
+  --muted: #8b949e; --accent: #f0883e; --amber: #f0c674; --blue: #79c0ff;
+  --green: #7ee787; --red: #ff7b72; --code: #1f2937;
+}
+html[data-theme="light"] {
+  --bg: #fafbfc; --panel: #ffffff; --border: #d0d7de; --text: #1f2328;
+  --muted: #6e7781; --accent: #cf5c19; --amber: #7a5d00; --blue: #0969da;
+  --green: #1a7f37; --red: #cf222e; --code: #f6f8fa;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  line-height: 1.6; padding: 2rem 1.25rem 3rem; max-width: 900px; margin: 0 auto;
+}
+header.doc {
+  border-bottom: 2px solid var(--accent); padding-bottom: 0.9rem; margin-bottom: 1.4rem;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+}
+header.doc h1 { font-size: 1.55rem; color: var(--accent); line-height: 1.2; }
+header.doc .sub { color: var(--text); font-size: 1rem; margin-top: 0.35rem; font-weight: 600; }
+header.doc .meta { color: var(--muted); font-size: 0.8rem; margin-top: 0.35rem; }
+button {
+  background: var(--panel); color: var(--amber); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.45rem 0.8rem; cursor: pointer; font-weight: 700;
+  white-space: nowrap;
+}
+button:hover { border-color: var(--accent); }
+h1 { font-size: 1.15rem; color: var(--muted); font-weight: 700; margin: 0 0 0.8rem;
+     text-transform: uppercase; letter-spacing: 0.06em; }
+h2 { font-size: 1.3rem; color: var(--accent); margin: 1.7rem 0 0.5rem;
+     padding-bottom: 0.3rem; border-bottom: 1px solid var(--border); }
+h3 { font-size: 1.05rem; color: var(--red); margin: 1.3rem 0 0.4rem; }
+p { margin: 0.5rem 0; }
+ul, ol { margin: 0.5rem 0 0.5rem 1.3rem; }
+li { margin: 0.3rem 0; }
+strong { color: var(--amber); }
+code {
+  background: var(--code); border: 1px solid var(--border); border-radius: 5px;
+  padding: 0.1rem 0.32rem; font-size: 0.86em; font-family: Consolas, monospace;
+  color: var(--blue);
+}
+em { color: var(--muted); }
+table { border-collapse: collapse; width: 100%; margin: 0.7rem 0 1rem; font-size: 0.9rem; }
+th, td { border: 1px solid var(--border); padding: 0.45rem 0.6rem; text-align: left; vertical-align: top; }
+th { background: var(--panel); color: var(--amber); }
+tr:nth-child(even) td { background: rgba(127,127,127,0.06); }
+hr { border: none; border-top: 1px solid var(--border); margin: 1.6rem 0; }
+a { color: var(--blue); }
+
+/* Callout for the risk-calibration warning */
+.callout {
+  border: 1px solid var(--accent); border-left-width: 4px; border-radius: 8px;
+  background: rgba(240,136,62,0.08); padding: 0.9rem 1.1rem; margin: 0.9rem 0;
+}
+.callout p { margin: 0.4rem 0; }
+.callout.verdict strong { color: var(--accent); }
+
+footer {
+  border-top: 1px solid var(--border); margin-top: 2.2rem; padding-top: 0.9rem;
+  color: var(--muted); font-size: 0.82rem;
+}
+@media print {
+  button { display: none; }
+  body { max-width: none; padding: 0; font-size: 10pt; }
+  h2 { break-after: avoid; }
+  table, .callout { break-inside: avoid; }
+  @page { size: A4; margin: 14mm; }
+}
+</style>
+</head>
+<body>
+<header class="doc">
+  <div>
+    <h1>SITA Consolidated Security Reporting</h1>
+    <div class="sub">One national security picture &mdash; four vendor consoles, one login</div>
+    <div class="meta">Prepared for executive sponsorship &amp; pilot approval &middot; Designated pilot: Department of Home Affairs (8 DDG branches)</div>
+  </div>
+  <button id="themeToggle" title="Toggle dark / light mode">&#127769; Theme</button>
+</header>
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Platform authority</strong></td><td>SITA National Security Command Center (Tier 4)</td></tr>
+<tr><td><strong>Designated pilot</strong></td><td>Department of Home Affairs — 8 DDG operational branches</td></tr>
+<tr><td><strong>Status</strong></td><td>Operational end-to-end · 166/166 automated tests passing</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h2>The problem: a reconciliation shortage, not a signal shortage</h2>
+
+<p>Government security teams are not short of data. They are short of <strong>reconciliation</strong>.</p>
+
+<p>Application security, database security, the WAF and API exposure each report into a separate console — separate logins, separate severity vocabularies, separate opinions on the same incident. Before every executive briefing, somebody manually stitches those views together.</p>
+
+<p>That manual step is the single point of failure in the current process. It is slow, unauditable, and impossible to repeat twice the same way.</p>
+
+<p><strong>This platform replaces it with an automated, continuously recomputed, fully auditable posture number.</strong></p>
+
+<h2>What we have built</h2>
+
+<table>
+<thead><tr><th>Capability</th><th>Proof point</th></tr></thead>
+<tbody>
+<tr><td><strong>Multi-source ingestion</strong></td><td>Five security and compliance sources normalised into one schema — AppScan, Imperva DAM, Imperva WAF, API Security, Thales DAM</td></tr>
+<tr><td><strong>One fused risk score</strong></td><td>15,283 weighted 0–100 scores per application, recomputed every 5 minutes, with every component weight visible and exportable</td></tr>
+<tr><td><strong>Estate-wide visibility</strong></td><td>2,244 findings (405 critical, 530 high) across 389 applications, 2,577 databases, 2,752 API endpoints and 3,569 WAF blocks</td></tr>
+<tr><td><strong>Four-tier delegated tenancy</strong></td><td>173 national departments · 9 provinces · 347 branches · 32 ministries · 113 provincial departments — with enforced row-level isolation</td></tr>
+<tr><td><strong>Branch-level depth</strong></td><td>Subtree isolation proven to the individual branch, not just the department</td></tr>
+<tr><td><strong>Auditor-General ready</strong></td><td>Aggregation-only compliance export bound to a SHA-256 integrity hash, written to an immutable audit trail and independently verifiable</td></tr>
+<tr><td><strong>Continuous compliance</strong></td><td>228 tracked gaps, with 228 daily posture snapshots each for POPIA and ISO 27001</td></tr>
+<tr><td><strong>Operational alerting</strong></td><td>551 severity-gated alerts routed to email, Teams and PagerDuty with app ownership attached</td></tr>
+<tr><td><strong>Pipeline resilience</strong></td><td>Circuit breakers, rate limiting, retry-with-backoff and a dead-letter queue — 8/8 connectors healthy, queue empty</td></tr>
+<tr><td><strong>Assurance</strong></td><td>166 automated tests green, including 84 dedicated tenancy-isolation tests</td></tr>
+</tbody>
+</table>
+
+<h2>Why an executive can rely on it</h2>
+
+<ul>
+<li><strong>Nothing is hardcoded in the reporting layer.</strong> Every figure on every dashboard is read from PostgreSQL through a typed API. The interface cannot silently disagree with the warehouse.</li>
+<li><strong>The scoring is explainable, not a black box.</strong> Four published weights — AppScan 35%, Imperva 25%, API exposure 20%, compliance 20%. Anyone can answer *"why did this score move?"*</li>
+<li><strong>Least privilege by default.</strong> Broad access is requested and logged, never assumed — down to department, branch or province.</li>
+<li><strong>The scope boundary is provable, not asserted.</strong> Tenant isolation is enforced at query time and covered by 84 dedicated tests.</li>
+</ul>
+
+<h2>Why it wins</h2>
+
+<p>Consolidating vendor consoles is not the differentiator — every tool claims it. The differentiators here are <strong>fused scoring</strong>, <strong>four-tier delegated tenancy across the public estate</strong>, and <strong>cryptographically verifiable reporting</strong>. Together they let a national authority see the whole posture, a department see only its own, and an auditor verify what was reported.</p>
+
+<hr/>
+
+<div class="callout verdict"><p><strong>Bottom line:</strong> the hard engineering — multi-tenancy, isolation, score fusion, auditability — is built, integrated and tested. What remains is credential cutover. The platform is ready to demonstrate today and ready to run as a governed national capability the moment live credentials land.</p></div>
+
+<footer>All figures verified live against the running platform &middot;
+generated from <code>markdown_docs/POC_ONE_PAGER.md</code> &middot;
+<a href="POC_ONE_PAGER.docx">Download Word version</a></footer>
+<script>
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const root = document.documentElement;
+  root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
+  try { localStorage.setItem('poc_theme', root.dataset.theme); } catch (e) {}
+});
+try {
+  const saved = localStorage.getItem('poc_theme');
+  if (saved) document.documentElement.dataset.theme = saved;
+} catch (e) {}
+</script>
+</body>
+</html>

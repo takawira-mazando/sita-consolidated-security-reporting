@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from math import ceil
 from typing import Any, Mapping
 
@@ -325,6 +325,30 @@ async def reset_connector(
     return {"status": "ok", "connector": name, "circuit_state": "closed"}
 
 
+@router.post("/connectors/pull-logs")
+async def pull_logs_endpoint(
+    source: str = "all",
+    count: int = 10,
+    claims = Depends(require_roles("admin_write")),
+):
+    from scripts.demo_pull_logs import pull_appscan_logs, pull_thales_logs, ingest_to_lake
+    pulled = {}
+    if source in ("all", "appscan"):
+        appscan_records = await pull_appscan_logs(count=count)
+        n = await ingest_to_lake(appscan_records, "appscan")
+        pulled["appscan"] = {"pulled": len(appscan_records), "ingested": n}
+    if source in ("all", "thales"):
+        thales_records = await pull_thales_logs(count=count)
+        n = await ingest_to_lake(thales_records, "thales")
+        pulled["thales"] = {"pulled": len(thales_records), "ingested": n}
+    return {
+        "status": "success",
+        "results": pulled,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "message": "Logs successfully pulled and synchronized into data lake.",
+    }
+
+
 @router.post("/dead-letter/reprocess/{record_id}")
 async def reprocess_dlq(
     record_id: str,
@@ -542,6 +566,22 @@ async def delete_user(
     await session.delete(user)
     await session.commit()
     return {"status": "deleted", "id": user_id}
+
+
+@router.get("/ipinfo")
+async def get_ip_info(
+    session: AsyncSession = Depends(get_session),
+):
+    """Proxy endpoint for ipapi.co JSON data (CORS-safe)."""
+    import httpx
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.get("https://ipapi.co/json", timeout=10.0)
+            if resp.status_code == 200:
+                return resp.json()
+            return {"error": f"ipapi returned {resp.status_code}"}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @router.get("/persons")

@@ -21,16 +21,16 @@ security = HTTPBearer(auto_error=False)
 ROLES_HIERARCHY = {
     "exec": {"risks", "compliance", "alerts", "alerts_read", "alerts_write", "findings", "dashboard"},
     "soc": {"findings", "alerts_read", "alerts_write", "dashboard"},
-    "appsec": {"risks", "findings"},
-    "dbsec": {"risks", "findings", "alerts_read"},
-    "compliance": {"compliance"},
+    "appsec": {"risks", "findings", "dashboard"},
+    "dbsec": {"risks", "findings", "alerts_read", "dashboard"},
+    "compliance": {"compliance", "dashboard"},
     "sre": {"admin_read", "admin_write", "alerts_read", "dashboard"},
-    "transversal-admin": {"admin_read", "admin_write"},
-    "dept-admin": {"admin_read", "admin_write"},
-    "branch-admin": {"admin_read", "admin_write"},
+    "transversal-admin": {"admin_read", "admin_write", "dashboard"},
+    "dept-admin": {"admin_read", "admin_write", "dashboard"},
+    "branch-admin": {"admin_read", "admin_write", "dashboard"},
     "province-soc-lead": {"findings", "alerts_read", "alerts_write", "dashboard"},
-    "province-dept-admin": {"admin_read", "admin_write"},
-    "local-appsec": {"risks", "findings"},
+    "province-dept-admin": {"admin_read", "admin_write", "dashboard"},
+    "local-appsec": {"risks", "findings", "dashboard"},
     "admin": {"*"},
     "operator": {"*"},
 }
@@ -76,7 +76,9 @@ def require_roles(*required: str):
     async def checker(claims: JWTClaims = Depends(verify_token)):
         user_roles = set(claims.roles)
         allowed = any(
-            user_role == "admin" or perm in ROLES_HIERARCHY.get(user_role, set())
+            user_role in ("admin", "operator")
+            or "*" in ROLES_HIERARCHY.get(user_role, set())
+            or perm in ROLES_HIERARCHY.get(user_role, set())
             for user_role in user_roles
             for perm in required
         )
