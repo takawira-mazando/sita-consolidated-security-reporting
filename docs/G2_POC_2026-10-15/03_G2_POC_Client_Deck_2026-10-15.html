@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>G2 RBAC-Guided Prompting — POC Demonstration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark:#0a0f18; --bg-card:rgba(18,26,41,.75); --border-dim:rgba(255,255,255,.1);
+      --text-main:#f3f4f6; --text-muted:#9ca3af; --gold:#f59e0b; --cyan:#06b6d4;
+      --emerald:#10b981; --sapphire:#3b82f6; --crimson:#ef4444;
+      --font-main:'Outfit',-apple-system,BlinkMacSystemFont,sans-serif;
+      --font-mono:'JetBrains Mono',monospace;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{
+      background-color:var(--bg-dark);
+      background-image:
+        radial-gradient(circle at 15% 20%, rgba(59,130,246,.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(245,158,11,.09) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, rgba(16,185,129,.05) 0%, transparent 60%);
+      color:var(--text-main); font-family:var(--font-main);
+      height:100vh; overflow:hidden; display:flex; flex-direction:column; user-select:none;
+    }
+    header.deck-bar{
+      height:56px; padding:0 2rem; display:flex; align-items:center; justify-content:space-between;
+      border-bottom:1px solid var(--border-dim); background:rgba(10,15,24,.8);
+      backdrop-filter:blur(12px); z-index:50;
+    }
+    .brand{display:flex;align-items:center;gap:.75rem}
+    .flag-badge{font-size:1.3rem;filter:drop-shadow(0 0 8px rgba(16,185,129,.4))}
+    .brand-title{font-weight:700;font-size:1rem;color:#fff}
+    .brand-subtitle{
+      font-size:.75rem;color:var(--gold);background:rgba(245,158,11,.1);
+      border:1px solid rgba(245,158,11,.3);padding:2px 8px;border-radius:999px;
+      font-weight:600;margin-left:.5rem;
+    }
+    .deck-controls{display:flex;align-items:center;gap:.5rem}
+    .btn-ctrl{
+      background:rgba(255,255,255,.05);border:1px solid var(--border-dim);color:var(--text-main);
+      padding:6px 12px;border-radius:8px;font-size:.8rem;cursor:pointer;font-family:inherit;
+      font-weight:600;transition:all .2s ease;display:flex;align-items:center;gap:.4rem;text-decoration:none;
+    }
+    .btn-ctrl:hover{background:rgba(255,255,255,.12);border-color:var(--gold);color:var(--gold)}
+    main.deck-stage{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;padding:1.5rem 2rem}
+    .slide{
+      position:absolute;inset:1.5rem 3rem;opacity:0;pointer-events:none;
+      transform:scale(.97) translateY(12px);
+      transition:opacity .35s cubic-bezier(.16,1,.3,1),transform .35s cubic-bezier(.16,1,.3,1);
+      display:flex;flex-direction:column;justify-content:center;max-width:1340px;margin:0 auto;
+    }
+    .slide.active{opacity:1;pointer-events:auto;transform:scale(1) translateY(0);z-index:10}
+    .slide-tag{
+      font-size:.75rem;text-transform:uppercase;letter-spacing:.12em;font-weight:700;
+      color:var(--gold);margin-bottom:.45rem;display:flex;align-items:center;gap:.5rem;
+    }
+    .slide-tag::before{
+      content:'';display:inline-block;width:8px;height:8px;border-radius:50%;
+      background:var(--gold);box-shadow:0 0 10px var(--gold);
+    }
+    .slide-title{font-size:2.05rem;font-weight:800;line-height:1.15;letter-spacing:-.02em;margin-bottom:.6rem;color:#fff}
+    .hl-gold{color:var(--gold)} .hl-cyan{color:var(--cyan)}
+    .hl-emerald{color:var(--emerald)} .hl-crimson{color:var(--crimson)}
+    .slide-desc{font-size:.96rem;line-height:1.55;color:var(--text-muted);max-width:1000px;margin-bottom:1.2rem}
+    .slide-desc strong{color:#fff}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:1rem}
+    .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem}
+    .card{
+      background:var(--bg-card);border:1px solid var(--border-dim);border-radius:14px;
+      padding:1.15rem;backdrop-filter:blur(16px);box-shadow:0 8px 32px rgba(0,0,0,.35);
+      transition:all .25s ease;overflow:hidden;
+    }
+    .card:hover{border-color:rgba(245,158,11,.35);transform:translateY(-2px)}
+    .card.accent-gold{border-top:3px solid var(--gold)}
+    .card.accent-cyan{border-top:3px solid var(--cyan)}
+    .card.accent-emerald{border-top:3px solid var(--emerald)}
+    .card.accent-sapphire{border-top:3px solid var(--sapphire)}
+    .card.accent-crimson{border-top:3px solid var(--crimson)}
+    .card-num{font-family:var(--font-mono);font-size:.72rem;font-weight:700;color:var(--gold);margin-bottom:.3rem}
+    .card-title{font-size:1.02rem;font-weight:700;color:#fff;margin-bottom:.4rem}
+    .card-body{font-size:.83rem;color:var(--text-muted);line-height:1.5}
+    .card-body strong{color:#fff}
+    .card-body p{margin-bottom:.55rem}
+    .card-body p:last-child{margin-bottom:0}
+    .stat-box{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:.95rem;text-align:center}
+    .stat-val{font-size:1.85rem;font-weight:800;font-family:var(--font-mono);color:var(--gold);line-height:1;margin-bottom:.3rem}
+    .val-emerald{color:var(--emerald)} .val-cyan{color:var(--cyan)} .val-crimson{color:var(--crimson)}
+    .stat-lbl{font-size:.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+    .slide-table{
+      width:100%;border-collapse:collapse;font-size:.79rem;background:var(--bg-card);
+      border-radius:12px;overflow:hidden;border:1px solid var(--border-dim);
+    }
+    .slide-table th{
+      background:rgba(255,255,255,.05);color:var(--gold);text-align:left;padding:.55rem .8rem;
+      font-weight:700;border-bottom:1px solid var(--border-dim);text-transform:uppercase;
+      font-size:.68rem;letter-spacing:.05em;
+    }
+    .slide-table td{padding:.5rem .8rem;border-bottom:1px solid rgba(255,255,255,.05);color:var(--text-main);vertical-align:top}
+    .slide-table tr:last-child td{border-bottom:none}
+    .slide-table tr:hover td{background:rgba(255,255,255,.02)}
+    .slide-table td.mono,.slide-table .mono{font-family:var(--font-mono);font-size:.74rem}
+    .slide-table td strong{color:#fff}
+    .ok{color:var(--emerald);font-weight:700} .no{color:rgba(156,163,175,.45)}
+    .est{color:var(--gold);font-weight:700} .crim{color:var(--crimson);font-weight:700}
+    .row-hi td{background:rgba(245,158,11,.07)}
+    .row-crit td{background:rgba(239,68,68,.08)}
+    .tag-pill{
+      display:inline-block;padding:2px 8px;border-radius:6px;font-size:.68rem;
+      font-weight:700;font-family:var(--font-mono);white-space:nowrap;
+    }
+    .tag-emerald{background:rgba(16,185,129,.15);color:var(--emerald);border:1px solid rgba(16,185,129,.3)}
+    .tag-gold{background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3)}
+    .tag-sapphire{background:rgba(59,130,246,.15);color:var(--sapphire);border:1px solid rgba(59,130,246,.3)}
+    .tag-cyan{background:rgba(6,182,212,.15);color:var(--cyan);border:1px solid rgba(6,182,212,.3)}
+    .tag-crimson{background:rgba(239,68,68,.15);color:var(--crimson);border:1px solid rgba(239,68,68,.3)}
+    .code-block{
+      background:rgba(0,0,0,.42);border:1px solid var(--border-dim);border-left:3px solid var(--cyan);
+      border-radius:10px;padding:.85rem 1.05rem;font-family:var(--font-mono);font-size:.7rem;
+      line-height:1.55;color:#cbd5e1;white-space:pre;overflow-x:auto;
+    }
+    .code-block .k{color:var(--gold);font-weight:700}
+    .code-block .g{color:var(--emerald);font-weight:700}
+    .callout{
+      background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:10px;
+      padding:.75rem 1.05rem;margin-top:.9rem;font-size:.84rem;line-height:1.5;color:var(--text-main);
+    }
+    .callout strong{color:var(--gold)}
+    .callout.cyan{background:rgba(6,182,212,.08);border-color:rgba(6,182,212,.3)}
+    .callout.cyan strong{color:var(--cyan)}
+    .callout.crimson{background:rgba(239,68,68,.09);border-color:rgba(239,68,68,.35)}
+    .callout.crimson strong{color:var(--crimson)}
+    footer.deck-foot{
+      height:48px;padding:0 2rem;display:flex;align-items:center;justify-content:space-between;
+      border-top:1px solid var(--border-dim);background:rgba(10,15,24,.9);font-size:.8rem;color:var(--text-muted);
+    }
+    .slide-progress{flex:1;height:4px;background:rgba(255,255,255,.1);border-radius:2px;margin:0 1.5rem;overflow:hidden}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--sapphire),var(--gold));width:6.25%;transition:width .3s ease}
+    .slide-counter{font-family:var(--font-mono);font-weight:700;color:var(--text-main)}
+    .key-badge{
+      display:inline-block;background:rgba(255,255,255,.1);border:1px solid var(--border-dim);
+      padding:1px 6px;border-radius:4px;font-family:var(--font-mono);font-size:.72rem;color:var(--gold);
+    }
+    @media (max-width:1180px){
+      .grid-3,.grid-4{grid-template-columns:1fr 1fr}
+      .slide-title{font-size:1.65rem}
+      .slide-table{font-size:.72rem}
+    }
+  </style>
+</head>
+<body>
+
+  <header class="deck-bar">
+    <div class="brand">
+      <span class="flag-badge">🇿🇦</span>
+      <span class="brand-title">HOSI-UNIFIED · Addendum A · G2</span>
+      <span class="brand-subtitle">RBAC-Guided Prompting · POC Demo · 15 Oct 2026</span>
+    </div>
+    <div class="deck-controls">
+      <button class="btn-ctrl" id="btnPrev" title="Previous Slide (Left Arrow)">◀ Prev</button>
+      <button class="btn-ctrl" id="btnNext" title="Next Slide (Right Arrow, Space)">Next ▶</button>
+      <button class="btn-ctrl" id="btnFullscreen" title="Toggle Fullscreen (F)">⛶ Fullscreen</button>
+      <a href="04_G2_POC_Evidence_Live_System.md" class="btn-ctrl" style="border-color:var(--cyan);color:var(--cyan)">Evidence ↗</a>
+    </div>
+  </header>
+
+  <main class="deck-stage">
+
+    <!-- 1 TITLE -->
+    <div class="slide active" data-index="1">
+      <div class="slide-tag">HOSI-UNIFIED Data Managed Service · Stage 4 additive · Client demonstration</div>
+      <h1 class="slide-title">RBAC-Guided Prompting<br><span class="hl-gold">Report Agent — POC Demonstration</span></h1>
+      <p class="slide-desc">
+        <strong>Takawira Mazando</strong> · Senior Full Stack Developer, Lead Developer &nbsp;·&nbsp;
+        <strong>Richard Masukume</strong> · Head of AI Research &nbsp;·&nbsp;
+        <strong>Jerry Mokone</strong> · Project Manager &nbsp;·&nbsp;
+        <strong>Victoria Nedombeloni</strong> · Business Analyst
+        <br><br>
+        A <strong>self-hosted AI agent</strong> that writes a security report by prompting a local model — with the prompt
+        assembled from the caller's <strong>role</strong> and their <strong>frozen tenancy scope</strong>.
+      </p>
+      <div class="grid-4" style="margin-top:1rem;">
+        <div class="stat-box"><div class="stat-val">7</div><div class="stat-lbl">Build Days</div></div>
+        <div class="stat-box"><div class="stat-val val-cyan">14.5</div><div class="stat-lbl">Person-Days</div></div>
+        <div class="stat-box"><div class="stat-val val-emerald">2 244</div><div class="stat-lbl">Findings In Scope, Live</div></div>
+        <div class="stat-box"><div class="stat-val val-crimson">684</div><div class="stat-lbl">Rows Disclosed Estate-Wide</div></div>
+      </div>
+    </div>
+
+    <!-- 2 TEAM -->
+    <div class="slide" data-index="2">
+      <div class="slide-tag">The team</div>
+      <h2 class="slide-title">Who builds this</h2>
+      <table class="slide-table">
+        <thead><tr><th style="width:24%">Name</th><th style="width:32%">Role</th><th>G2 responsibility</th></tr></thead>
+        <tbody>
+          <tr class="row-hi"><td><strong>Takawira Mazando</strong></td><td>Senior Full Stack Developer — <strong>Lead Developer</strong></td><td>Scope object, RBAC gate, accessors, router, response envelope, audit</td></tr>
+          <tr class="row-hi"><td><strong>Richard Masukume</strong></td><td><strong>Head of AI Research</strong></td><td>Claim classes, <strong>role-aware prompt templates</strong>, model gateway, verifier, adversarial testing</td></tr>
+          <tr><td><strong>Jerry Mokone</strong></td><td>Project Manager</td><td>Governance, decisions D1–D8, sponsor liaison, demo</td></tr>
+          <tr><td><strong>Victoria Nedombeloni</strong></td><td>Business Analyst</td><td>Role and persona definitions, requirement trace, UAT scripting, demo narrative</td></tr>
+          <tr><td>Kagiso Mokgofa</td><td>Project Sponsor</td><td>Hosting position, Phase 2 authorisation, team allocation</td></tr>
+        </tbody>
+      </table>
+      <div class="callout crimson">
+        <strong>Capacity 14.0 PD. The POC needs 14.5 PD. There is no float.</strong> At the master plan's default 80% allocation this plan is 29% under-resourced — which is decision <strong>D8</strong> on the final slide.
+        <br><br>
+        <strong>Plan hygiene for Jerry:</strong> the master flight plan still lists <em>Peter Rashaya</em> as Technical Lead and reads "Project Lead Takawira and Peter". For G2 the AI work is led by <strong>Richard Masukume (Head of AI Research)</strong>. Both workbooks need aligning.
+      </div>
+    </div>
+
+    <!-- 3 CONTINUATION -->
+    <div class="slide" data-index="3">
+      <div class="slide-tag">Continuation of the master flight plan · P1–P12</div>
+      <h2 class="slide-title">Where G2 sits in HOSI-UNIFIED</h2>
+      <div class="grid-3">
+        <div class="card accent-sapphire">
+          <div class="card-num">TODAY</div>
+          <h3 class="card-title">Fixed, hand-authored narrative</h3>
+          <p class="card-body">Six role-gated React dashboards (<code>ExecDashboard</code>, <code>SocDashboard</code>, <code>AppSecDashboard</code>, <code>DbSecDashboard</code>, <code>ComplianceDashboard</code>, <code>SreDashboard</code>), plus CSV exports and the AG attestation.</p>
+          <p style="margin-top:.6rem"><strong>Every figure is hand-authored.</strong> Narrative is fixed text — identical for every reader of that role.</p>
+        </div>
+        <div class="card accent-gold">
+          <div class="card-num">THE GAP</div>
+          <h3 class="card-title">Role-gated, but not role-aware</h3>
+          <p class="card-body">RBAC today decides <em>which screen you land on</em>. It does not shape <em>what the words are permitted to say</em>.</p>
+          <p style="margin-top:.6rem">A provincial reader and a national reader of the same dashboard receive identical text.</p>
+        </div>
+        <div class="card accent-emerald">
+          <div class="card-num">G2 ADDS</div>
+          <h3 class="card-title">Generated per request</h3>
+          <p class="card-body">A narrative <strong>generated on demand</strong>, scoped to the caller's tenancy, written within their permitted claim classes.</p>
+          <p style="margin-top:.6rem"><strong>Nothing existing is modified.</strong> No router, export, dashboard, prompt or <code>warehouse.*</code> table. <code>ROLES_HIERARCHY</code> untouched.</p>
+        </div>
+      </div>
+      <div class="callout">
+        <strong>Direction change, per Victoria's requirement:</strong> G2 activity <strong>17.5 — "Minimal report viewer page" — is dropped.</strong>
+        Reports are no longer another React page; they are generated by a role-aware agent. <strong>The Vite frontend is not modified.</strong>
+      </div>
+    </div>
+
+    <!-- 4 PIPELINE -->
+    <div class="slide" data-index="4">
+      <div class="slide-tag">The agent pipeline</div>
+      <h2 class="slide-title">Every request passes <span class="hl-gold">two gates</span> before any row is read</h2>
+      <div class="code-block"><span class="g">POST</span> /api/v1/reports-ai/generate          JWT → claims
+        │
+        ├─ <span class="k">GATE 1 · RBAC</span>         require_report_permission("executive_briefing")
+        │                            permission = report_ai:&lt;report_type&gt;
+        │                            DEFAULT-DENY — absent role gets NOTHING
+        │
+        ├─ <span class="k">GATE 2 · TENANCY</span>      resolve_report_scope(claims) → ReportScope (frozen)
+        │                            scope_hash = sha256(canonical scope tuple)
+        │
+        ├─ <span class="k">RETRIEVAL</span>             scope is FIRST POSITIONAL arg on every accessor
+        │                            delegates to tenant_filter() — never re-implemented
+        │                            empty scope → expression.false() → FAIL CLOSED
+        │
+        ├─ <span class="k">DISCLOSURE</span>            every fact tagged TENANT_SCOPED | ESTATE_WIDE
+        │
+        ├─ <span class="k">FACT PACK</span>             pure builder + fact_pack_hash
+        │                            identical pack feeds BOTH the model and the fallback
+        │
+        ├─ <span class="k">PROMPT</span>  ◄── THE POINT  allowed_claim_classes INJECTED FROM THE ROLE
+        │                            temperature 0.2 · constrained narrative_html
+        │                            model receives facts only — no DB, no SQL, no tools
+        │
+        └─ <span class="k">VERIFY</span>                ① every numeral grounded in the fact pack
+                                         ② claim filter — DISCARD unheld-class sentences
+                                         ③ scope_hash match across envelope + cache + audit
+                                         any failure → deterministic template, NEVER model text</div>
+    </div>
+
+    <!-- 5 ROLE-AWARE PROMPTING -->
+    <div class="slide" data-index="5">
+      <div class="slide-tag">Role-aware prompting · the core of the request</div>
+      <h2 class="slide-title">A second RBAC layer, applied to the <span class="hl-cyan">text</span> not the request</h2>
+      <p class="slide-desc">
+        A role may be permitted to <em>request</em> a report but not to see everything <em>inside</em> it.
+        <code>ClaimClass</code> governs what the caller's role may see <strong>named</strong> in the generated narrative.
+      </p>
+      <table class="slide-table">
+        <thead><tr><th style="width:32%">ClaimClass</th><th style="text-align:center">exec</th><th style="text-align:center">compliance</th><th style="text-align:center">soc</th><th style="text-align:center">appsec</th><th style="text-align:center">dbsec</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">headline_metrics</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td></tr>
+          <tr><td class="mono">risk_buckets</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td></tr>
+          <tr><td class="mono">app_names</td><td class="ok" style="text-align:center">✓</td><td class="no" style="text-align:center">—</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td></tr>
+          <tr><td class="mono">department_names</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="no" style="text-align:center">—</td><td class="no" style="text-align:center">—</td></tr>
+          <tr><td class="mono">aggregate_compliance</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="no" style="text-align:center">—</td><td class="no" style="text-align:center">—</td><td class="no" style="text-align:center">—</td></tr>
+          <tr class="row-hi"><td class="mono">cve_ids</td><td class="no" style="text-align:center">—</td><td class="no" style="text-align:center">—</td><td class="ok" style="text-align:center">✓</td><td class="ok" style="text-align:center">✓</td><td class="no" style="text-align:center">—</td></tr>
+          <tr class="row-hi"><td class="mono">alert_ids</td><td class="no" style="text-align:center">—</td><td class="no" style="text-align:center">—</td><td class="ok" style="text-align:center">✓</td><td class="no" style="text-align:center">—</td><td class="no" style="text-align:center">—</td></tr>
+          <tr class="row-hi"><td class="mono">owner_names</td><td class="no" style="text-align:center">—</td><td class="no" style="text-align:center">—</td><td class="ok" style="text-align:center">✓</td><td class="no" style="text-align:center">—</td><td class="no" style="text-align:center">—</td></tr>
+          <tr class="row-hi"><td class="mono">rule_ids</td><td class="no" style="text-align:center">—</td><td class="no" style="text-align:center">—</td><td class="ok" style="text-align:center">✓</td><td class="no" style="text-align:center">—</td><td class="no" style="text-align:center">—</td></tr>
+        </tbody>
+      </table>
+      <div class="callout cyan">
+        <strong>Same report type. Same fact pack. Two roles. Materially different text.</strong><br>
+        An <code>exec</code> reads <em>"Estate risk is 62, critical exposure concentrated in 4 applications"</em>. A <code>soc</code> reads <em>"CVE-2026-31429 on payment-gateway, alert a1b2…, owner Payment Ops"</em>.
+        <br><br>
+        Today the platform differentiates by <strong>which dashboard you land on</strong>. This differentiates by <strong>what your narrative is permitted to say</strong>. That contrast is demo item 5.
+      </div>
+    </div>
+
+    <!-- 6 PROMPT IS NOT THE CONTROL -->
+    <div class="slide" data-index="6">
+      <div class="slide-tag">Prompt assembly · G2 §8</div>
+      <h2 class="slide-title">The prompt states the restriction. <span class="hl-gold">The verifier enforces it.</span></h2>
+      <div class="grid-2">
+        <div class="code-block" style="font-size:.66rem">constraints:
+  figures_only_from_facts: true
+  allowed_claim_classes:
+    - headline_metrics
+    - risk_buckets
+    - app_names
+    - department_names
+    - aggregate_compliance
+  #        ▲ INJECTED FROM THE CALLER'S ROLE
+  estate_wide_attribution: required
+
+output:
+  schema: narrative_html
+  temperature: 0.2</div>
+        <table class="slide-table">
+          <thead><tr><th style="width:38%">Attack</th><th style="width:26%">Prompt says</th><th>Verifier does</th></tr></thead>
+          <tbody>
+            <tr><td>"Also mention Western Cape"</td><td>scope restricted</td><td><code>scope_hash</code> mismatch → <strong class="crim">discard</strong></td></tr>
+            <tr class="row-hi"><td>CVE id appears in prose</td><td>class not held</td><td>sentence-level regex match → <strong class="crim">discard sentence</strong></td></tr>
+            <tr><td>Figure not in the fact pack</td><td>"never estimate"</td><td>numeral not found → <strong class="crim">discard output</strong></td></tr>
+            <tr><td>Province named out of scope</td><td>"do not name"</td><td>containment test → <strong class="crim">discard</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout">
+        <strong>Enforcement is discard, never warn.</strong> A failed verification returns the deterministic template — <strong>never the model text</strong>. Richard's adversarial suite runs on day 6, and <strong>every attempt must fail at the verifier</strong>. That is demo item 8.
+      </div>
+    </div>
+
+    <!-- 7 OLLAMA -->
+    <div class="slide" data-index="7">
+      <div class="slide-tag">Decision D6 · model hosting</div>
+      <h2 class="slide-title">Self-hosted. <span class="hl-emerald">No CAPEX. No procurement.</span></h2>
+      <p class="slide-desc">
+        <strong>Ollama 0.35.1 is installed and running on this machine</strong> — PID 27452, serving on <code>localhost:11434</code>. Verified 6 October 2026.
+      </p>
+      <div class="grid-2">
+        <table class="slide-table">
+          <thead><tr><th>Check</th><th style="text-align:right">Result</th></tr></thead>
+          <tbody>
+            <tr><td>Ollama service</td><td class="mono" style="text-align:right"><strong class="ok">running, :11434</strong></td></tr>
+            <tr><td>Registry reachable</td><td class="mono" style="text-align:right">HTTP 200</td></tr>
+            <tr><td>Disk free</td><td class="mono" style="text-align:right">84.3 GB</td></tr>
+            <tr><td>RAM</td><td class="mono" style="text-align:right">15.6 GB</td></tr>
+            <tr><td>CPU</td><td class="mono" style="text-align:right">i5-11400H, no GPU</td></tr>
+            <tr class="row-hi"><td><strong>Model</strong></td><td class="mono" style="text-align:right"><strong class="est">qwen2.5:3b (~2 GB)</strong></td></tr>
+          </tbody>
+        </table>
+        <div class="card accent-emerald">
+          <div class="card-num">WHY THIS IS THE ANSWER</div>
+          <div class="card-body" style="font-size:.85rem;">
+            <p><strong style="color:var(--emerald)">Satisfies G2 §12(6) directly</strong> — no SaaS LLM, self-hosted, with sovereign cloud available later as DR behind the same redaction gate.</p>
+            <p><strong style="color:var(--emerald)">Zero CAPEX, zero lead time.</strong> R01 (GPU/hosting slip, <strong>Critical 16</strong>) does not apply to this window. There is nothing to procure and no budget cycle to enter.</p>
+            <p><strong style="color:var(--emerald)">Reversibility is cheap.</strong> <code>gateway.py</code> is an httpx client against an OpenAI-compatible endpoint. Moving to sovereign cloud or on-prem GPU later is configuration, not a rewrite.</p>
+            <p><strong style="color:var(--emerald)">A 3B model on CPU is sufficient.</strong> The claim is not prose quality — it is that a role-aware prompt yields role-appropriate text over correctly scoped facts, and that the verifier catches what the model gets wrong.</p>
+          </div>
+        </div>
+      </div>
+      <div class="callout crimson">
+        <strong>R20 — the model is not yet pulled.</strong> A ~2 GB download sits on the critical path. <strong>If it fails, the fallback serves the same fact pack and therefore the same numbers</strong>, and the demonstration degrades to a template report. That degradation is pre-agreed — it is why the fallback was kept in the same scope rather than deferred.
+      </div>
+    </div>
+
+    <!-- 8 GATE 2 LIVE -->
+    <div class="slide" data-index="8">
+      <div class="slide-tag">Gate 2 · tenancy scoping, verified live 6 Oct 2026</div>
+      <h2 class="slide-title">The existing gates <span class="hl-emerald">already work</span></h2>
+      <p class="slide-desc"><code>tenant_filter()</code> (<code>app/api/auth.py:210</code>) applied to <code>warehouse.findings</code>:</p>
+      <table class="slide-table">
+        <thead><tr><th style="width:32%">Persona</th><th style="width:40%">Resolved scope</th><th style="text-align:right">Rows</th></tr></thead>
+        <tbody>
+          <tr><td><code>exec</code></td><td>nationwide — no filter applied</td><td class="mono" style="text-align:right"><strong>2 244</strong></td></tr>
+          <tr><td><code>compliance</code></td><td>nationwide — no filter applied</td><td class="mono" style="text-align:right"><strong>2 244</strong></td></tr>
+          <tr><td><code>soc</code> @ Home Affairs</td><td><code>department_id IN (home-affairs-digital)</code></td><td class="mono" style="text-align:right"><strong>745</strong></td></tr>
+          <tr><td><code>province-soc-lead</code> @ Gauteng</td><td>province-expanded → 15 provincial departments</td><td class="mono" style="text-align:right">scoped set</td></tr>
+          <tr class="row-hi"><td><code>dept-admin</code> — <strong>no scope assigned</strong></td><td><code>expression.false()</code></td><td class="mono" style="text-align:right"><strong class="crim">0</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="callout cyan">
+        <strong>The last row is the important one.</strong> A department role with no assigned scope receives <code>expression.false()</code> — <strong>zero rows, not the whole estate.</strong> Fail-closed is real today, not a design intention.
+        <br><br>
+        And <code>scope_hash</code> is deterministic: <strong>order-independent</strong>, and it changes the moment scope changes. That is what makes it usable as the cache key and the audit join.
+      </div>
+    </div>
+
+    <!-- 9 CORRECTION -->
+    <div class="slide" data-index="9">
+      <div class="slide-tag">A correction we must make · tested 6 Oct 2026</div>
+      <h2 class="slide-title">G2 said compliance data <span class="hl-crimson">crashes</span>. That is the harmless half.</h2>
+      <table class="slide-table">
+        <thead><tr><th style="width:26%">Caller</th><th style="width:30%"><code>tenant_filter()</code> result</th><th style="text-align:right">Rows returned</th><th style="width:18%">Error?</th></tr></thead>
+        <tbody>
+          <tr class="row-crit"><td><code>exec</code></td><td><code>None</code> — no filter</td><td class="mono" style="text-align:right"><strong class="crim">456 / 456</strong></td><td class="crim">NONE</td></tr>
+          <tr class="row-crit"><td><code>compliance</code></td><td><code>None</code> — no filter</td><td class="mono" style="text-align:right"><strong class="crim">456 / 456</strong></td><td class="crim">NONE</td></tr>
+          <tr class="row-crit"><td><code>transversal-admin</code></td><td><code>None</code> — no filter</td><td class="mono" style="text-align:right"><strong class="crim">456 / 456</strong></td><td class="crim">NONE</td></tr>
+          <tr><td><code>soc</code> (scoped)</td><td>raises</td><td class="mono" style="text-align:right">0</td><td><code>AttributeError</code></td></tr>
+        </tbody>
+      </table>
+      <div class="callout crimson">
+        <strong>Why:</strong> a nationwide caller short-circuits in <code>tenant_filter()</code> and returns <code>None</code> <em>before</em> the code ever touches <code>model.department_id</code>. <code>None</code> means no filter — every row returns.
+        <br><br>
+        And those three roles are <strong>exactly</strong> the three the G2 §5 matrix grants <code>compliance_status</code> to.
+        <br><br>
+        <strong>The real exposure is not a crash. It is a silent, complete bypass of tenancy scoping for precisely the intended audience — 684 rows, unscoped, undeclared.</strong>
+      </div>
+    </div>
+
+    <!-- 10 D2 -->
+    <div class="slide" data-index="10">
+      <div class="slide-tag">Decision D2 · the most consequential item on the agenda</div>
+      <h2 class="slide-title">There is <span class="hl-gold">no code path</span> that will ever scope them</h2>
+      <p class="slide-desc">
+        Both compliance tables carry <strong>no tenancy columns</strong> — 8 and 10 columns respectively, neither with
+        <code>department_id</code> or <code>branch_id</code>. Not a better filter, not a different query. <strong>The columns do not exist.</strong>
+      </p>
+      <table class="slide-table">
+        <thead><tr><th style="width:26%">Option</th><th>Consequence</th></tr></thead>
+        <tbody>
+          <tr class="row-hi">
+            <td><strong>Declare <code>ESTATE_WIDE</code></strong></td>
+            <td>684 rows, labelled estate-wide, disclosed in <strong>every generated response</strong>, enforced by the verifier. <span class="tag-gold">THE ONLY CONTROL AVAILABLE</span></td>
+          </tr>
+          <tr>
+            <td>Add tenancy columns</td>
+            <td>A warehouse programme: columns, backfill of historical rows, a tenancy source of truth for pre-existing snapshots, migration rehearsal, AG sign-off. Changes the reporting core.</td>
+          </tr>
+          <tr>
+            <td>Infer tenancy at query time</td>
+            <td><strong>Rejected.</strong> Guessing the scope of a snapshot that predates the tenancy model is guessing. A guessed scope in a compliance figure is worse than a declared absence of scope.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout crimson">
+        <strong>And it is now generated text.</strong> An unlabelled estate-wide figure inside a <em>model-written narrative</em> is materially worse than in a fixed dashboard string — the reader cannot tell it was authored under different rules. Disclosure is no longer good practice; it is the only thing standing between a generated report and an undeclared estate-wide disclosure.
+      </div>
+    </div>
+
+    <!-- 11 ENVELOPE -->
+    <div class="slide" data-index="11">
+      <div class="slide-tag">Response envelope · attribution is part of the contract</div>
+      <h2 class="slide-title">Not metadata. <span class="hl-emerald">Mandatory fields.</span></h2>
+      <div class="code-block">{
+  <span class="k">"report_type"</span>: <span class="g">"compliance_status"</span>,
+  <span class="k">"narrative_html"</span>: <span class="g">"&lt;h3&gt;Estate compliance posture&lt;/h3&gt;…"</span>,
+  <span class="k">"authorisation"</span>: {
+    <span class="k">"granted_by_role"</span>: <span class="g">"exec"</span>,
+    <span class="k">"permission"</span>: <span class="g">"report_ai:compliance"</span>,
+    <span class="k">"scope_class"</span>: <span class="g">"estate_wide"</span>,
+    <span class="k">"scope_hash"</span>: <span class="g">"sha256:1a99b011a25ec26e"</span>,
+    <span class="k">"departments_in_scope"</span>: <span class="g">173</span>,
+    <span class="k">"claim_classes_applied"</span>: [<span class="g">"headline_metrics"</span>, <span class="g">"risk_buckets"</span>, <span class="g">"app_names"</span>,
+                                    <span class="g">"department_names"</span>, <span class="g">"aggregate_compliance"</span>]
+  },
+  <span class="k">"disclosure"</span>: [
+    { <span class="k">"scope_class"</span>: <span class="g">"estate_wide"</span>, <span class="k">"source"</span>: <span class="g">"compliance_snapshots"</span>,
+      <span class="k">"rows"</span>: <span class="g">456</span>, <span class="k">"reason"</span>: <span class="g">"no tenancy columns on table"</span> }
+  ],
+  <span class="k">"provenance"</span>:   { <span class="k">"model_id"</span>: <span class="g">"qwen2.5:3b"</span>, <span class="k">"model_digest"</span>: <span class="g">"sha256:…"</span>,
+                   <span class="k">"prompt_id"</span>: <span class="g">"executive_briefing"</span>, <span class="k">"prompt_version"</span>: <span class="g">1</span>,
+                   <span class="k">"latency_ms"</span>: <span class="g">6120</span> },
+  <span class="k">"verification"</span>: { <span class="k">"numerals_checked"</span>: <span class="g">47</span>, <span class="k">"ungrounded"</span>: <span class="g">0</span>,
+                   <span class="k">"claims_violations"</span>: <span class="g">0</span>, <span class="k">"passed"</span>: <span class="g">true</span> },
+  <span class="k">"fallback_used"</span>: <span class="g">false</span>
+}</div>
+      <div class="callout cyan">
+        <strong>A generated security report must be attributable to the exact model and prompt that produced it — or it is not evidence.</strong>
+        <code>scope_hash</code> appears in the response, the cache key and the audit row, equal in all three.
+        <code>authorisation</code> and <code>disclosure</code> are mandatory; neither is optional.
+      </div>
+    </div>
+
+    <!-- 12 RUN SHEET -->
+    <div class="slide" data-index="12">
+      <div class="slide-tag">Run sheet · 15 October 2026</div>
+      <h2 class="slide-title">Today's demonstration, <span class="hl-gold">minute by minute</span></h2>
+      <table class="slide-table">
+        <thead><tr><th style="width:8%">Min</th><th>What you will see</th><th style="width:28%">Proves</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">0–3</td><td><code>exec</code> → <code>executive_briefing</code>. <strong>Model-generated narrative</strong>, estate rollup, live figures</td><td>The agent works</td></tr>
+          <tr><td class="mono">3–5</td><td>Envelope: authorisation, disclosure, provenance with <code>model_id</code> + digest</td><td>Attribution</td></tr>
+          <tr class="row-hi"><td class="mono">5–8</td><td><code>exec</code> → <code>compliance_status</code>. Envelope carries <code>disclosure: [{{estate_wide, 456}}]</code></td><td><strong>Gap declared, not hidden</strong></td></tr>
+          <tr><td class="mono">8–10</td><td><code>exec</code> → <code>soc_shift_handover</code> → <strong>403</strong></td><td>Gate 1 default-deny</td></tr>
+          <tr class="row-hi"><td class="mono">10–14</td><td><strong>Role-aware prompting, live:</strong> same report, <code>exec</code> vs <code>soc</code>. Side-by-side prompt and output</td><td>Claim classes drive the text</td></tr>
+          <tr><td class="mono">14–17</td><td>DHA <code>soc</code> vs <code>exec</code>: <strong>745 vs 2 244</strong>, different <code>scope_hash</code></td><td>Containment (S2)</td></tr>
+          <tr><td class="mono">17–19</td><td>Provincial persona attempts to widen scope → <strong>fails closed to empty</strong></td><td>Non-escalation (S3)</td></tr>
+          <tr class="row-hi"><td class="mono">19–21</td><td>Injected CVE id → <strong>sentence discarded</strong></td><td>Verifier, not prompt, is the control</td></tr>
+          <tr><td class="mono">21–23</td><td><code>git diff main</code> — <strong>nothing existing modified</strong></td><td>Non-interference</td></tr>
+          <tr><td class="mono">23–27</td><td>Phase 2 scope and decisions D1–D8</td><td>Governance</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 13 SEVEN DAYS -->
+    <div class="slide" data-index="13">
+      <div class="slide-tag">Build plan · 7 working days, 5 gates</div>
+      <h2 class="slide-title">How we get from today to <span class="hl-cyan">Thursday</span></h2>
+      <table class="slide-table">
+        <thead><tr><th style="width:6%">Day</th><th style="width:15%">Date</th><th style="width:36%">Takawira Mazando</th><th>Richard Masukume</th><th style="width:22%">Gate</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td class="mono">Tue 6 Oct</td><td><code>ai</code> schema, <code>ai.report</code></td><td><strong>Pull <code>qwen2.5:3b</code></strong>, latency baseline</td><td>model responds</td></tr>
+          <tr class="row-hi"><td>2</td><td class="mono">Wed 7 Oct</td><td>Gate 1; <code>scope.py</code></td><td><code>claims.py</code>, <code>disclosure.py</code></td><td><span class="tag-gold">A</span> unknown role → 403</td></tr>
+          <tr class="row-hi"><td>3</td><td class="mono">Thu 8 Oct</td><td><code>scope_hash</code>; accessors + <strong>S6</strong></td><td>Prompt templates + role injection</td><td><span class="tag-gold">B</span> 2 roles → different prompts</td></tr>
+          <tr><td>4</td><td class="mono">Fri 9 Oct</td><td>Fact packs + <code>fact_pack_hash</code></td><td><code>gateway.py</code> + breaker</td><td><span class="tag-gold">C</span> first real generation</td></tr>
+          <tr class="row-hi"><td>5</td><td class="mono">Mon 12 Oct</td><td><code>generate.py</code>; fallback templates</td><td><code>verify.py</code> numeral + claim filter</td><td><span class="tag-gold">D</span> ungrounded numeral discarded</td></tr>
+          <tr><td>6</td><td class="mono">Tue 13 Oct</td><td>Router, envelope, audit write</td><td><strong>Adversarial scope + claim tests</strong></td><td><span class="tag-gold">E</span> all attempts rejected</td></tr>
+          <tr class="row-hi"><td>7</td><td class="mono">Wed 14 Oct</td><td>S2/S3 live; diff review</td><td>S4 live; regression; <strong>rehearsal</strong></td><td><span class="tag-crimson">FREEZE 17:00</span></td></tr>
+          <tr class="row-hi"><td>8</td><td class="mono"><strong>Thu 15 Oct</strong></td><td colspan="2" style="text-align:center"><strong>POC DEMONSTRATION</strong></td><td>🏁</td></tr>
+        </tbody>
+      </table>
+      <div class="callout crimson">
+        <strong>14.5 PD of work. 14.0 PD of capacity. Day 7 is the only buffer and it is also the freeze day.</strong><br><br>
+        If a gate fails on day 6, the pre-agreed response is to demonstrate a <strong>reduced claim set</strong> on 15 October — never to carry a defect into the meeting.
+      </div>
+    </div>
+
+    <!-- 14 RISKS -->
+    <div class="slide" data-index="14">
+      <div class="slide-tag">Risk position · identified 6 October while testing this plan</div>
+      <h2 class="slide-title">What could <span class="hl-crimson">go wrong</span></h2>
+      <table class="slide-table">
+        <thead><tr><th style="width:7%">ID</th><th style="width:26%">Risk</th><th style="width:7%" class="mono">Score</th><th>What it means, and the treatment</th></tr></thead>
+        <tbody>
+          <tr class="row-crit">
+            <td class="mono"><strong>R18</strong> <span class="tag-crimson">NEW</span></td>
+            <td><strong>Zero schedule float</strong></td><td class="mono">16</td>
+            <td>14.5 PD against 14.0 PD in 7 days. <strong>Any single slipped day breaks the demo.</strong> <em>Treatment:</em> freeze day 7; pre-agreed fallback is a reduced claim set.</td>
+          </tr>
+          <tr class="row-crit">
+            <td class="mono"><strong>R09</strong></td>
+            <td>Key-person concentration</td><td class="mono">16</td>
+            <td>Two people, 14.5 PD, 7 days. At 80% allocation the plan is <strong>29% under-resourced</strong>. <em>Treatment:</em> D8 — 100% allocation.</td>
+          </tr>
+          <tr>
+            <td class="mono"><strong>R20</strong> <span class="tag-gold">NEW</span></td>
+            <td>Model not pulled</td><td class="mono">12</td>
+            <td>~2 GB download on the critical path. <em>Treatment:</em> pull day 1; fallback serves identical numbers from the same fact pack. Degradation pre-agreed.</td>
+          </tr>
+          <tr class="row-hi">
+            <td class="mono"><strong>R02</strong></td>
+            <td>Compliance data unscopable</td><td class="mono">15</td>
+            <td><strong>Confirmed live.</strong> A silent bypass for nationwide roles, not a crash. <em>Treatment:</em> disclosure is the only control; demo item 3 proves it on 456 real rows.</td>
+          </tr>
+          <tr>
+            <td class="mono"><strong>R21</strong> <span class="tag-gold">NEW</span></td>
+            <td>CPU-only inference latency</td><td class="mono">9</td>
+            <td>A 3B model on a 6-core CPU is slow; ~900-token outputs are tractable but not fast. <em>Treatment:</em> cap <code>max_tokens</code> at 900, cache fact packs, rehearse on day 7.</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="callout crimson">
+        <strong>R18, R20 and R21 were identified on 6 October while testing this plan against your system.</strong>
+        R18 is the direct, unavoidable cost of compressing the work into 7 days — and it is yours to accept, not ours to hide.
+      </div>
+    </div>
+
+    <!-- 15 DECISIONS -->
+    <div class="slide" data-index="15">
+      <div class="slide-tag">Decisions for 15 October</div>
+      <h2 class="slide-title">Eight decisions</h2>
+      <table class="slide-table">
+        <thead><tr><th style="width:5%">#</th><th style="width:28%">Decision</th><th style="width:42%">Recommendation</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>D1</td><td><code>ai</code> schema target</td><td><code>ai</code> schema in the main database — a separate DB breaks audit atomicity</td><td class="ok">ready</td></tr>
+          <tr class="row-hi"><td>D2</td><td>Estate-wide compliance disclosure</td><td><strong>Declare <code>ESTATE_WIDE</code> explicitly</strong></td><td><span class="tag-emerald">proven live</span></td></tr>
+          <tr><td>D3</td><td>AG narrative in the attestation</td><td>Keep separate — attestation untouched and byte-identical</td><td class="ok">ready</td></tr>
+          <tr><td>D4</td><td><code>DEPARTMENT_NAMES</code> for <code>exec</code></td><td>Yes, as drafted — <strong>no additions to the exec claim set</strong></td><td class="ok">ready</td></tr>
+          <tr><td>D5</td><td><code>ai.report</code> audit retention</td><td>Same as <code>audit.action_audit</code>, covering model id, digest and prompt version</td><td class="ok">ready</td></tr>
+          <tr class="row-hi"><td><strong>D6</strong></td><td><strong>Model hosting</strong></td><td><strong>Self-hosted Ollama — no CAPEX, no procurement</strong></td><td><span class="tag-emerald">ANSWERED</span></td></tr>
+          <tr><td>D7</td><td>Phase 2 authorisation</td><td>Authorise a re-estimate, <strong>not a date</strong></td><td class="ok">new</td></tr>
+          <tr class="row-crit"><td><strong>D8</strong></td><td><strong>Team allocation</strong></td><td><strong>Takawira and Richard at 100% for 7 days</strong></td><td><span class="tag-crimson">NEW — BLOCKING</span></td></tr>
+        </tbody>
+      </table>
+      <div class="callout">
+        <strong>D4 is now material in a way it was not.</strong> With role-aware prompting, a claim class in the prompt is one the model will <em>try</em> to use. Widening <code>exec</code> to include <code>rule_ids</code> "for completeness" would put control identifiers into executive prose on the next prompt iteration.
+        <br><br>
+        <strong>D4's condition is the control:</strong> the matrix is signed as drafted, and any addition to the <code>exec</code> set requires fresh Compliance Analyst approval before implementation.
+      </div>
+    </div>
+
+    <!-- 16 ASKS -->
+    <div class="slide" data-index="16">
+      <div class="slide-tag">What we ask of you</div>
+      <h2 class="slide-title">Seven asks</h2>
+      <table class="slide-table">
+        <thead><tr><th style="width:4%">#</th><th style="width:30%">Ask</th><th style="width:20%">Who signs</th><th>If you do not decide</th></tr></thead>
+        <tbody>
+          <tr class="row-hi"><td>1</td><td><strong>Approve the G2 plan</strong></td><td>Jerry, Kagiso</td><td>No build authority</td></tr>
+          <tr><td>2</td><td><strong>D1</strong> — <code>ai</code> schema in the main DB</td><td>Data Architect, DevOps</td><td>Same. A separate DB breaks audit atomicity <strong>and cannot be delivered in 7 days</strong></td></tr>
+          <tr class="row-crit"><td>3</td><td><strong>D2</strong> — declare <code>ESTATE_WIDE</code></td><td>Compliance, AG liaison</td><td><strong>684 rows reach <code>exec</code> and <code>compliance</code> undeclared — inside generated text</strong></td></tr>
+          <tr><td>4</td><td><strong>D3, D4, D5</strong></td><td>Compliance, AG liaison</td><td>Defaults adopted as drafted</td></tr>
+          <tr><td>5</td><td><strong>D6</strong> — acknowledge self-hosted Ollama</td><td>Kagiso, Jerry</td><td>Model stays unpulled; no generation demonstrated</td></tr>
+          <tr class="row-hi"><td>6</td><td><strong>D7</strong> — Phase 2 basis</td><td>Kagiso</td><td><strong>29 Jan 2027 remains unsupported by evidence</strong></td></tr>
+          <tr class="row-crit"><td>7</td><td><strong>D8</strong> — release Takawira and Richard to <strong>100%</strong></td><td>Kagiso</td><td><strong>29% under-resourced. Cut scope now, not on 14 Oct</strong></td></tr>
+        </tbody>
+      </table>
+      <div class="callout cyan">
+        <strong>After today:</strong> 14 Oct 17:00 — POC frozen, evidence pack signed.
+        <strong>Within 10 working days</strong> — a Phase 2 costed plan with a date, informed by what the POC proved about a 3B local model's narrative quality.
+        <br><br>
+        <strong>Amendments today are logged as change control and re-baselined. They do not stop the build.</strong>
+      </div>
+    </div>
+
+  </main>
+
+  <footer class="deck-foot">
+    <div>
+      <span>Keys: <span class="key-badge">◀</span> / <span class="key-badge">▶</span> Navigate &middot; <span class="key-badge">Space</span> Next &middot; <span class="key-badge">F</span> Fullscreen</span>
+      <div style="font-size:.68rem;color:rgba(156,163,175,.6);margin-top:2px;">
+        G2-POC-DECK-R3 &middot; supersedes R1 &amp; R2 &middot; Takawira Mazando &middot; Richard Masukume &middot; Jerry Mokone &middot; Victoria Nedombeloni &middot; evidence verified against the live system 6 Oct 2026
+      </div>
+    </div>
+    <div class="slide-progress"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="slide-counter">Slide <span id="currentSlideNum">1</span> / <span id="totalSlideNum">16</span></div>
+  </footer>
+
+  <script>
+    (function() {
+      const slides = Array.from(document.querySelectorAll('.slide'));
+      const total = slides.length;
+      let current = 0;
+      const progressFill = document.getElementById('progressFill');
+      const currentSlideNum = document.getElementById('currentSlideNum');
+      const totalSlideNum = document.getElementById('totalSlideNum');
+      const btnPrev = document.getElementById('btnPrev');
+      const btnNext = document.getElementById('btnNext');
+      const btnFullscreen = document.getElementById('btnFullscreen');
+
+      totalSlideNum.textContent = total;
+
+      function updateSlide(idx) {
+        if (idx < 0) idx = 0;
+        if (idx >= total) idx = total - 1;
+        current = idx;
+        slides.forEach((s, i) => s.classList.toggle('active', i === current));
+        currentSlideNum.textContent = current + 1;
+        progressFill.style.width = ((current + 1) / total * 100) + '%';
+      }
+      function nextSlide() { updateSlide(current + 1); }
+      function prevSlide() { updateSlide(current - 1); }
+
+      btnNext.addEventListener('click', nextSlide);
+      btnPrev.addEventListener('click', prevSlide);
+      btnFullscreen.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else { document.exitFullscreen().catch(() => {}); }
+      });
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); nextSlide(); }
+        else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+        else if (e.key === 'Home') { e.preventDefault(); updateSlide(0); }
+        else if (e.key === 'End') { e.preventDefault(); updateSlide(total - 1); }
+        else if (e.key.toLowerCase() === 'f') { btnFullscreen.click(); }
+      });
+      let touchStartX = 0;
+      window.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+      window.addEventListener('touchend', (e) => {
+        const touchEndX = e.changedTouches[0].screenX;
+        if (touchEndX < touchStartX - 50) nextSlide();
+        if (touchEndX > touchStartX + 50) prevSlide();
+      }, { passive: true });
+    })();
+  </script>
+</body>
+</html>
