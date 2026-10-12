@@ -51,6 +51,8 @@ services:
       SEED_DEMO_USERS_ENABLED: "false"
       BOOTSTRAP_ADMIN_EMAIL: ${BOOTSTRAP_ADMIN_EMAIL:-admin@example.com}
       BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?set a strong BOOTSTRAP_ADMIN_PASSWORD in .env}
+    ports:
+      - "8000:8000"
     depends_on:
       postgres:
         condition: service_healthy
