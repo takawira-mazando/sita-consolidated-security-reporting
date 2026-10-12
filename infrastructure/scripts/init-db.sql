@@ -68,10 +68,76 @@ CREATE TABLE IF NOT EXISTS identity.persons (
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+-- identity.persons.id_number is AES-256-GCM encrypted at rest by the
+-- application (app/pii_crypto.py), not by a database extension: pgcrypto is not
+-- shipped with the EDB Windows PostgreSQL build and the application role is not
+-- a superuser, so CREATE EXTENSION is unavailable.
+--
+-- The column is TEXT rather than VARCHAR(20) because the stored form is an
+-- envelope (v1:<nonce>:<ciphertext>), not a 13-digit string. Encryption and
+-- decryption happen transparently in a SQLAlchemy TypeDecorator, so the stored
+-- value is ciphertext while every read path still sees plaintext.
+ALTER TABLE identity.persons
+    ALTER COLUMN id_number TYPE TEXT;
+
 CREATE INDEX IF NOT EXISTS idx_persons_employee ON identity.persons(employee_number);
 CREATE INDEX IF NOT EXISTS idx_persons_email ON identity.persons(email);
 CREATE INDEX IF NOT EXISTS idx_persons_dept ON identity.persons(department_id);
 CREATE INDEX IF NOT EXISTS idx_persons_status ON identity.persons(employment_status);
+
+-- Scheme-qualified external employment identifiers.
+--
+-- Replaces reliance on persons.employee_number alone. The platform must
+-- distinguish the South African public service's three identifier concepts:
+--
+--   persal        8 digits, issued by National Treasury via PERSAL, bound to
+--                 the EMPLOYMENT record (a transfer keeps it, a resignation
+--                 and reappointment yields a new one)
+--   sap_personnel SITA's own SAP HCM estate, and the scheme the IFMS HR module
+--                 (DPSA / National Treasury / SITA, payroll excluded) will
+--                 carry nationally
+--   internal_hr   feeds carrying no national scheme, including the simulated
+--                 HR stand-in
+--
+-- The SA identity number is deliberately NOT modelled here: it identifies the
+-- person, not the employment, and is retained only on persons.id_number under
+-- the masking controls in app/pii.py.
+--
+-- identity.users.person_id remains an internal UUID. A government identifier
+-- is an attribute of an account, never its primary key, so a corrected or
+-- reissued PERSAL number does not require re-keying an account.
+CREATE TABLE IF NOT EXISTS identity.employment_identifier (
+    id            VARCHAR(36) PRIMARY KEY,
+    person_id     VARCHAR(36) NOT NULL REFERENCES identity.persons(id) ON DELETE CASCADE,
+    scheme        VARCHAR(32) NOT NULL,
+    value         VARCHAR(64) NOT NULL,
+    source_system VARCHAR(64),
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_employment_identifier_scheme_value UNIQUE (scheme, value)
+);
+CREATE INDEX IF NOT EXISTS idx_employment_identifier_person ON identity.employment_identifier(person_id);
+CREATE INDEX IF NOT EXISTS idx_employment_identifier_scheme ON identity.employment_identifier(scheme);
+CREATE INDEX IF NOT EXISTS idx_employment_identifier_value ON identity.employment_identifier(value);
+
+-- Idempotent backfill: every person provisioned so far carries the originating
+-- feed's own identifier. Existing values are synthetic (EMP-...), so they land
+-- under internal_hr; a genuine 8-digit PERSAL number would classify as persal.
+INSERT INTO identity.employment_identifier (id, person_id, scheme, value, source_system)
+SELECT gen_random_uuid()::TEXT,
+       p.id,
+       CASE
+           WHEN p.employee_number ~ '^[0-9]{8}$' THEN 'persal'
+           ELSE 'internal_hr'
+       END,
+       p.employee_number,
+       'backfill'
+  FROM identity.persons p
+ WHERE p.employee_number IS NOT NULL
+   AND NOT EXISTS (
+       SELECT 1 FROM identity.employment_identifier ei
+        WHERE ei.person_id = p.id
+          AND ei.value = p.employee_number
+   );
 
 -- ============================================================================
 -- hr - SIMULATED EXTERNAL HR SYSTEM (PERSAL/payroll employee master)
@@ -87,6 +153,10 @@ CREATE SCHEMA IF NOT EXISTS hr;
 
 CREATE TABLE IF NOT EXISTS hr.employees (
     employee_number         VARCHAR(50) PRIMARY KEY,
+    -- National Treasury PERSAL personnel number (8 digits). NULL in the
+    -- simulated stand-in; a live PERSAL/SCIM feed populates it and HR sync
+    -- records it as an identity.employment_identifier with scheme='persal'.
+    persal_number           VARCHAR(20),
     id_number               VARCHAR(20),
     title                   VARCHAR(20),
     initials                VARCHAR(20),
@@ -114,20 +184,156 @@ CREATE INDEX IF NOT EXISTS idx_hr_emp_status ON hr.employees(employment_status);
 CREATE INDEX IF NOT EXISTS idx_hr_emp_manager ON hr.employees(manager_employee_number);
 
 -- ============================================================================
--- audit - reserved for immutable action trails (AG secure export engine)
+-- audit - append-only action trail (AG secure export engine)
+--
+-- Immutability is enforced here, not by application convention: a privileged
+-- session may INSERT but may not UPDATE or DELETE, and a trigger rejects any
+-- mutation regardless of role. Without this, a hash-bound row in a mutable table
+-- is not tamper-evident.
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS audit.action_audit (
-    id            VARCHAR(36) PRIMARY KEY,
-    actor         VARCHAR(255) NOT NULL,
-    action        VARCHAR(50) NOT NULL,
-    target        VARCHAR(255),
-    tenant_scope  JSONB,
-    payload_hash  VARCHAR(64) NOT NULL,
-    created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+    id                     VARCHAR(36) PRIMARY KEY,
+    actor                  VARCHAR(255) NOT NULL,
+    action                 VARCHAR(50) NOT NULL,
+    target                 VARCHAR(255),
+    tenant_scope           JSONB,
+    payload_hash           VARCHAR(64) NOT NULL,
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    signed_payload         TEXT,
+    signature              TEXT,
+    key_id                 VARCHAR(64),
+    signing_algorithm      VARCHAR(32),
+    actor_role             VARCHAR(64),
+    policy_version         VARCHAR(32),
+    scope_hash             VARCHAR(64),
+verification_status  VARCHAR(128),
+    verified_at            TIMESTAMPTZ,
+    verified_by            VARCHAR(255),
+    attestation_size_bytes INTEGER
 );
+-- Additive column rollout, applied before any index that references them so the
+-- script is safe to re-run against a database created by an earlier version.
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS signed_payload TEXT;
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS signature TEXT;
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS key_id VARCHAR(64);
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS signing_algorithm VARCHAR(32);
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS actor_role VARCHAR(64);
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS policy_version VARCHAR(32);
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS scope_hash VARCHAR(64);
+-- VARCHAR(32) holds the verification outcome codes emitted by the export engine
+-- (e.g. signature_invalid: signature does not validate over the recorded payload).
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS verification_status VARCHAR(32);
+ALTER TABLE audit.action_audit
+    ALTER COLUMN verification_status TYPE VARCHAR(128);
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS verified_by VARCHAR(255);
+ALTER TABLE audit.action_audit ADD COLUMN IF NOT EXISTS attestation_size_bytes INTEGER;
+
 CREATE INDEX IF NOT EXISTS idx_action_audit_actor ON audit.action_audit(actor);
 CREATE INDEX IF NOT EXISTS idx_action_audit_created ON audit.action_audit(created_at);
+CREATE INDEX IF NOT EXISTS idx_action_audit_key_id ON audit.action_audit(key_id);
+
+-- Reject UPDATE and DELETE at the engine level. Verification bookkeeping
+-- (verification_status/verified_at/verified_by) is the one legitimate mutation,
+-- so it is the only column set the trigger will permit.
+CREATE OR REPLACE FUNCTION audit.action_audit_append_only()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'DELETE' THEN
+        RAISE EXCEPTION
+            'audit.action_audit is append-only: % on id=% is not permitted',
+            TG_OP, OLD.id
+            USING ERRCODE = 'insufficient_privilege';
+    END IF;
+
+    IF NEW.id IS DISTINCT FROM OLD.id
+       OR NEW.actor IS DISTINCT FROM OLD.actor
+       OR NEW.action IS DISTINCT FROM OLD.action
+       OR NEW.target IS DISTINCT FROM OLD.target
+       OR NEW.tenant_scope IS DISTINCT FROM OLD.tenant_scope
+       OR NEW.payload_hash IS DISTINCT FROM OLD.payload_hash
+       OR NEW.created_at IS DISTINCT FROM OLD.created_at
+       OR NEW.signed_payload IS DISTINCT FROM OLD.signed_payload
+       OR NEW.signature IS DISTINCT FROM OLD.signature
+       OR NEW.key_id IS DISTINCT FROM OLD.key_id
+       OR NEW.signing_algorithm IS DISTINCT FROM OLD.signing_algorithm
+       OR NEW.actor_role IS DISTINCT FROM OLD.actor_role
+       OR NEW.policy_version IS DISTINCT FROM OLD.policy_version
+       OR NEW.scope_hash IS DISTINCT FROM OLD.scope_hash
+       OR NEW.attestation_size_bytes IS DISTINCT FROM OLD.attestation_size_bytes
+    THEN
+        RAISE EXCEPTION
+            'audit.action_audit is append-only: % of evidentiary columns is not permitted '
+            '(id=%); only verification_status/verified_at/verified_by may be updated',
+            TG_OP, OLD.id
+            USING ERRCODE = 'insufficient_privilege';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_action_audit_append_only ON audit.action_audit;
+CREATE TRIGGER trg_action_audit_append_only
+    BEFORE UPDATE OR DELETE ON audit.action_audit
+    FOR EACH ROW EXECUTE FUNCTION audit.action_audit_append_only();
+
+-- TRUNCATE bypasses row-level triggers entirely, so it needs its own
+-- statement-level guard or the whole trail can be dropped in one statement.
+-- Operational guard: fail loudly if the append-only trigger has been disabled.
+-- A disabled trigger is indistinguishable from a healthy one to an application
+-- that only inspects its own privileges, so detect it at write time instead.
+CREATE OR REPLACE FUNCTION audit.action_audit_assert_enabled()
+RETURNS TRIGGER AS $$
+DECLARE
+    state "char";
+BEGIN
+    SELECT tgenabled INTO state
+      FROM pg_trigger
+     WHERE tgrelid = 'audit.action_audit'::regclass
+       AND tgname   = 'trg_action_audit_append_only'
+       AND NOT tgisinternal;
+
+    IF state IS NULL OR state <> 'O' THEN
+        RAISE EXCEPTION
+            'audit.action_audit append-only trigger is missing or disabled (tgenabled=%)',
+            COALESCE(state, '?')
+            USING ERRCODE = 'insufficient_privilege';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_action_audit_assert_enabled ON audit.action_audit;
+CREATE TRIGGER trg_action_audit_assert_enabled
+    BEFORE INSERT ON audit.action_audit
+    FOR EACH ROW EXECUTE FUNCTION audit.action_audit_assert_enabled();
+
+CREATE OR REPLACE FUNCTION audit.action_audit_no_truncate()
+RETURNS TRIGGER AS $$
+BEGIN
+    RAISE EXCEPTION
+        'audit.action_audit is append-only: TRUNCATE is not permitted'
+        USING ERRCODE = 'insufficient_privilege';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_action_audit_no_truncate ON audit.action_audit;
+CREATE TRIGGER trg_action_audit_no_truncate
+    BEFORE TRUNCATE ON audit.action_audit
+    FOR EACH STATEMENT EXECUTE FUNCTION audit.action_audit_no_truncate();
+
+-- Defence in depth: revoke mutation rights from PUBLIC. Application roles that
+-- have been granted broader rights must be re-scoped to INSERT/SELECT on audit.
+--
+-- IMPORTANT: REVOKE only binds roles that are NOT the table owner. An owner can
+-- always ALTER/DROP the triggers or re-grant itself privileges, so immutability
+-- against a privileged insider additionally requires that the application
+-- connect as a role that does not own audit.action_audit. See the OPERATIONAL
+-- NOTE at the end of this script.
+REVOKE UPDATE, DELETE, TRUNCATE ON audit.action_audit FROM PUBLIC;
 
 -- ============================================================================
 -- staging
@@ -237,6 +443,20 @@ CREATE TABLE IF NOT EXISTS warehouse.findings (
     title         VARCHAR(500) NOT NULL,
     description   TEXT,
     category      VARCHAR(200),
+    -- Cross-source OWASP Top 10 classification. `category` above is the OEM's
+    -- own vocabulary and is preserved unchanged; these four columns are the
+    -- platform's classification, applied at ingest so the rollup can be
+    -- aggregated and tenant-scoped like any other warehouse column.
+    -- owasp_status distinguishes the non-classified states on purpose:
+    --   classified     - mapped to a category
+    --   unmapped       - vendor value seen, no mapping yet (maintenance backlog)
+    --   not_applicable - source vocabulary is not a vulnerability class
+    --   absent         - the OEM supplied no category at all
+    -- A NULL owasp_id therefore never means "silently guessed wrong".
+    owasp_id          VARCHAR(10),
+    cwe_id            VARCHAR(20),
+    owasp_status      VARCHAR(20),
+    taxonomy_version  VARCHAR(32),
     raw_data      JSONB,
     first_seen    TIMESTAMPTZ NOT NULL,
     last_seen     TIMESTAMPTZ NOT NULL,
@@ -250,6 +470,45 @@ CREATE INDEX IF NOT EXISTS idx_findings_severity ON warehouse.findings(severity)
 CREATE INDEX IF NOT EXISTS idx_findings_last_seen ON warehouse.findings(last_seen);
 CREATE INDEX IF NOT EXISTS idx_findings_dept ON warehouse.findings(department_id);
 CREATE INDEX IF NOT EXISTS idx_findings_branch ON warehouse.findings(branch_id);
+CREATE INDEX IF NOT EXISTS idx_findings_owasp ON warehouse.findings(owasp_id);
+CREATE INDEX IF NOT EXISTS idx_findings_cwe ON warehouse.findings(cwe_id);
+CREATE INDEX IF NOT EXISTS idx_findings_owasp_status ON warehouse.findings(owasp_status);
+-- The dashboard rollup is always scoped and always grouped, so serve that shape.
+CREATE INDEX IF NOT EXISTS idx_findings_owasp_dept
+    ON warehouse.findings(department_id, owasp_id);
+
+-- ---------------------------------------------------------------------------
+-- CONVERGENT UPGRADES
+--
+-- Everything above uses CREATE TABLE IF NOT EXISTS, which is a no-op against a
+-- table that already exists. A database created from an EARLIER revision of
+-- this script therefore never receives columns added in a LATER revision, and
+-- the application fails at runtime with
+--
+--     column findings.owasp_id does not exist
+--
+-- because the ORM model is ahead of the physical schema. That is not
+-- hypothetical: it is what the live database was doing, breaking
+-- GET /api/v1/findings with a 500.
+--
+-- The statements below make this script convergent - safe to re-run against an
+-- existing database, adding only what is missing. Keep any ALTER in this
+-- section when a column is added to an existing table, and add it to the
+-- CREATE TABLE above at the same time so fresh databases get it in one pass.
+-- ---------------------------------------------------------------------------
+
+ALTER TABLE warehouse.findings ADD COLUMN IF NOT EXISTS owasp_id          VARCHAR(10);
+ALTER TABLE warehouse.findings ADD COLUMN IF NOT EXISTS cwe_id            VARCHAR(20);
+ALTER TABLE warehouse.findings ADD COLUMN IF NOT EXISTS owasp_status      VARCHAR(20);
+ALTER TABLE warehouse.findings ADD COLUMN IF NOT EXISTS taxonomy_version  VARCHAR(32);
+
+-- Re-issue the OWASP indexes now the columns are guaranteed to exist. They were
+-- no-ops above on a database that lacked the columns at that point.
+CREATE INDEX IF NOT EXISTS idx_findings_owasp ON warehouse.findings(owasp_id);
+CREATE INDEX IF NOT EXISTS idx_findings_cwe ON warehouse.findings(cwe_id);
+CREATE INDEX IF NOT EXISTS idx_findings_owasp_status ON warehouse.findings(owasp_status);
+CREATE INDEX IF NOT EXISTS idx_findings_owasp_dept
+    ON warehouse.findings(department_id, owasp_id);
 
 -- Daily fused risk scores per application (Exec / Risk dashboards).
 CREATE TABLE IF NOT EXISTS warehouse.risk_scores (
@@ -508,3 +767,25 @@ INSERT INTO warehouse.connector_health (name, source, status) VALUES
     ('apisec', 'apisec', 'healthy'),
     ('compliance', 'compliance', 'healthy')
 ON CONFLICT (name) DO NOTHING;
+
+-- ============================================================================
+-- OPERATIONAL NOTE - audit.action_audit ownership
+-- ============================================================================
+--
+-- The append-only guarantee is enforced by triggers, not by privilege.
+-- PostgreSQL owners implicitly hold every privilege on their tables and can
+-- always run ALTER TABLE ... DISABLE TRIGGER or DROP TRIGGER, so REVOKE does
+-- NOT protect against a role that owns audit.action_audit.
+--
+-- Required production posture: the application must connect as a role that does
+-- NOT own this table, with only INSERT and SELECT granted:
+--
+--   CREATE ROLE sita_app LOGIN PASSWORD '...';
+--   GRANT USAGE ON SCHEMA audit TO sita_app;
+--   GRANT INSERT, SELECT ON audit.action_audit TO sita_app;
+--   REVOKE UPDATE, DELETE, TRUNCATE ON audit.action_audit FROM sita_app;
+--   ALTER TABLE audit.action_audit OWNER TO <break-glass DBA role>;
+--
+-- trg_action_audit_assert_enabled additionally causes every INSERT to fail if
+-- the append-only trigger has been disabled, so a disabled guard is loud rather
+-- than silent.

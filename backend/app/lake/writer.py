@@ -18,6 +18,7 @@ from app.models.metrics import (
     WafBlock,
 )
 from app.models.risk_score import RiskBucket, RiskScore
+from app.processing import owasp
 from app.tenant import (
     branch_for_app,
     branch_for_db,
@@ -56,6 +57,65 @@ def _as_date(value, default=None):
     return parsed.date()
 
 
+def _as_text(value):
+    """Coerce a value destined for a VARCHAR column to a string.
+
+    Vendor feeds are inconsistent: AppScan returns a bare numeric CWE id, some
+    WAF feeds return ints for rule identifiers. Writing one of those into a
+    VARCHAR column fails at the driver with ``expected str, got int``, which
+    aborted the whole ingest batch rather than the single offending field.
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if value is pd.NaT or (isinstance(value, float) and pd.isna(value)):
+        return None
+    if isinstance(value, (int, float, bool)):
+        return str(value)
+    try:
+        if pd.isna(value):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return str(value)
+
+
+def _json_safe(value):
+    """Coerce a value into something ``json.dumps`` (and therefore JSONB) accepts.
+
+    The normalised batch reaches this layer as a pandas DataFrame, so values
+    arrive as ``pd.Timestamp``, ``numpy.int64`` and ``NaT``/``NaN`` rather than
+    native Python types. Persisting the raw record then failed with
+    ``TypeError: Object of type Timestamp is not JSON serializable``.
+
+    NaN/NaT become ``None`` rather than being left to ``json.dumps``, which
+    would emit bare ``NaN`` tokens that are not valid JSON and are rejected by
+    the JSONB type. This was previously invisible because every source date
+    failed to parse and arrived as ``None``.
+    """
+    if value is None:
+        return None
+    # NaT is a singleton whose bool() is False, so check it before anything else.
+    if value is pd.NaT:
+        return None
+    if isinstance(value, (pd.Timestamp, datetime)):
+        return value.isoformat()
+    if hasattr(value, "isoformat"):
+        return value.isoformat()
+    # numpy scalars expose .item(); bool must be handled first because
+    # numpy.bool_ is not an int subclass in recent numpy.
+    if isinstance(value, (bool, int, float, str)):
+        return value
+    if hasattr(value, "item") and callable(value.item):
+        return _json_safe(value.item())
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(v) for v in value]
+    return str(value)
+
+
 def record_to_finding(record: dict, source: str = "") -> dict:
     now = datetime.now(timezone.utc)
     source = record.get("source") or source or "unknown"
@@ -66,6 +126,13 @@ def record_to_finding(record: dict, source: str = "") -> dict:
     last_seen = _as_datetime(_first(record, "last_seen", "timestamp", "first_seen", "discovered_at"), now)
     status_raw = str(_first(record, "status", "state") or "open").lower()
     app_name = str(_first(record, "app_name", "application_name", "database_name", "endpoint") or "unknown")
+    # Classification is derived here rather than read from the record, so a
+    # caller that bypasses the Normaliser still cannot write an OWASP id the
+    # registry does not recognise -- `classify` only ever returns an id that
+    # exists in the registry, and any value it cannot place is reported as
+    # unmapped rather than guessed. Mirrors the severity check above.
+    category = _first(record, "category", "domain", "attack_type")
+    classification = owasp.classify(category, source)
     return {
         "id": str(uuid.uuid4()),
         "source": source,
@@ -78,8 +145,12 @@ def record_to_finding(record: dict, source: str = "") -> dict:
         "severity": severity_raw,
         "title": str(_first(record, "title", "vulnerability_name", "rule_name", "attack_name", "name", "description") or "Finding"),
         "description": _first(record, "description", "details", "summary"),
-        "category": _first(record, "category", "domain", "attack_type"),
-        "raw_data": record,
+        "category": _as_text(category),
+        "owasp_id": classification.owasp_id,
+        "cwe_id": classification.cwe_id,
+        "owasp_status": classification.status,
+        "taxonomy_version": classification.taxonomy_version,
+        "raw_data": _json_safe(record),
         "first_seen": first_seen,
         "last_seen": last_seen,
         "status": status_raw,
@@ -104,6 +175,10 @@ async def upsert_findings(session: AsyncSession, records: list[dict], source: st
             "title": stmt.excluded.title,
             "description": stmt.excluded.description,
             "category": stmt.excluded.category,
+            "owasp_id": stmt.excluded.owasp_id,
+            "cwe_id": stmt.excluded.cwe_id,
+            "owasp_status": stmt.excluded.owasp_status,
+            "taxonomy_version": stmt.excluded.taxonomy_version,
             "raw_data": stmt.excluded.raw_data,
             "last_seen": stmt.excluded.last_seen,
             "status": stmt.excluded.status,
@@ -138,6 +213,10 @@ async def upsert_lake_batch(
             "title": stmt.excluded.title,
             "description": stmt.excluded.description,
             "category": stmt.excluded.category,
+            "owasp_id": stmt.excluded.owasp_id,
+            "cwe_id": stmt.excluded.cwe_id,
+            "owasp_status": stmt.excluded.owasp_status,
+            "taxonomy_version": stmt.excluded.taxonomy_version,
             "raw_data": stmt.excluded.raw_data,
             "last_seen": stmt.excluded.last_seen,
             "status": stmt.excluded.status,

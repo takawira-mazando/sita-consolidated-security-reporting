@@ -75,6 +75,8 @@ export function useSocData() {
       sevTone: toneForSeverity(f.severity) as Tone,
       app: f.app_name,
       title: f.title,
+      owaspId: f.owasp_id || null,
+      owaspStatus: f.owasp_status || null,
       status: f.status,
       statusTone: toneForStatus(f.status),
       first: formatIsoDate(f.first_seen),

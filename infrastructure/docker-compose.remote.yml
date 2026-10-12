@@ -16,8 +16,11 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
-      - ./scripts/seed-hr-system.sql:/docker-entrypoint-initdb.d/02-seed-hr.sql
-      - ./scripts/seed-hr-system-branches.sql:/docker-entrypoint-initdb.d/03-seed-hr-branches.sql
+      # HR seed data archived 2026-10-12 after being applied. Uncomment to
+      # provision a fresh environment that needs employee records; see
+      # _archive/seeded/README.md.
+      #- ../_archive/seeded/seed-hr-system.sql:/docker-entrypoint-initdb.d/02-seed-hr.sql
+      #- ../_archive/seeded/seed-hr-system-branches.sql:/docker-entrypoint-initdb.d/03-seed-hr-branches.sql
       - pg_wal:/var/lib/postgresql/pg_wal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U sita -d sita"]

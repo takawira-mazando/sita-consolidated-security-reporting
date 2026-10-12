@@ -530,13 +530,8 @@ html { scroll-behavior: smooth; }
 .home-page .pipeline-card p { color: var(--mid); font-size: 13px; line-height: 1.6; }
 
 /* metrics band */
-.home-page .metrics-band { padding: 32px 0; border-top: 1px solid var(--line); background: linear-gradient(180deg, var(--panel), transparent); }
-.home-page .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; text-align: center; }
 @media (max-width: 700px) {
-  .home-page .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
 }
-.home-page .metric strong { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; background: linear-gradient(135deg, var(--flare-1), var(--flare-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.home-page .metric span { font-size: 13px; color: var(--mid); }
 
 /* role strip under hero */
 .home-page .role-strip { margin-top: 56px; display: flex; gap: 10px; flex-wrap: wrap; }
@@ -617,7 +612,6 @@ html { scroll-behavior: smooth; }
   flex-direction: column;
   gap: 12px;
 }
-.home-page .estate-card-wide { grid-column: span 2; }
 .home-page .estate-card-t {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 12px;
@@ -663,10 +657,6 @@ html { scroll-behavior: smooth; }
 .home-page .b-sev.degraded { background: rgba(251, 191, 36, 0.16); color: var(--flare-2); }
 .home-page .b-sev.down { background: rgba(220, 38, 38, 0.16); color: #f87171; }
 .home-page .estate-sub { font-size: 12px; color: var(--dim); line-height: 1.5; }
-.home-page .estate-mandate { display: flex; gap: 24px; flex-wrap: wrap; }
-.home-page .estate-mandate > div { display: flex; flex-direction: column; gap: 2px; }
-.home-page .estate-mandate strong { font-family: 'Space Grotesk', sans-serif; font-size: 30px; background: linear-gradient(135deg, var(--flare-1), var(--flare-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.home-page .estate-mandate span { font-size: 12.5px; color: var(--mid); }
 .home-page .preview-score-bucket.b-critical,
 .home-page .preview-score-bucket.b-monitored,
 .home-page .preview-score-bucket.b-safe { font-size: 10px; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
@@ -724,13 +714,8 @@ html { scroll-behavior: smooth; }
 .home-page .pipeline-card p { color: var(--mid); font-size: 13px; line-height: 1.6; }
 
 /* metrics band */
-.home-page .metrics-band { padding: 32px 0; border-top: 1px solid var(--line); background: linear-gradient(180deg, var(--panel), transparent); }
-.home-page .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; text-align: center; }
 @media (max-width: 700px) {
-  .home-page .metrics-grid { grid-template-columns: repeat(2, 1fr); gap: 24px; }
 }
-.home-page .metric strong { display: block; font-family: 'Space Grotesk', sans-serif; font-size: 34px; font-weight: 700; background: linear-gradient(135deg, var(--flare-1), var(--flare-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.home-page .metric span { font-size: 13px; color: var(--mid); }
 
 /* role strip under hero */
 .home-page .role-strip { margin-top: 56px; display: flex; gap: 10px; flex-wrap: wrap; }
@@ -849,7 +834,6 @@ html { scroll-behavior: smooth; }
   flex-direction: column;
   gap: 12px;
 }
-.home-page .estate-card-wide { grid-column: span 2; }
 .home-page .estate-card-t {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 12px;
@@ -895,10 +879,6 @@ html { scroll-behavior: smooth; }
 .home-page .b-sev.degraded { background: rgba(251, 191, 36, 0.16); color: var(--flare-2); }
 .home-page .b-sev.down { background: rgba(220, 38, 38, 0.16); color: #f87171; }
 .home-page .estate-sub { font-size: 12px; color: var(--dim); line-height: 1.5; }
-.home-page .estate-mandate { display: flex; gap: 24px; flex-wrap: wrap; }
-.home-page .estate-mandate > div { display: flex; flex-direction: column; gap: 2px; }
-.home-page .estate-mandate strong { font-family: 'Space Grotesk', sans-serif; font-size: 30px; background: linear-gradient(135deg, var(--flare-1), var(--flare-2)); -webkit-background-clip: text; background-clip: text; color: transparent; }
-.home-page .estate-mandate span { font-size: 12.5px; color: var(--mid); }
 .home-page .preview-score-bucket.b-critical,
 .home-page .preview-score-bucket.b-monitored,
 .home-page .preview-score-bucket.b-safe { font-size: 10px; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 4px; text-transform: uppercase; }
@@ -928,9 +908,6 @@ html { scroll-behavior: smooth; }
 .home-page .feat-card p { color: var(--mid); font-size: 14.5px; margin-top: 8px; }
 
 /* cta band */
-.home-page .cta-band { padding: 48px 0; text-align: center; border-top: 1px solid var(--line); }
-.home-page .cta-band h2 { font-size: clamp(26px, 3vw, 34px); max-width: 640px; margin: 0 auto; }
-.home-page .cta-band p { color: var(--mid); margin: 16px auto 28px; max-width: 480px; }
 
 .home-page footer { padding: 28px 0; border-top: 1px solid var(--line); }
 .home-page footer .container { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; font-size: 13px; color: var(--dim); }

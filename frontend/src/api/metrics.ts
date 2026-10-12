@@ -9,6 +9,7 @@ import {
   DbInventoryResponse,
   ComplianceTrendPoint,
   ComplianceCalendarItem,
+  OwaspPosture,
 } from '../types';
 
 export async function fetchWafSummary(): Promise<WafSummary> {
@@ -53,5 +54,11 @@ export async function fetchComplianceTrend(): Promise<{ items: ComplianceTrendPo
 
 export async function fetchRegulatoryCalendar(): Promise<{ items: ComplianceCalendarItem[] }> {
   const { data } = await api.get('/metrics/compliance/calendar');
+  return data;
+}
+
+/** Cross-source OWASP Top 10 rollup. Scoped by tenant_filter server-side. */
+export async function fetchOwaspPosture(app?: string): Promise<OwaspPosture> {
+  const { data } = await api.get('/metrics/appsec/owasp', { params: { app } });
   return data;
 }

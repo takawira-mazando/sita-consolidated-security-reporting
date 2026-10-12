@@ -4,6 +4,7 @@ from email.mime.text import MIMEText
 from jinja2 import Template
 
 from app.config import settings
+from app.monitoring.egress import EgressNotPermitted, check
 
 EMAIL_TEMPLATE = Template("""
 <h2>SITA Alert: {{ alert.title }}</h2>
@@ -32,6 +33,9 @@ class EmailAdapter:
 
     def send(self, alert: dict) -> bool:
         try:
+            # Egress gate. An onshore relay keeps this in-border, so SMTP is
+            # registered as authorised; an unregistered relay is refused.
+            check("smtp")
             msg = MIMEText(EMAIL_TEMPLATE.render(alert=alert), "html")
             msg["Subject"] = f"[SITA {alert.get('severity','').upper()}] {alert.get('title','')}"
             msg["From"] = self.user
@@ -43,6 +47,9 @@ class EmailAdapter:
                     server.login(self.user, self.password)
                 server.send_message(msg)
             return True
+        except EgressNotPermitted as e:
+            print(f"Email dispatch refused: {e}")
+            return False
         except Exception as e:
             print(f"Email dispatch failed: {e}")
             return False

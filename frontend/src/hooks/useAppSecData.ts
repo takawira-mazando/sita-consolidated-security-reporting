@@ -1,7 +1,7 @@
 import { useApi } from './useApi';
 import { useDemoAwareFetcher } from '../api/demoApi';
 import { fetchFindings } from '../api/findings';
-import { fetchFixRate, fetchWafSummary, fetchApiExposure } from '../api/metrics';
+import { fetchFixRate, fetchWafSummary, fetchApiExposure, fetchOwaspPosture } from '../api/metrics';
 import { fetchDemoFindings, fetchDemoFixRate, fetchDemoWafSummary, fetchDemoApiExposure } from '../api/demoApi';
 import {
   severityCounts,
@@ -30,9 +30,10 @@ export function useAppSecData() {
     () => fetchApiExposure(),
     (branchId) => fetchDemoApiExposure(branchId)
   ));
+  const owaspPosture = useApi(() => fetchOwaspPosture());
 
-  const loading = [findings, fix, waf, apiExp].some((h) => h.loading);
-  const error = [findings, fix, waf, apiExp].find((h) => h.error)?.error || null;
+  const loading = [findings, fix, waf, apiExp, owaspPosture].some((h) => h.loading);
+  const error = [findings, fix, waf, apiExp, owaspPosture].find((h) => h.error)?.error || null;
 
   const findingsItems = findings.data?.items || [];
   const counts = severityCounts(findingsItems);
@@ -53,7 +54,10 @@ export function useAppSecData() {
     const key = f.category || 'other';
     byCategory.set(key, (byCategory.get(key) || 0) + 1);
   }
-  const owasp = [...byCategory.entries()]
+  // The raw vendor taxonomy, kept as its own panel. This is NOT the OWASP
+  // view -- it is each OEM's own category field, shown for anyone who works in
+  // the vendor's terms.
+  const vendorCategories = [...byCategory.entries()]
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
     .map(([label, value]) => ({
@@ -72,6 +76,8 @@ export function useAppSecData() {
       cvssTone: 'severe' as Tone,
       app: f.app_name,
       comp: f.category || '—',
+      owaspId: f.owasp_id || null,
+      owaspStatus: f.owasp_status || null,
       discovered: formatIsoDate(f.first_seen),
       title: f.title,
     }));
@@ -79,8 +85,10 @@ export function useAppSecData() {
   const catColor = (sev: string) =>
     sev === 'critical' ? 'var(--red)' : sev === 'high' ? 'var(--amber)' : 'var(--blue)';
 
-  const fixRate = fix.data?.fix_rate ?? null;
-  const wafTotal = waf.data?.total ?? 0;
+const fixRate = fix.data?.fix_rate ?? null;
+const fixTotal = fix.data?.total ?? null;
+const fixFixed = fix.data?.fixed ?? null;
+const wafTotal = waf.data?.total ?? 0;
   const wafByType = (waf.data?.by_type || []).map((b: { type: string; count: number }, _: number, all: { type: string; count: number }[]) => ({
     label: b.type.replace(/_/g, ' '),
     width: barHeight(b.count / Math.max(1, all.reduce((a: number, x: { count: number }) => Math.max(a, x.count), 0))),
@@ -97,6 +105,34 @@ export function useAppSecData() {
   }));
   const shadowTotal = apiExp.data?.shadow_total ?? 0;
 
+  // OWASP Top 10 rollup across every source. Sorted by the registry order
+  // rather than by count, so the panel reads as the OWASP list and not as a
+  // race between whichever category happens to be loudest this week.
+  const registryOrder = new Map(
+    (owaspPosture.data?.registry || []).map((r) => [r.id, r.id])
+  );
+  const owaspMax = Math.max(1, ...(owaspPosture.data?.by_category || []).map((c) => c.count));
+  const owaspRows = (owaspPosture.data?.by_category || [])
+    .slice()
+    .sort((a, b) => (registryOrder.get(a.id) ?? 'ZZ').localeCompare(registryOrder.get(b.id) ?? 'ZZ'))
+    .map((c) => ({
+      id: c.id,
+      name: c.name,
+      width: barHeight(c.count / owaspMax),
+      color: c.id === 'UNMAPPED' ? 'var(--text-muted)' : owaspTone(c.count),
+      value: String(c.count),
+      sources: Object.keys(c.by_source || {}).length,
+      critical: c.by_severity?.critical || 0,
+      high: c.by_severity?.high || 0,
+      isGap: c.id === 'UNMAPPED',
+    }));
+
+  const owaspCoverage = owaspPosture.data?.coverage || null;
+  const owaspClassifiedPct =
+    owaspCoverage && (owaspCoverage.classified + owaspCoverage.unmapped) > 0
+      ? Math.round((owaspCoverage.classified / (owaspCoverage.classified + owaspCoverage.unmapped)) * 100)
+      : null;
+
   return {
     loading,
     error,
@@ -104,16 +140,27 @@ export function useAppSecData() {
     findingsTotal: findings.data?.total ?? findingsItems.length,
     counts,
     vulnByApp,
-    owasp,
+    vendorCategories,
     criticals,
     catColor,
     toneForSeverity,
     oemForSource,
     fixRate,
+    fixTotal,
+    fixFixed,
     wafTotal,
     wafByType,
     apiExposure,
     shadowTotal,
     apiExposureTotal: apiExp.data?.total ?? 0,
+    owaspRows,
+    owaspCoverage,
+    owaspClassifiedPct,
+    owaspTotal: owaspPosture.data?.total_classified ?? 0,
+    owaspVersion: owaspPosture.data?.taxonomy_version ?? null,
   };
+}
+
+function owaspTone(count: number): string {
+  return count >= 100 ? 'var(--red)' : count >= 25 ? 'var(--amber)' : 'var(--blue)';
 }

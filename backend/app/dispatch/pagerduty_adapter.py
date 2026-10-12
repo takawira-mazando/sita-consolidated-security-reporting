@@ -1,5 +1,7 @@
 import aiohttp
 
+from app.monitoring.egress import EgressNotPermitted, check
+
 
 class PagerDutyAdapter:
     def __init__(self, routing_key: str = ""):
@@ -7,6 +9,14 @@ class PagerDutyAdapter:
 
     async def send(self, alert: dict) -> bool:
         if not self.routing_key:
+            return False
+        # Egress gate: PagerDuty is a cross-border push of SA government
+        # security-event content to a US SaaS endpoint. Returning False rather
+        # than raising keeps an unregistered destination from breaking the
+        # dispatch worker, while refusing to send.
+        try:
+            check("pagerduty")
+        except EgressNotPermitted:
             return False
         severity_map = {"critical": "critical", "high": "error", "medium": "warning", "low": "info"}
         payload = {

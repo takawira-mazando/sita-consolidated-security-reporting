@@ -14,6 +14,20 @@ class RiskInputs:
 DEFAULT_WEIGHTS = {"appscan": 0.35, "imperva": 0.25, "exposure": 0.20, "compliance": 0.20}
 SEVERITY_WEIGHTS = {"critical": 1.0, "high": 0.6, "medium": 0.3, "low": 0.1}
 
+#: Human-facing labels for the four fused signals, keyed by signal name.
+SIGNAL_LABELS = {
+    "appscan": "AppScan severity",
+    "imperva": "Imperva violations",
+    "exposure": "API exposure",
+    "compliance": "Compliance gap",
+}
+
+# Canonical risk band edges. These are the only bucket thresholds in the
+# platform; anything that needs to describe a band to a human must read them
+# from here rather than restating a number.
+SAFE_MAX = 30.0
+MONITORED_MAX = 70.0
+
 APPSCAN_CEILING_PERCENTILE = 99.0
 APPSCAN_CEILING_FLOOR = 1.0
 DEFAULT_APPSCAN_CEILING = 5.0
@@ -76,8 +90,8 @@ def fused_risk(
     return round(float(np.clip(fused, 0, 100)), 1)
 
 def risk_bucket(score: float) -> str:
-    if score <= 30:
+    if score <= SAFE_MAX:
         return "safe"
-    elif score <= 70:
+    elif score <= MONITORED_MAX:
         return "monitored"
     return "critical"

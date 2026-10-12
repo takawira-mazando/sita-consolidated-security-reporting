@@ -9,6 +9,7 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useSreData } from '../hooks/useSreData';
+import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
@@ -34,6 +35,7 @@ export default function SreDashboard({ tier = 'national' }: { tier?: TenancyTier
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useSreData();
+  const narrative = useNarrativeFacts();
 
   if (d.loading) {
     return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'sre', color: 'var(--text-secondary)', bg: 'var(--text-muted)' }} consolidatedTag="Infrastructure · connectors" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
@@ -45,7 +47,11 @@ export default function SreDashboard({ tier = 'national' }: { tier?: TenancyTier
     degraded: d.degraded,
     events: d.eventsTotal,
     errorRate: d.errorRate,
+    agentOnline: d.agentOnline,
+    agentTotal: d.agentTotal,
+    uptime: d.uptime,
   };
+  const narrativeInput = { facts, model: narrative.facts };
 
   return (
     <div className="dash">
@@ -119,7 +125,7 @@ export default function SreDashboard({ tier = 'national' }: { tier?: TenancyTier
       <ExplainOverlay
         open={overlay !== null}
         title={`${ROLE_LABELS.sre} — ${overlay === 'layman' ? "Layman's Guide" : 'How This Dashboard Is Built'}`}
-        body={overlay === 'layman' ? buildLayman('sre', facts) : buildExplain('sre', facts)}
+        body={overlay === 'layman' ? buildLayman('sre', narrativeInput) : buildExplain('sre', narrativeInput)}
         onClose={() => setOverlay(null)}
       />
     </div>

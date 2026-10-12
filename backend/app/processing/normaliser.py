@@ -4,6 +4,8 @@ from collections.abc import Callable
 import pandas as pd
 import yaml
 
+from app.processing import owasp
+
 SEVERITY_MAP = {
     "appscan": {"4 - Critical": "critical", "3 - High": "high", "2 - Medium": "medium", "1 - Low": "low", "Informational": "info"},
     "imperva": {"Emergency": "critical", "Alert": "critical", "Critical": "critical", "Error": "high", "Warning": "medium", "Notice": "low", "Info": "info"},
@@ -18,6 +20,7 @@ DEFAULT_FIELD_MAPPER_PATH = os.path.join(os.path.dirname(__file__), "field_mappe
 CANONICAL_COLUMNS = [
     "external_id", "app_name", "title", "description", "category",
     "first_seen", "last_seen", "status", "severity",
+    "owasp_id", "cwe_id", "owasp_status", "taxonomy_version",
 ]
 
 TYPE_HINTS = {
@@ -142,6 +145,34 @@ class Normaliser:
             return "medium"
         return "low"
 
+    # ------------------------------------------------------------ owasp top10
+    def _normalise_owasp(self, df: pd.DataFrame, source: str) -> pd.DataFrame:
+        """Map each vendor category onto OWASP Top 10 2021.
+
+        `category` is left untouched -- it is the OEM's value and stays
+        queryable as such. The four added columns are the platform's own
+        classification, carrying an explicit status so that "not mapped" is
+        distinguishable from "not applicable" and from "the OEM sent nothing".
+        """
+        if df.empty:
+            for col in ("owasp_id", "cwe_id", "owasp_status", "taxonomy_version"):
+                if col not in df.columns:
+                    df[col] = None
+            return df
+
+        if "category" not in df.columns:
+            df["category"] = None
+
+        rows = [
+            owasp.classify(value, source)
+            for value in df["category"].tolist()
+        ]
+        df["owasp_id"] = [r.owasp_id for r in rows]
+        df["cwe_id"] = [r.cwe_id for r in rows]
+        df["owasp_status"] = [r.status for r in rows]
+        df["taxonomy_version"] = [r.taxonomy_version for r in rows]
+        return df
+
     # ----------------------------------------------------------- timestamps
     def _normalise_timestamps(self, df: pd.DataFrame) -> pd.DataFrame:
         for col in ["first_seen", "last_seen", "timestamp", "discovered_at", "block_time"]:
@@ -204,6 +235,7 @@ class Normaliser:
     def normalise(self, df: pd.DataFrame, source: str, lookup: Callable | None = None) -> pd.DataFrame:
         df = self._flatten_fields(df, source)
         df = self._normalise_severity(df, source)
+        df = self._normalise_owasp(df, source)
         df = self._normalise_timestamps(df)
         df = self._cast_types(df, source)
         df = self._dedup(df, source, lookup=lookup)

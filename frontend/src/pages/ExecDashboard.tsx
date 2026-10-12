@@ -9,6 +9,7 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useExecData } from '../hooks/useExecData';
+import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
 import { toneForBucket, colorForBucket, oemForSource } from '../data/mappers';
 import type { TenancyTier } from '../types';
 
@@ -39,6 +40,7 @@ export default function ExecDashboard({ tier = 'national' }: { tier?: TenancyTie
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useExecData();
+  const narrative = useNarrativeFacts();
 
   if (d.loading) {
     return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: tier, color: 'var(--red)', bg: 'var(--red-dim)' }} consolidatedTag="Consolidated · 4 sources live" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
@@ -64,6 +66,7 @@ export default function ExecDashboard({ tier = 'national' }: { tier?: TenancyTie
     topApp: d.topRisks[0]?.app_name,
     topAppScore: d.topRisks[0]?.fused_score,
   };
+  const narrativeInput = { facts, model: narrative.facts };
 
   return (
     <div className="dash">
@@ -198,7 +201,7 @@ export default function ExecDashboard({ tier = 'national' }: { tier?: TenancyTie
       <ExplainOverlay
         open={overlay !== null}
         title={`${ROLE_LABELS.exec} — ${overlay === 'layman' ? "Layman's Guide" : 'How This Dashboard Is Built'}`}
-        body={overlay === 'layman' ? buildLayman('exec', facts) : buildExplain('exec', facts)}
+        body={overlay === 'layman' ? buildLayman('exec', narrativeInput) : buildExplain('exec', narrativeInput)}
         onClose={() => setOverlay(null)}
       />
     </div>

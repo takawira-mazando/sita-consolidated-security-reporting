@@ -2,13 +2,13 @@ import { useState } from 'react';
 import DashHeader from '../components/dashboard/DashHeader';
 import Panel from '../components/dashboard/Panel';
 import StatCard from '../components/dashboard/StatCard';
-import MiniBarChart from '../components/dashboard/MiniBarChart';
 import BarRow from '../components/dashboard/BarRow';
 import OemTag from '../components/dashboard/OemTag';
 import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useDbSecData } from '../hooks/useDbSecData';
+import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
@@ -34,6 +34,7 @@ export default function DbSecDashboard({ tier = 'dept' }: { tier?: TenancyTier }
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useDbSecData();
+  const narrative = useNarrativeFacts();
 
   if (d.loading) {
     return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'db_sec', color: 'var(--green)', bg: 'var(--green-dim)' }} consolidatedTag="Imperva DAM · database audit" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
@@ -43,7 +44,13 @@ export default function DbSecDashboard({ tier = 'dept' }: { tier?: TenancyTier }
     violations: d.totalViolations,
     critical: d.criticalViolations,
     alerts: d.activeAlerts.length,
+    coverage: d.coverage,
+    monitored: d.monitored,
+    dbTotal: d.dbTotal,
+    topCat: d.categories[0]?.label,
+    topCatCount: d.categories[0]?.value,
   };
+  const narrativeInput = { facts, model: narrative.facts };
 
   return (
     <div className="dash">
@@ -96,16 +103,18 @@ export default function DbSecDashboard({ tier = 'dept' }: { tier?: TenancyTier }
       </div>
 
       <div className="dash-grid cols-2-1">
-        <Panel title={<><span>Alert Activity</span> <OemTag source="imperva" label="Imperva DAM" /></>}>
-          {d.timelineBars.length ? (
-            <MiniBarChart bars={d.timelineBars} axis={['recent', 'now']} />
+        <Panel title={<><span>Alert Activity by Age</span> <OemTag source="imperva" label="Imperva DAM" /></>}>
+          {d.timelineBars.some((b) => b.value !== '0') ? (
+            d.timelineBars.map((b) => (
+              <BarRow key={b.label} label={b.label} width={b.width} color="var(--blue)" value={b.value} />
+            ))
           ) : (
             <div className="panel-empty">No alert activity yet.</div>
           )}
         </Panel>
         <Panel title="Top Applications by Alerts">
-          {d.activeAlerts.length ? d.activeAlerts.slice(0, 4).map((a, i) => (
-            <BarRow key={i} label={<code>{a.db}</code>} width={barW(i)} color={a.sev === 'critical' ? 'var(--red)' : a.sev === 'high' ? 'var(--amber)' : 'var(--blue)'} value={a.sev} />
+          {d.topByAlerts.length ? d.topByAlerts.map((a) => (
+            <BarRow key={a.db} label={<code>{a.db}</code>} width={a.width} color={a.sev === 'critical' ? 'var(--red)' : a.sev === 'high' ? 'var(--amber)' : 'var(--blue)'} value={a.value} />
           )) : <div className="panel-empty">No alert activity yet.</div>}
         </Panel>
       </div>
@@ -131,14 +140,9 @@ export default function DbSecDashboard({ tier = 'dept' }: { tier?: TenancyTier }
       <ExplainOverlay
         open={overlay !== null}
         title={`${ROLE_LABELS.dbsec} — ${overlay === 'layman' ? "Layman's Guide" : 'How This Dashboard Is Built'}`}
-        body={overlay === 'layman' ? buildLayman('dbsec', facts) : buildExplain('dbsec', facts)}
+        body={overlay === 'layman' ? buildLayman('dbsec', narrativeInput) : buildExplain('dbsec', narrativeInput)}
         onClose={() => setOverlay(null)}
       />
     </div>
   );
-}
-
-function barW(i: number): string {
-  const widths = ['80%', '60%', '45%', '30%'];
-  return widths[i % widths.length];
 }

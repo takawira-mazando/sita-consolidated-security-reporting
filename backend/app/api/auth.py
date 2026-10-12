@@ -176,6 +176,41 @@ def scope_covers(claims: JWTClaims, department_ids: list[str], branch_ids: list[
     return True
 
 
+def person_within_scope(claims: JWTClaims, person) -> bool:
+    """True when an HR-provisioned employee sits inside the caller's tenancy.
+
+    Distinct from :func:`can_manage`, which asks *"may the caller grant this
+    authority?"* — a question about roles and the scope being granted. This asks
+    *"whose employee is this?"* — a question about the person.
+
+    Both are required to provision an account. Without this gate a
+    department-scoped admin could provision an account for an employee belonging
+    to a different department, as long as the authority they granted happened to
+    fall inside their own scope: the account would then carry a foreign
+    employee's identity inside the admin's tenant. That is a cross-tenant
+    provisioning hole that the delegation check alone cannot see, because the
+    grant looked entirely legitimate.
+
+    Fails closed. An employee with no department and no branch cannot be placed
+    in a tenant, so a scoped caller may not provision against that record; only
+    an estate-wide caller holding a nationwide role may.
+    """
+    department_id = getattr(person, "department_id", None)
+    branch_id = getattr(person, "branch_id", None)
+    if not department_id and not branch_id:
+        # Cannot be placed in any tenant; only nationwide authority may proceed.
+        return is_nationwide(claims) and not (
+            getattr(claims, "department_ids", None)
+            or getattr(claims, "branch_ids", None)
+            or getattr(claims, "province_ids", None)
+        )
+    return scope_covers(
+        claims,
+        [department_id] if department_id else [],
+        [branch_id] if branch_id else [],
+    )
+
+
 def can_manage(claims: JWTClaims, roles: list[str], department_ids: list[str], branch_ids: list[str], province_ids: list[str] | None = None) -> bool:
     """True when the caller may create/update/delete a user with these roles/scope.
 

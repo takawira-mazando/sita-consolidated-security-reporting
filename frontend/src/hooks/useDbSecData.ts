@@ -82,10 +82,49 @@ export function useDbSecData() {
     };
   });
 
-  const timelineBars = alertItems.slice(0, 24).map((a, i) => ({
-    height: `${Math.max(10, (24 - i) * 4)}%`,
-    color: a.severity === 'critical' ? 'var(--red-dim)' : a.severity === 'high' ? 'var(--amber-dim)' : 'var(--blue-dim)',
-  }));
+  // Alert volume by age, computed from `first_triggered`. The previous bar
+  // heights were a function of array position rather than any measurement,
+  // which made the panel decorative and made the narrative describing it a lie.
+  const nowMs = Date.now();
+  const ageHours = (iso: string) => (nowMs - new Date(iso).getTime()) / 3_600_000;
+  const AGE_BUCKETS = [
+    { label: '0–6h', min: 0, max: 6 },
+    { label: '6–24h', min: 6, max: 24 },
+    { label: '1–3d', min: 24, max: 72 },
+    { label: '3d+', min: 72, max: Infinity },
+  ];
+  const ageMax = Math.max(
+    1,
+    ...AGE_BUCKETS.map(
+      (b) => alertItems.filter((a) => {
+        const h = ageHours(a.first_triggered);
+        return Number.isFinite(h) && h >= b.min && h < b.max;
+      }).length
+    )
+  );
+  const timelineBars = AGE_BUCKETS.map((b) => {
+    const n = alertItems.filter((a) => {
+      const h = ageHours(a.first_triggered);
+      return Number.isFinite(h) && h >= b.min && h < b.max;
+    }).length;
+    return { label: b.label, value: String(n), width: barHeight(n / ageMax) };
+  });
+
+  // Alert count per target application, proportional to the observed maximum.
+  const alertsPerTarget = new Map<string, number>();
+  for (const a of alertItems) {
+    const key = a.target_id || a.title;
+    alertsPerTarget.set(key, (alertsPerTarget.get(key) || 0) + 1);
+  }
+  const topByAlerts = [...alertsPerTarget.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([db, n]) => ({
+      db,
+      sev: alertItems.find((a) => (a.target_id || a.title) === db)?.severity || 'info',
+      value: String(n),
+      width: barHeight(n / Math.max(1, ...alertsPerTarget.values())),
+    }));
 
   return {
     loading,
@@ -96,7 +135,11 @@ export function useDbSecData() {
     criticalViolations: counts.critical,
     categories,
     timelineBars,
+    topByAlerts,
     activeAlerts,
+    monitored,
+    dbTotal: inventory.data?.total ?? 0,
+    coverage,
     dbMonitored: monitored,
     dbCoverage: coverage,
     formatIsoDate,

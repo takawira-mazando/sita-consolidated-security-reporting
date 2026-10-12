@@ -1,0 +1,246 @@
+version: owasp-top10-2021
+published: "2021"
+title: OWASP Top 10 - 2021
+
+categories:
+  A01:
+    name: Broken Access Control
+    summary: >-
+      Access controls enforce policy so users cannot act outside their intended
+      permissions. Failures include broken object level authorisation, forced
+      browsing, insecure direct object references and privilege escalation.
+  A02:
+    name: Cryptographic Failures
+    summary: >-
+      Previously titled Sensitive Data Exposure. Failures to properly implement
+      cryptography, or the use of weak or default algorithms and keys.
+  A03:
+    name: Injection
+    summary: >-
+      Data sent to an interpreter is treated as code. SQL, NoSQL, OS command,
+      LDAP, ORM and XPath injection all sit here, as do XSS and file inclusion.
+  A04:
+    name: Insecure Design
+    summary: >-
+      A weakness in the design of the application, not its implementation.
+      Threat modelling and secure design patterns cannot be retrofitted.
+  A05:
+    name: Security Misconfiguration
+    summary: >-
+      Insecure defaults, incomplete hardening, unnecessary features and error
+      messages that disclose more than they should.
+  A06:
+    name: Vulnerable and Outdated Components
+    summary: >-
+      Known flaws in libraries, frameworks and platforms, or components the
+      organisation did not test or keep current.
+  A07:
+    name: Identification and Authentication Failures
+    summary: >-
+      Weaknesses in confirming identity. Credential stuffing, weak passwords,
+      missing MFA and permissive session lifetimes.
+  A08:
+    name: Software and Data Integrity Failures
+    summary: >-
+      Trusting updates, plugins, serialised data or CI/CD artefacts without
+      integrity verification. Includes insecure deserialisation.
+  A09:
+    name: Security Logging and Monitoring Failures
+    summary: >-
+      Logins, failures and other high-value events are not logged, monitored
+      or alerted on sufficiently to detect and respond to an attack.
+  A10:
+    name: Server-Side Request Forgery
+    summary: >-
+      An attacker supplies a URL that a server-side component fetches, reaching
+      internal services the caller could not otherwise address.
+
+# Sources whose category vocabulary is not a software vulnerability class.
+# Classifying these would be a category error: a POPIA consent gap is an
+# assurance obligation, not an OWASP category, and a DAM SQL statement type is
+# an operation, not a weakness.
+exempt_sources:
+  - compliance
+
+rules:
+  appscan:
+    "a01-broken-access-control": A01
+    "a02-crypto-failures": A02
+    "a03-injection": A03
+    "a04-insecure-design": A04
+    "a07-identification-auth-failures": A07
+    "a09-security-logging-failures": A09
+    "a10-ssrf": A10
+    "broken access control": A01
+    "cryptographic failures": A02
+    "injection": A03
+    "insecure design": A04
+    "security misconfiguration": A05
+    "vulnerable components": A06
+    "authentication failures": A07
+    "software integrity failures": A08
+    "logging failures": A09
+    "ssrf": A10
+    # seed-demo.sql vocabulary
+    sqli: A03
+    xss: A03
+    rce: A03
+    lfi: A03
+    rfi: A03
+    xxe: A05
+    idor: A01
+    path_traversal: A01
+    info_disclosure: A01
+    broken_auth: A07
+    misconfig: A05
+
+  imperva_dam:
+    unauth_access: A01
+    privilege_abuse: A01
+    data_exfil: A01
+    sql_injection: A03
+    exfil: A01
+
+  imperva_waf:
+    sqli: A03
+    sql_injection: A03
+    xss: A03
+    rce: A03
+    lfi: A03
+    rfi: A03
+    shellshock: A03
+    brute-force: A07
+    brute_force: A07
+    crlf: A03
+
+  apisec:
+    shadow_api: A05
+    rate_limit: A04
+    auth_missing: A07
+    data_overexposure: A01
+
+  thales:
+    database_security: A01
+    privilege_escalation: A01
+
+# CWE is the precise engineering identifier; OWASP Top 10 is the coarse
+# communication bucket. Both are useful and they are not interchangeable, so the
+# CWE travels with the finding and the OWASP id is derived from it.
+# CWE is the precise engineering identifier; OWASP Top 10 is the coarse
+# communication bucket. Both are useful and they are not interchangeable, so the
+# CWE travels with the finding and the OWASP id is derived from it.
+#
+# Grouped by OWASP category for review. One CWE appears exactly once -- a
+# duplicate key here would be silently swallowed by the YAML parser and the
+# first value would look applied while never matching anything.
+# test_owasp.py::TestMappingFileHygiene enforces both properties.
+cwe:
+  # A01 Broken Access Control
+  "22": A01
+  "200": A01
+  "209": A01
+  "269": A01
+  "284": A01
+  "285": A01
+  "352": A01
+  "359": A01
+  "441": A01
+  "497": A01
+  "538": A01
+  "548": A01
+  "552": A01
+  "601": A01
+  "639": A01
+  "732": A01
+  "862": A01
+  "863": A01
+  "913": A01
+  "1275": A01
+  # A02 Cryptographic Failures
+  "326": A02
+  "327": A02
+  "328": A02
+  "329": A02
+  "330": A02
+  "331": A02
+  "335": A02
+  "338": A02
+  "523": A02
+  "720": A02
+  "757": A02
+  "916": A02
+  # A03 Injection
+  "74": A03
+  "75": A03
+  "77": A03
+  "78": A03
+  "79": A03
+  "80": A03
+  "88": A03
+  "89": A03
+  "90": A03
+  "91": A03
+  "93": A03
+  "94": A03
+  "95": A03
+  "98": A03
+  "99": A03
+  "113": A03
+  "116": A03
+  "434": A03
+  "470": A03
+  "471": A03
+  "564": A03
+  "610": A03
+  "643": A03
+  "644": A03
+  "652": A03
+  # A04 Insecure Design
+  "400": A04
+  "602": A04
+  "642": A04
+  "770": A04
+  "807": A04
+  "841": A04
+  "1049": A04
+  # A05 Security Misconfiguration
+  "16": A05
+  "611": A05
+  "614": A05
+  "693": A05
+  "1004": A05
+  "1032": A05
+  # A06 Vulnerable and Outdated Components
+  "937": A06
+  "1035": A06
+  "1104": A06
+  # A07 Identification and Authentication Failures
+  "287": A07
+  "288": A07
+  "290": A07
+  "294": A07
+  "306": A07
+  "307": A07
+  "384": A07
+  "521": A07
+  "522": A07
+  "613": A07
+  "620": A07
+  "640": A07
+  "798": A07
+  "940": A07
+  # A08 Software and Data Integrity Failures
+  "345": A08
+  "347": A08
+  "494": A08
+  "502": A08
+  "565": A08
+  "784": A08
+  "829": A08
+  # A09 Security Logging and Monitoring Failures
+  "117": A09
+  "223": A09
+  "532": A09
+  "778": A09
+  # A10 Server-Side Request Forgery
+  "918": A10

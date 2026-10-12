@@ -9,12 +9,13 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useSocData } from '../hooks/useSocData';
+import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string; queueHint: string }> = {
   sita: {
     title: 'SOC Analyst — SITA Command Center Incident Response',
-    subtitle: 'Overarching · Transversal alert queue, 9 provinces, 156 departments, unified multi-OEM ingestion feed',
+    subtitle: 'Overarching · Transversal alert queue across every province and department, unified multi-OEM ingestion feed',
     queueHint: 'all OEMs · transversal whole-estate · live',
   },
   national: {
@@ -38,6 +39,7 @@ export default function SocDashboard({ tier = 'dept' }: { tier?: TenancyTier }) 
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useSocData();
+  const narrative = useNarrativeFacts();
 
   if (d.loading) {
     return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'soc_analyst', color: 'var(--blue)', bg: 'var(--blue-dim)' }} consolidatedTag="Consolidated · 4 sources live" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
@@ -45,9 +47,12 @@ export default function SocDashboard({ tier = 'dept' }: { tier?: TenancyTier }) 
 
   const facts: ExplainFacts = {
     incidents: d.activeIncidents,
-    backlog: d.queue.length,
+    backlog: d.backlogTotal,
     findings: d.findingsTotal,
+    mttd: d.mttd,
+    mttr: d.mttr,
   };
+  const narrativeInput = { facts, model: narrative.facts };
 
   return (
     <div className="dash">
@@ -120,21 +125,33 @@ export default function SocDashboard({ tier = 'dept' }: { tier?: TenancyTier }) 
       <div className="dash-grid cols-2">
         <Panel title="Unified Findings" hint="all sources" bodyClassName="scroll-x" bodyStyle={{ padding: 0 }}>
           <table>
-            <thead><tr><th>Source</th><th>Severity</th><th>Application</th><th>Title</th><th>Status</th><th>First Seen</th></tr></thead>
+            <thead><tr><th>Source</th><th>Severity</th><th>Application</th><th>OWASP</th><th>Title</th><th>Status</th><th>First Seen</th></tr></thead>
             <tbody>
               {d.findings.length ? d.findings.map((f, i) => (
                 <tr key={i}>
                   <td><OemTag source={f.src} label={f.srcLabel} /></td>
                   <td><Chip tone={f.sevTone}>{f.sev}</Chip></td>
                   <td>{f.app}</td>
+                  <td style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>
+                    {f.owaspId
+                      ? <code style={{ color: 'var(--blue)' }}>{f.owaspId}</code>
+                      : <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+                          {f.owaspStatus === 'unmapped' ? 'unmapped'
+                            : f.owaspStatus === 'not_applicable' ? 'n/a'
+                            : f.owaspStatus === 'absent' ? 'no category'
+                            : '—'}
+                        </span>
+                    }
+                  </td>
                   <td>{f.title}</td>
                   <td><Chip tone={f.statusTone}>{f.status}</Chip></td>
                   <td style={{ color: 'var(--text-muted)', fontFamily: 'var(--mono)' }}>{f.first}</td>
                 </tr>
-              )) : <tr><td colSpan={6}><div className="panel-empty">No findings yet.</div></td></tr>}
+              )) : <tr><td colSpan={7}><div className="panel-empty">No findings yet.</div></td></tr>}
             </tbody>
           </table>
         </Panel>
+
         <Panel title="MTTD / MTTR Trend" hint="7 weeks · hours">
           {d.trendBars.length ? (
             <MiniBarChart bars={d.trendBars} axis={['MTTD', 'MTTR']} paired height={120} />
@@ -164,7 +181,7 @@ export default function SocDashboard({ tier = 'dept' }: { tier?: TenancyTier }) 
       <ExplainOverlay
         open={overlay !== null}
         title={`${ROLE_LABELS.soc} — ${overlay === 'layman' ? "Layman's Guide" : 'How This Dashboard Is Built'}`}
-        body={overlay === 'layman' ? buildLayman('soc', facts) : buildExplain('soc', facts)}
+        body={overlay === 'layman' ? buildLayman('soc', narrativeInput) : buildExplain('soc', narrativeInput)}
         onClose={() => setOverlay(null)}
       />
     </div>

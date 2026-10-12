@@ -1,6 +1,6 @@
 from math import ceil
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,8 +10,47 @@ from app.api.schemas.common import PaginatedResponse
 from app.db import get_session
 from app.models.alert import Alert as AlertModel
 from app.models.alert import AlertStatus, DispatchLog
+from app.monitoring.access_audit import (
+    record_access,
+    request_context,
+    scope_digest,
+)
 
 router = APIRouter(tags=["alerts"])
+
+
+def _audit_alert_action(
+    session: AsyncSession,
+    request: Request | None,
+    claims,
+    action: str,
+    alert_id: str,
+    detail: dict,
+) -> None:
+    """Record a state change or outbound notification on an alert.
+
+    Alert acknowledgement and dispatch are the actions a regulator or auditor
+    asks about first in an incident review: who knew, when, and what left the
+    platform as a result.
+    """
+    depts = list(getattr(claims, "department_ids", None) or [])
+    branches = list(getattr(claims, "branch_ids", None) or [])
+    provinces = list(getattr(claims, "province_ids", None) or [])
+    roles = list(getattr(claims, "roles", None) or [])
+    record_access(
+        session,
+        action=action,
+        actor=getattr(claims, "email", None) or claims.sub,
+        target=alert_id,
+        tenant_scope={
+            "department_ids": depts,
+            "branch_ids": branches,
+            "province_ids": provinces,
+        },
+        actor_role=",".join(sorted(roles)) or None,
+        scope_hash=scope_digest(depts, branches, provinces, roles),
+        detail={**detail, **request_context(request)},
+    )
 
 
 def _severity(value):
@@ -108,6 +147,7 @@ async def get_alert_dispatch(
 @router.patch("/alerts/{alert_id}/acknowledge")
 async def acknowledge_alert(
     alert_id: str,
+    request: Request,
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("alerts_write")),
 ):
@@ -119,16 +159,26 @@ async def acknowledge_alert(
     row = (await session.execute(q)).scalar_one_or_none()
     if row is None:
         return {"id": alert_id, "status": "not_found"}
+    previous = _status(row.status)
     row.status = AlertStatus.ACKNOWLEDGED
     row.acknowledged_by = claims.email or claims.sub
     row.acknowledged_at = datetime.now(timezone.utc)
     await session.commit()
+    _audit_alert_action(
+        session,
+        request,
+        claims,
+        "alert.acknowledge",
+        alert_id,
+        {"previous_status": previous, "severity": _severity(row.severity)},
+    )
     return {"id": alert_id, "status": "acknowledged"}
 
 
 @router.patch("/alerts/{alert_id}/resolve")
 async def resolve_alert(
     alert_id: str,
+    request: Request,
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("alerts_write")),
 ):
@@ -140,7 +190,16 @@ async def resolve_alert(
     row = (await session.execute(q)).scalar_one_or_none()
     if row is None:
         return {"id": alert_id, "status": "not_found"}
+    previous = _status(row.status)
     row.status = AlertStatus.RESOLVED
     row.resolved_at = datetime.now(timezone.utc)
     await session.commit()
+    _audit_alert_action(
+        session,
+        request,
+        claims,
+        "alert.resolve",
+        alert_id,
+        {"previous_status": previous, "severity": _severity(row.severity)},
+    )
     return {"id": alert_id, "status": "resolved"}

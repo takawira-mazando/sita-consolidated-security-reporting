@@ -788,6 +788,10 @@ _CURATED_APP_DEPARTMENTS = {
     "policy-management-system": "home-affairs-digital",
     # AppScan demo test app
     "demo.testfire.net": "home-affairs-digital",
+    # AppScan Cloud application UUID (b816b09c-...) — what the connector writes
+    # as app_name when the API response carries no ApplicationName field. Mapped
+    # to home-affairs-digital so live findings remain visible to dept analysts.
+    "b816b09c-4240-4ea7-a4b5-f8ae89f62f57": "home-affairs-digital",
 }
 
 _CURATED_APP_BRANCHES = {
@@ -832,6 +836,8 @@ _CURATED_APP_BRANCHES = {
     "policy-management-system": "dha-planning",
     # AppScan demo test app - maps to digital branch
     "demo.testfire.net": "dha-digital",
+    # AppScan Cloud application UUID — see _CURATED_APP_DEPARTMENTS comment
+    "b816b09c-4240-4ea7-a4b5-f8ae89f62f57": "dha-digital",
 }
 
 _CURATED_DB_TO_DEPARTMENT = {
@@ -1160,6 +1166,13 @@ def is_provincial_department(department_id: str | None) -> bool:
 
 
 def department_for_app(app_name: str | None) -> str | None:
+    """Return the department slug for an application name.
+
+    ``app_name`` is lowercased before lookup so callers do not need to
+    normalise casing. This also covers AppScan Cloud UUID-shaped app names
+    (e.g. ``b816b09c-4240-4ea7-a4b5-f8ae89f62f57``) that are in
+    ``_CURATED_APP_DEPARTMENTS`` verbatim as lowercase strings.
+    """
     if not app_name:
         return None
     app = str(app_name).lower()

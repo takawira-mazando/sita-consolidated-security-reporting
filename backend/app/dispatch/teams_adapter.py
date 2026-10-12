@@ -1,5 +1,7 @@
 import aiohttp
 
+from app.monitoring.egress import EgressNotPermitted, check
+
 
 class TeamsAdapter:
     def __init__(self, webhook_url: str = ""):
@@ -7,6 +9,12 @@ class TeamsAdapter:
 
     async def send(self, alert: dict) -> bool:
         if not self.webhook_url:
+            return False
+        # Egress gate: the webhook destination determines the jurisdiction. An
+        # unregistered one is refused rather than posted to.
+        try:
+            check("teams")
+        except EgressNotPermitted:
             return False
         severity_colors = {"critical": "FF0000", "high": "FFA500", "medium": "0088FF", "low": "00CC00"}
         card = {

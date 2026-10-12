@@ -1,10 +1,11 @@
 import logging
 import time
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import Response
+from fastapi.responses import FileResponse, RedirectResponse, Response
 
 from app.api.errors import register_exception_handlers
 from app.api.routers import (
@@ -17,6 +18,8 @@ from app.api.routers import (
     exports,
     exports_ag,
     findings,
+    intel,
+    meta,
     metrics,
     public_summary,
     risks,
@@ -126,13 +129,35 @@ app.include_router(compliance.router, prefix="/api/v1")
 app.include_router(alerts.router, prefix="/api/v1")
 app.include_router(dashboard.router, prefix="/api/v1")
 app.include_router(metrics.router, prefix="/api/v1")
+app.include_router(meta.router, prefix="/api/v1")
 app.include_router(exports.router, prefix="/api/v1")
 app.include_router(exports_ag.router, prefix="/api/v1")
 app.include_router(benchmark.router, prefix="/api/v1")
+app.include_router(intel.router, prefix="/api/v1")
 app.include_router(public_summary.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/admin")
 
 register_exception_handlers(app)
+
+@app.get("/", include_in_schema=False)
+async def root():
+    if settings.environment.lower() in ("dev", "development", "test", "testing"):
+        return RedirectResponse(url="/docs")
+    return {
+        "service": "SITA Security Intelligence Platform API",
+        "version": "1.0.0",
+        "health": "/health",
+    }
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+@app.get("/favicon.svg", include_in_schema=False)
+async def favicon():
+    return FileResponse(
+        Path(__file__).parent / "static" / "favicon.svg",
+        media_type="image/svg+xml",
+    )
+
 
 @app.get("/health")
 async def health():

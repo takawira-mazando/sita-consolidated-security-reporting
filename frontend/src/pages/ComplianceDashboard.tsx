@@ -9,6 +9,7 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useComplianceData } from '../hooks/useComplianceData';
+import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
@@ -34,6 +35,7 @@ export default function ComplianceDashboard({ tier = 'national' }: { tier?: Tena
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useComplianceData();
+  const narrative = useNarrativeFacts();
 
   if (d.loading) {
     return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'compliance', color: 'var(--violet)', bg: 'var(--violet-dim)' }} consolidatedTag="Internal · compliance tracking" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
@@ -50,6 +52,7 @@ export default function ComplianceDashboard({ tier = 'national' }: { tier?: Tena
     expiring: ev?.expiring,
     total: ev?.total,
   };
+  const narrativeInput = { facts, model: narrative.facts };
 
   return (
     <div className="dash">
@@ -162,7 +165,7 @@ export default function ComplianceDashboard({ tier = 'national' }: { tier?: Tena
       <ExplainOverlay
         open={overlay !== null}
         title={`${ROLE_LABELS.compliance} — ${overlay === 'layman' ? "Layman's Guide" : 'How This Dashboard Is Built'}`}
-        body={overlay === 'layman' ? buildLayman('compliance', facts) : buildExplain('compliance', facts)}
+        body={overlay === 'layman' ? buildLayman('compliance', narrativeInput) : buildExplain('compliance', narrativeInput)}
         onClose={() => setOverlay(null)}
       />
     </div>

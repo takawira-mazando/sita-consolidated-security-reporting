@@ -12,7 +12,6 @@ from datetime import datetime, timedelta, timezone
 from app.tenant import (
     APP_DEPARTMENTS,
     DB_TO_DEPARTMENT,
-    BRANCHES,
     DHA_BRANCH_APPS,
     DHA_BRANCH_CASSANDRA_CLUSTERS,
 )

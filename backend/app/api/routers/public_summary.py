@@ -21,6 +21,7 @@ from app.models.metrics import (
     WafBlock,
 )
 from app.models.risk_score import RiskScore
+from app.processing import risk_engine
 from app.tenant import (
     BRANCHES,
     DEPARTMENTS,
@@ -168,11 +169,20 @@ async def public_summary(session: AsyncSession = Depends(get_session)):
             "waf_blocks": waf_blocks,
         },
         "latest_ingest": _iso(latest_ingest),
-        "risk": {
-            "distribution": risk_distribution,
-            "latest_score_date": latest_date.isoformat() if latest_date else None,
-            "trend": trend,
-        },
+"risk": {
+        "distribution": risk_distribution,
+        "latest_score_date": latest_date.isoformat() if latest_date else None,
+        "trend": trend,
+        # The fusion weights, served from the engine rather than restated in the
+        # frontend. The public marketing page renders a weight breakdown, and a
+        # literal copy there is exactly the drift this project already documents
+        # once: the dashboard narrative asserted 40/30/20/10 while the engine was
+        # 35/25/20/20, and nothing failed. Weights are published algorithm
+        # parameters, not estate data — publishing them discloses nothing beyond
+        # what this endpoint already returns.
+        "weights": dict(risk_engine.DEFAULT_WEIGHTS),
+        "signal_labels": dict(risk_engine.SIGNAL_LABELS),
+    },
         "top_risky_apps": top_risky_apps,
         "connectors": {
             "total": connector_total,

@@ -1,31 +1,121 @@
+import logging
 from datetime import datetime, timezone
 from math import ceil
 from typing import Any, Mapping
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import employment
 from app.api.auth import (
     ROLES_HIERARCHY,
     can_manage,
+    person_within_scope,
     require_roles,
     scope_covers,
     tenant_filter,
 )
 from app.db import get_session
+from app.employment import (
+    SCHEME_INTERNAL,
+    SCHEME_PERSAL,
+    IdentifierSchemeError,
+    classify,
+)
 from app.ingestion.dlq import DLQManager
 from app.models.connector_status import ConnectorHealth
 from app.models.dlq import RejectedRecord
-from app.models.person import Person
+from app.models.person import EmploymentIdentifier, Person
 from app.models.user import User
+from app.monitoring.access_audit import (
+    record_access,
+    request_context,
+    scope_digest,
+)
+from app.pii import apply_person_policy
 from app.security import hash_password
 from app.tenant import BRANCHES, DEPARTMENTS, PROVINCES
 
 router = APIRouter(tags=["admin"])
 
+logger = logging.getLogger(__name__)
+
 VALID_ROLES = set(ROLES_HIERARCHY.keys())
+
+
+def _audit_admin_read(
+    session: AsyncSession,
+    request: Request | None,
+    claims: Any,
+    action: str,
+    returned: int,
+    total: int,
+) -> None:
+    """Record a privileged read of identity or person records.
+
+    ``returned`` and ``total`` are both recorded: a caller paging through the
+    full set of users is a materially different event from one that opened the
+    first page of twenty.
+    """
+    depts = list(getattr(claims, "department_ids", None) or [])
+    branches = list(getattr(claims, "branch_ids", None) or [])
+    provinces = list(getattr(claims, "province_ids", None) or [])
+    roles = list(getattr(claims, "roles", None) or [])
+    record_access(
+        session,
+        action=action,
+        actor=getattr(claims, "email", None) or claims.sub,
+        target=action.split(".")[-1],
+        tenant_scope={
+            "department_ids": depts,
+            "branch_ids": branches,
+            "province_ids": provinces,
+        },
+        actor_role=",".join(sorted(roles)) or None,
+        scope_hash=scope_digest(depts, branches, provinces, roles),
+        detail={
+            "rows_returned": returned,
+            "rows_in_scope": total,
+            **request_context(request),
+        },
+    )
+
+
+def _audit_privilege_change(
+    session: AsyncSession,
+    request: Request | None,
+    claims: Any,
+    action: str,
+    target: str,
+    detail: dict,
+) -> None:
+    """Record a change to an account's roles, scope or active state.
+
+    Delegated authority (`can_manage`) makes account administration the main
+    privilege-escalation surface in the platform: a role or scope change is the
+    only way to widen what a session can reach, so each one is signed and bound
+    to the actor who made it.
+    """
+    depts = list(getattr(claims, "department_ids", None) or [])
+    branches = list(getattr(claims, "branch_ids", None) or [])
+    provinces = list(getattr(claims, "province_ids", None) or [])
+    roles = list(getattr(claims, "roles", None) or [])
+    record_access(
+        session,
+        action=action,
+        actor=getattr(claims, "email", None) or claims.sub,
+        target=target,
+        tenant_scope={
+            "department_ids": depts,
+            "branch_ids": branches,
+            "province_ids": provinces,
+        },
+        actor_role=",".join(sorted(roles)) or None,
+        scope_hash=scope_digest(depts, branches, provinces, roles),
+        detail={**detail, **request_context(request)},
+    )
 
 
 class UserCreate(BaseModel):
@@ -38,7 +128,15 @@ class UserCreate(BaseModel):
     province_ids: list[str] = Field(default_factory=list)
     # Accounts can only be provisioned for HR-provisioned employees. There is
     # no path to create an external/non-employee user.
-    person_id: str
+    #
+    # Identify the employee either by the internal record key (person_id) or,
+    # preferably, by the scheme-qualified identifier their HR system issued —
+    # `identifier_scheme="persal"` with `identifier_value="80012345"`. The
+    # identifier form is what an administrator actually holds: a PERSAL number
+    # off a payroll record, not a platform UUID. See app/employment.py.
+    person_id: str | None = None
+    identifier_scheme: str | None = None
+    identifier_value: str | None = None
 
 
 class UserUpdate(BaseModel):
@@ -53,7 +151,15 @@ class UserUpdate(BaseModel):
 
 
 class HRSyncRecord(BaseModel):
+    #: The originating feed's own reference. Always recorded as an employment
+    #: identifier; classified automatically where the shape is unambiguous.
     employee_number: str
+    #: National Treasury PERSAL personnel number (8 digits), supplied by a live
+    #: PERSAL feed. Recorded with scheme="persal" and validated on ingest; a
+    #: malformed value is rejected and logged rather than stored.
+    persal_number: str | None = None
+    #: Free-text provenance for the feed this record came from.
+    source_system: str | None = None
     email: str | None = None
     id_number: str | None = None
     title: str | None = None
@@ -107,39 +213,33 @@ def _to_out(user: User, person: Person | None = None) -> dict:
         "province_name": PROVINCES.get(provinces[0]) if provinces else None,
         "branch_names": [BRANCHES[b][0] for b in branches if b in BRANCHES],
         "person_id": user.person_id,
-        "person": {
-            "employee_number": person.employee_number,
-            "title": person.title,
-            "initials": person.initials,
-            "surname": person.surname,
-            "display_name": person.display_name,
-            "id_number": _mask_id_number(person.id_number),
-            "job_title": person.job_title,
-            "org_unit": person.org_unit,
-            "department_id": person.department_id,
-            "branch_id": person.branch_id,
-            "manager_id": person.manager_id,
-            "manager_name": person.manager_name,
-            "work_phone": person.work_phone,
-            "location": person.location,
-            "employment_status": person.employment_status,
-            "clearance_level": person.clearance_level,
-            "source": person.source,
-        }
+        "person": apply_person_policy(
+            {
+                "employee_number": person.employee_number,
+                "title": person.title,
+                "initials": person.initials,
+                "surname": person.surname,
+                "display_name": person.display_name,
+                "id_number": person.id_number,
+                "job_title": person.job_title,
+                "org_unit": person.org_unit,
+                "department_id": person.department_id,
+                "branch_id": person.branch_id,
+                "manager_id": person.manager_id,
+                "manager_name": person.manager_name,
+                "work_phone": person.work_phone,
+                "location": person.location,
+                "employment_status": person.employment_status,
+                "clearance_level": person.clearance_level,
+                "source": person.source,
+            }
+        )
         if person is not None
         else None,
         "is_active": user.is_active,
         "created_at": user.created_at,
         "updated_at": user.updated_at,
     }
-
-
-def _mask_id_number(id_number: str | None) -> str | None:
-    if not id_number:
-        return None
-    if len(id_number) <= 4:
-        return "****"
-    return "*" * (len(id_number) - 4) + id_number[-4:]
 
 
 def _validate_departments(department_ids: list[str]) -> None:
@@ -331,7 +431,7 @@ async def pull_logs_endpoint(
     count: int = 10,
     claims = Depends(require_roles("admin_write")),
 ):
-    from scripts.demo_pull_logs import pull_appscan_logs, pull_thales_logs, ingest_to_lake
+    from scripts.demo_pull_logs import ingest_to_lake, pull_appscan_logs, pull_thales_logs
     pulled = {}
     if source in ("all", "appscan"):
         appscan_records = await pull_appscan_logs(count=count)
@@ -362,6 +462,7 @@ async def reprocess_dlq(
 
 @router.get("/users", response_model=dict)
 async def list_users(
+    request: Request,
     page: int = 1,
     size: int = 20,
     session: AsyncSession = Depends(get_session),
@@ -386,6 +487,7 @@ async def list_users(
     ]
     total = len(in_scope)
     items = [_to_out(u, p) for u, p in in_scope[(page - 1) * size : (page - 1) * size + size]]
+    _audit_admin_read(session, request, claims, "data.read.users", len(items), total)
     return {
         "items": items,
         "total": total,
@@ -393,6 +495,72 @@ async def list_users(
         "size": size,
         "pages": ceil(total / size) if size else 0,
     }
+
+
+async def _resolve_provisioning_target(session: AsyncSession, body: UserCreate) -> Person:
+    """Resolve the HR employee an account is being provisioned against.
+
+    Accepts either the internal record key or the scheme-qualified identifier
+    the HR system issued. The identifier form is preferred: an administrator
+    provisioning from a PERSAL payroll record holds a PERSAL number, not a
+    platform UUID, and requiring them to look the UUID up first adds a step
+    where the wrong person can be selected.
+
+    Exactly one form must be supplied. Accepting both and silently preferring
+    one would let a mismatched pair provision the wrong employee.
+    """
+    has_key = bool(body.person_id)
+    has_identifier = bool(body.identifier_scheme or body.identifier_value)
+
+    if has_key and has_identifier:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "Supply either person_id or identifier_scheme + identifier_value, "
+                "not both."
+            ),
+        )
+    if not has_key and not has_identifier:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "An HR employee must be identified. Supply identifier_scheme and "
+                "identifier_value (e.g. scheme='persal'), or person_id."
+            ),
+        )
+
+    if has_key:
+        person = await session.get(Person, body.person_id)
+        if person is None:
+            raise HTTPException(
+                status_code=400,
+                detail=f"No HR employee record found for person_id '{body.person_id}'. "
+                "Use /admin/persons to look up an HR-provisioned employee.",
+            )
+        return person
+
+    if not (body.identifier_scheme and body.identifier_value):
+        raise HTTPException(
+            status_code=400,
+            detail="identifier_scheme and identifier_value must both be supplied.",
+        )
+
+    try:
+        person = await resolve_person_by_identifier(
+            session, body.identifier_scheme, body.identifier_value
+        )
+    except IdentifierSchemeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if person is None:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"No HR employee record carries {body.identifier_scheme} identifier "
+                f"'{body.identifier_value}'. Confirm the number, or sync the HR feed."
+            ),
+        )
+    return person
 
 
 @router.post("/users", response_model=UserOut, status_code=201)
@@ -417,15 +585,26 @@ async def create_user(
     - **Tier 0 (Service Ops):** Role `sre`. Estate-wide scope, operational roles only (`soc`, `appsec`, `dbsec`, `province-soc-lead`, `local-appsec`) — no admin tiers.
 
     ### Payload Requirements
-    - **person_id**: Required. Must reference an HR-provisioned employee record
-      (look it up via `GET /admin/persons`). Accounts can only be created for
-      employees imported from the HR system — there is no path for external or
-      non-employee users.
+    - **Employee**: identified either by `identifier_scheme` + `identifier_value`
+      (preferred — e.g. `persal` + an 8-digit PERSAL number) or by `person_id`.
+      Supply exactly one form. Accounts can only be created for employees
+      imported from the HR system — there is no path for external or non-employee
+      users.
     - **email**: Must match the HR employee's registered email.
     - **roles**: Must contain valid SITA roles.
     - **department_ids**: Must contain valid department slugs (e.g., `home-affairs-digital`) if the role requires department scoping.
     - **branch_ids**: If provided, must belong to the specified department.
-    
+
+    ### Three gates on provisioning
+    1. **Delegation** (`can_manage`) — may the caller grant this authority? Roles
+       must be strictly below the caller's tier and the granted scope inside the
+       caller's own.
+    2. **Tenancy** (`person_within_scope`) — is this the caller's employee? The
+       HR record's department/branch must fall inside the caller's scope. This is
+       separate from gate 1: an in-scope grant does not make a foreign employee
+       in scope.
+    3. **Alignment** — a scoped account must sit in the employee's own department.
+
     ### Security
     - Requires `admin_write` permission.
     - Attempts to escalate privileges or scope will result in `HTTP 403 Forbidden`.
@@ -447,13 +626,50 @@ async def create_user(
     if existing is not None:
         raise HTTPException(status_code=409, detail="A user with this email already exists")
 
-    person = await session.get(Person, body.person_id)
-    if person is None:
+    person = await _resolve_provisioning_target(session, body)
+
+    if not person.is_active:
         raise HTTPException(
             status_code=400,
-            detail=f"No HR employee record found for person_id '{body.person_id}'. "
-            "Use /admin/persons to look up an HR-provisioned employee.",
+            detail=(
+                f"Employee record for '{person.display_name or person.employee_number}' "
+                "is not active (separated or terminated). An account may only be "
+                "provisioned against a current employee."
+            ),
         )
+
+    # Tenancy gate: whose employee is this? Distinct from the delegation check
+    # above, which only asks whether the granted authority is within the
+    # caller's own reach. Without this, a DHA admin could provision an account
+    # for a National Treasury employee and hold a foreign employee's identity
+    # inside the DHA tenant.
+    if not person_within_scope(claims, person):
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"Employee '{person.display_name or person.employee_number}' belongs "
+                f"to department '{person.department_id or 'unassigned'}' / branch "
+                f"'{person.branch_id or 'unassigned'}', which is outside your assigned "
+                "tenancy scope. You may only provision employees within your own scope."
+            ),
+        )
+
+    # Alignment: a scoped account must sit in the employee's own department.
+    # A nationwide caller can grant estate-wide scope legitimately; a scoped
+    # one cannot place a DHA employee into an unrelated department because
+    # can_manage already restricts the grant to the caller's own scope.
+    person_depts = {person.department_id} if person.department_id else set()
+    granted_depts = set(body.department_ids) | set(body.province_ids)
+    if person_depts and granted_depts and not person_depts & granted_depts:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Account scope {sorted(granted_depts)} does not align with the "
+                f"employee's HR department '{person.department_id}'. A scoped account "
+                "must be provisioned into the employee's own department."
+            ),
+        )
+
     person_email = (person.email or "").lower().strip()
     if not person_email:
         raise HTTPException(
@@ -480,6 +696,20 @@ async def create_user(
     session.add(user)
     await session.commit()
     await session.refresh(user)
+    _audit_privilege_change(
+        session,
+        None,
+        claims,
+        action="admin.user.create",
+        target=email,
+        detail={
+            "roles": list(user.roles or []),
+            "department_ids": list(user.department_ids or []),
+            "branch_ids": list(user.branch_ids or []),
+            "province_ids": list(user.province_ids or []),
+            "person_id": user.person_id,
+        },
+    )
     return _to_out(user, person)
 
 
@@ -487,6 +717,7 @@ async def create_user(
 async def update_user(
     user_id: str,
     body: UserUpdate,
+    request: Request,
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("admin_write")),
 ):
@@ -510,6 +741,17 @@ async def update_user(
     _validate_provinces(provinces)
     if body.is_active is False and user.id == claims.sub:
         raise HTTPException(status_code=400, detail="You cannot deactivate your own account")
+
+    # Captured before mutation so the record shows the authority change, not
+    # just the end state — an audit that only logs the new roles cannot answer
+    # "who granted this and from what".
+    prior = {
+        "roles": list(user.roles or []),
+        "department_ids": list(user.department_ids or []),
+        "branch_ids": list(user.branch_ids or []),
+        "province_ids": list(user.province_ids or []),
+        "is_active": bool(user.is_active),
+    }
 
     if body.display_name is not None:
         user.display_name = body.display_name
@@ -540,12 +782,47 @@ async def update_user(
 
     await session.commit()
     await session.refresh(user)
+    changed = sorted(
+        field
+        for field, before in prior.items()
+        if before != getattr(
+            {
+                "roles": list(user.roles or []),
+                "department_ids": list(user.department_ids or []),
+                "branch_ids": list(user.branch_ids or []),
+                "province_ids": list(user.province_ids or []),
+                "is_active": bool(user.is_active),
+            },
+            field,
+        )
+    )
+    _audit_privilege_change(
+        session,
+        request,
+        claims,
+        action="admin.user.update",
+        target=user.email,
+        detail={
+            "user_id": user.id,
+            "before": prior,
+            "after": {
+                "roles": list(user.roles or []),
+                "department_ids": list(user.department_ids or []),
+                "branch_ids": list(user.branch_ids or []),
+                "province_ids": list(user.province_ids or []),
+                "is_active": bool(user.is_active),
+            },
+            "changed_fields": changed,
+            "password_reset": bool(body.password),
+        },
+    )
     return _to_out(user, person)
 
 
 @router.delete("/users/{user_id}")
 async def delete_user(
     user_id: str,
+    request: Request,
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("admin_write")),
 ):
@@ -565,6 +842,20 @@ async def delete_user(
         )
     await session.delete(user)
     await session.commit()
+    _audit_privilege_change(
+        session,
+        request,
+        claims,
+        action="admin.user.delete",
+        target=user.email,
+        detail={
+            "user_id": user.id,
+            "roles": list(user.roles or []),
+            "department_ids": list(user.department_ids or []),
+            "branch_ids": list(user.branch_ids or []),
+            "province_ids": list(user.province_ids or []),
+        },
+    )
     return {"status": "deleted", "id": user_id}
 
 
@@ -586,6 +877,7 @@ async def get_ip_info(
 
 @router.get("/persons")
 async def list_persons(
+    request: Request,
     q: str | None = None,
     source: str | None = None,
     employment_status: str | None = None,
@@ -627,40 +919,203 @@ async def list_persons(
             .limit(size)
         )
     ).scalars().all()
+    # Person records carry special personal information (SA ID numbers,
+    # clearance levels, work phones). Record who read them and how many, so a
+    # bulk browse is distinguishable from a single-record lookup.
+    _audit_admin_read(session, request, claims, "data.read.persons", len(rows), total)
     return {
         "items": [
-            {
-                "id": p.id,
-                "employee_number": p.employee_number,
-                "email": p.email,
-                "title": p.title,
-                "initials": p.initials,
-                "surname": p.surname,
-                "display_name": p.display_name,
-                "id_number": _mask_id_number(p.id_number),
-                "job_title": p.job_title,
-                "org_unit": p.org_unit,
-                "department_id": p.department_id,
-                "department_name": DEPARTMENTS.get(p.department_id),
-                "branch_id": p.branch_id,
-                "branch_name": BRANCHES[p.branch_id][0] if p.branch_id in BRANCHES else None,
-                "manager_id": p.manager_id,
-                "manager_name": p.manager_name,
-                "work_phone": p.work_phone,
-                "location": p.location,
-                "employment_status": p.employment_status,
-                "clearance_level": p.clearance_level,
-                "source": p.source,
-                "is_active": p.is_active,
-                "created_at": p.created_at,
-                "updated_at": p.updated_at,
-            }
+            apply_person_policy(
+                {
+                    "id": p.id,
+                    "employee_number": p.employee_number,
+                    "email": p.email,
+                    "title": p.title,
+                    "initials": p.initials,
+                    "surname": p.surname,
+                    "display_name": p.display_name,
+                    "id_number": p.id_number,
+                    "job_title": p.job_title,
+                    "org_unit": p.org_unit,
+                    "department_id": p.department_id,
+                    "department_name": DEPARTMENTS.get(p.department_id),
+                    "branch_id": p.branch_id,
+                    "branch_name": BRANCHES[p.branch_id][0] if p.branch_id in BRANCHES else None,
+                    "manager_id": p.manager_id,
+                    "manager_name": p.manager_name,
+                    "work_phone": p.work_phone,
+                    "location": p.location,
+                    "employment_status": p.employment_status,
+                    "clearance_level": p.clearance_level,
+                    "source": p.source,
+                    "is_active": p.is_active,
+                    "created_at": p.created_at,
+                    "updated_at": p.updated_at,
+                }
+            )
             for p in rows
         ],
         "total": total,
         "page": page,
         "size": size,
         "pages": ceil(total / size) if size else 0,
+    }
+
+
+async def _record_employment_identifier(
+    session: AsyncSession,
+    person: Person,
+    *,
+    scheme: str,
+    value: str,
+    source_system: str,
+) -> None:
+    """Attach a scheme-qualified identifier to a person, idempotently.
+
+    Re-ingesting the same feed must not create duplicates or fail on the
+    unique (scheme, value) constraint, so an existing row is reused. A value
+    already bound to a *different* person is a genuine upstream conflict —
+    two people cannot share a PERSAL number — and is raised rather than
+    silently reassigned, because reassignment would move one official's
+    employment history onto another.
+    """
+    validated = employment.validate(scheme, value)
+    await session.flush()  # person.id must exist before the FK is written
+
+    existing = (
+        await session.execute(
+            select(EmploymentIdentifier).where(
+                EmploymentIdentifier.scheme == scheme,
+                EmploymentIdentifier.value == validated,
+            )
+        )
+    ).scalar_one_or_none()
+
+    if existing is not None:
+        if existing.person_id == person.id:
+            existing.source_system = source_system
+            return
+        raise IdentifierSchemeError(
+            f"{scheme} {validated!r} is already bound to a different person "
+            f"({existing.person_id}); refusing to reassign"
+        )
+
+    session.add(
+        EmploymentIdentifier(
+            person_id=person.id,
+            scheme=scheme,
+            value=validated,
+            source_system=source_system,
+        )
+    )
+
+
+async def resolve_person_by_identifier(
+    session: AsyncSession, scheme: str, value: str
+) -> Person | None:
+    """Resolve a government/HR identifier to a person record.
+
+    Used by account provisioning and by reconciliation against DPSA. Returns
+    ``None`` rather than raising for an unknown identifier so callers can
+    distinguish "no such employee" from "malformed input"; use
+    ``employment.validate`` first when the distinction matters.
+    """
+    validated = employment.validate(scheme, value)
+    row = (
+        await session.execute(
+            select(EmploymentIdentifier).where(
+                EmploymentIdentifier.scheme == scheme,
+                EmploymentIdentifier.value == validated,
+            )
+        )
+    ).scalar_one_or_none()
+    if row is None:
+        return None
+    return await session.get(Person, row.person_id)
+
+
+@router.get("/persons/by-identifier")
+async def find_person_by_identifier(
+    scheme: str,
+    value: str,
+    session: AsyncSession = Depends(get_session),
+    claims = Depends(require_roles("admin_read")),
+):
+    """Look up a person record by a scheme-qualified employment identifier.
+
+    Replaces ad-hoc lookups by employee_number with one that is explicit about
+    which identifier is being presented, so a PERSAL number can never be
+    mistaken for the originating feed's own reference.
+    """
+    try:
+        employment.validate(scheme, value)
+    except IdentifierSchemeError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    person = await resolve_person_by_identifier(session, scheme, value)
+    if person is None:
+        return {"found": False, "scheme": scheme, "value": value}
+
+    identifiers = (
+        await session.execute(
+            select(EmploymentIdentifier).where(
+                EmploymentIdentifier.person_id == person.id
+            )
+        )
+    ).scalars().all()
+
+    return {
+        "found": True,
+        "scheme": scheme,
+        "value": value,
+        "person": apply_person_policy(
+            {
+                "id": person.id,
+                "employee_number": person.employee_number,
+                "email": person.email,
+                "display_name": person.display_name,
+                "id_number": person.id_number,
+                "work_phone": person.work_phone,
+                "clearance_level": person.clearance_level,
+                "department_id": person.department_id,
+                "branch_id": person.branch_id,
+                "employment_status": person.employment_status,
+                "is_active": person.is_active,
+            }
+        ),
+        "identifiers": [
+            {"scheme": i.scheme, "value": i.value, "source_system": i.source_system}
+            for i in identifiers
+        ],
+    }
+
+
+@router.get("/employment/schemes")
+async def list_identifier_schemes(
+    claims = Depends(require_roles("admin_read")),
+):
+    """The identifier schemes the platform recognises, with their validation rules.
+
+    Surfaced so an operator provisioning an account can see which identifier is
+    expected rather than discovering the constraint through a 400.
+    """
+    return {
+        "schemes": [
+            {
+                "id": s.id,
+                "label": s.label,
+                "authority": s.authority,
+                "identifies": s.identifies,
+                "pattern_description": s.pattern_description,
+                "national": employment.is_national_scheme(s.id),
+                "notes": s.notes,
+            }
+            for s in employment.SCHEMES.values()
+        ],
+        "note": (
+            "The SA identity number identifies a person, not an employment, and "
+            "is deliberately not an account key. See app/employment.py."
+        ),
     }
 
 
@@ -729,6 +1184,36 @@ async def _upsert_hr_records(
         person.clearance_level = record.clearance_level
         person.is_active = record.employment_status not in ("terminated", "inactive")
 
+        # Record scheme-qualified employment identifiers. A live PERSAL feed
+        # supplies persal_number; the originating feed's own employee_number is
+        # always recorded so a person remains resolvable when no national scheme
+        # is present. Failures are logged and skipped rather than aborting the
+        # sync — a malformed identifier must not block provisioning the record.
+        if record.persal_number:
+            try:
+                await _record_employment_identifier(
+                    session,
+                    person,
+                    scheme=SCHEME_PERSAL,
+                    value=record.persal_number,
+                    source_system="persal",
+                )
+            except IdentifierSchemeError:
+                skipped += 1
+                logger.warning(
+                    "Rejected PERSAL number %r for employee %s: does not match the "
+                    "8-digit scheme",
+                    record.persal_number,
+                    emp_no,
+                )
+        await _record_employment_identifier(
+            session,
+            person,
+            scheme=classify(emp_no) or SCHEME_INTERNAL,
+            value=emp_no,
+            source_system=record.source_system or "hr-feed",
+        )
+
         # Soft-disable any linked platform account on termination.
         if not person.is_active and person.id:
             linked = (
@@ -774,8 +1259,8 @@ async def hr_sync(
 # exercised end-to-end. See infrastructure/scripts/init-db.sql (DDL) and
 # infrastructure/scripts/seed-hr-system.sql (seed).
 _SIM_HR_SELECT = text(
-    "SELECT employee_number, id_number, title, initials, first_name, surname,"
-    " display_name, email, job_title, org_unit, department_code, branch_code,"
+    "SELECT employee_number, persal_number, id_number, title, initials, first_name,"
+    " surname, display_name, email, job_title, org_unit, department_code, branch_code,"
     " manager_employee_number, manager_name, work_phone, location,"
     " employment_status, clearance_level FROM hr.employees"
 )
@@ -791,6 +1276,8 @@ def _sim_row_to_sync(row: Mapping[str, Any]) -> HRSyncRecord:
     """
     return HRSyncRecord(
         employee_number=row["employee_number"],
+        persal_number=row.get("persal_number"),
+        source_system="sim-hr",
         email=row.get("email"),
         id_number=row.get("id_number"),
         title=row.get("title"),

@@ -8,6 +8,7 @@ import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useAppSecData } from '../hooks/useAppSecData';
+import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
@@ -33,6 +34,7 @@ export default function AppSecDashboard({ tier = 'dept' }: { tier?: TenancyTier 
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useAppSecData();
+  const narrative = useNarrativeFacts();
 
   if (d.loading) {
     return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'appsec', color: 'var(--amber)', bg: 'var(--amber-dim)' }} consolidatedTag="AppScan · API Security · Imperva WAF" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
@@ -41,9 +43,22 @@ export default function AppSecDashboard({ tier = 'dept' }: { tier?: TenancyTier 
   const facts: ExplainFacts = {
     findings: d.findingsTotal,
     critical: d.counts.critical,
-    topCat: d.owasp[0]?.label,
-    topCatCount: d.owasp[0]?.value,
-    topCve: d.criticals[0]?.cve,
+    topCat: d.vendorCategories[0]?.label,
+    topCatCount: d.vendorCategories[0]?.value,
+    fixRate: d.fixRate,
+    fixTotal: d.fixTotal,
+    wafTotal: d.wafTotal,
+    shadowTotal: d.shadowTotal,
+    apiExposureTotal: d.apiExposureTotal,
+  };
+  const narrativeInput = {
+    facts,
+    model: {
+      ...narrative.facts,
+      owaspClassifiedPct: d.owaspClassifiedPct,
+      owaspUnmapped: d.owaspCoverage?.unmapped,
+      owaspNotApplicable: d.owaspCoverage?.not_applicable,
+    },
   };
 
   return (
@@ -90,8 +105,49 @@ export default function AppSecDashboard({ tier = 'dept' }: { tier?: TenancyTier 
             </tbody>
           </table>
         </Panel>
-        <Panel title={<><span>Distribution by Category</span> <OemTag source="appscan" label="AppScan" /></>}>
-          {d.owasp.length ? d.owasp.map((o) => (
+        <Panel
+          title={<><span>OWASP Top 10 — Cross-Source Posture</span> <OemTag source="appscan" label="platform" /></>}
+          hint={d.owaspVersion || undefined}
+        >
+          {d.owaspRows.length ? (
+            <>
+              {d.owaspRows.map((o) => (
+                <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 2 }}>
+                  <div style={{ flex: '0 0 210px', fontSize: 11 }}>
+                    {o.isGap ? (
+                      <span style={{ color: 'var(--text-muted)' }}>{o.name}</span>
+                    ) : (
+                      <>
+                        <code style={{ color: 'var(--blue)' }}>{o.id}</code>{' '}
+                        <span>{o.name}</span>
+                      </>
+                    )}
+                  </div>
+                  <div style={{ flex: '1 1 auto' }}>
+                    <BarRow label="" width={o.width} color={o.color} value={o.value} />
+                  </div>
+                  <div style={{ flex: '0 0 96px', fontSize: 10, color: 'var(--text-muted)', textAlign: 'right' }}>
+                    {o.isGap ? 'needs mapping' : `${o.sources} src`}
+                    {!o.isGap && (o.critical > 0 || o.high > 0) && (
+                      <div style={{ color: 'var(--red)' }}>{o.critical + o.high} crit/high</div>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {d.owaspCoverage && (
+                <div style={{ marginTop: 10, fontSize: 10, color: 'var(--text-muted)' }}>
+                  {d.owaspCoverage.classified.toLocaleString()} classified
+                  {' · '}{d.owaspCoverage.unmapped.toLocaleString()} awaiting mapping
+                  {' · '}{d.owaspCoverage.not_applicable.toLocaleString()} not applicable
+                  {' · '}{d.owaspCoverage.absent.toLocaleString()} no category from source
+                  {d.owaspClassifiedPct != null && <> · {d.owaspClassifiedPct}% mapped</>}
+                </div>
+              )}
+            </>
+          ) : <div className="panel-empty">No findings yet.</div>}
+        </Panel>
+        <Panel title={<><span>Distribution by Source Category</span> <OemTag source="appscan" label="AppScan" /></>} hint="vendor taxonomy, unscored">
+          {d.vendorCategories.length ? d.vendorCategories.map((o) => (
             <BarRow key={o.label} label={o.label} width={o.width} color={o.color} value={o.value} />
           )) : <div className="panel-empty">No findings yet.</div>}
         </Panel>
@@ -123,14 +179,24 @@ export default function AppSecDashboard({ tier = 'dept' }: { tier?: TenancyTier 
 
       <Panel title={<><span>Critical Findings</span> <OemTag source="appscan" label="AppScan" /></>} bodyClassName="scroll-x" bodyStyle={{ padding: 0 }}>
         <table>
-          <thead><tr><th>ID</th><th>Severity</th><th>Application</th><th>Category</th><th>Discovered</th></tr></thead>
+          <thead><tr><th>ID</th><th>Severity</th><th>Application</th><th>OWASP</th><th>Discovered</th></tr></thead>
           <tbody>
             {d.criticals.length ? d.criticals.map((c) => (
               <tr key={c.cve}>
                 <td><code>{c.cve}</code></td>
                 <td><Chip tone={c.cvssTone}>critical</Chip></td>
                 <td>{c.app}</td>
-                <td>{c.comp}</td>
+                <td style={{ fontFamily: 'var(--mono)', fontSize: 11 }}>
+                  {c.owaspId
+                    ? <code style={{ color: 'var(--blue)' }}>{c.owaspId}</code>
+                    : <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
+                        {c.owaspStatus === 'unmapped' ? 'unmapped'
+                          : c.owaspStatus === 'not_applicable' ? 'n/a'
+                          : c.owaspStatus === 'absent' ? 'no category'
+                          : '—'}
+                      </span>
+                  }
+                </td>
                 <td style={{ fontFamily: 'var(--mono)' }}>{c.discovered}</td>
               </tr>
             )) : <tr><td colSpan={5}><div className="panel-empty">No critical findings yet.</div></td></tr>}
@@ -141,7 +207,7 @@ export default function AppSecDashboard({ tier = 'dept' }: { tier?: TenancyTier 
       <ExplainOverlay
         open={overlay !== null}
         title={`${ROLE_LABELS.appsec} — ${overlay === 'layman' ? "Layman's Guide" : 'How This Dashboard Is Built'}`}
-        body={overlay === 'layman' ? buildLayman('appsec', facts) : buildExplain('appsec', facts)}
+        body={overlay === 'layman' ? buildLayman('appsec', narrativeInput) : buildExplain('appsec', narrativeInput)}
         onClose={() => setOverlay(null)}
       />
     </div>

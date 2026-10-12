@@ -79,6 +79,11 @@ export interface Finding {
   title: string;
   description?: string;
   category?: string;
+  owasp_id?: string | null;
+  owasp_name?: string | null;
+  cwe_id?: string | null;
+  owasp_status?: OwaspStatus | null;
+  taxonomy_version?: string | null;
   first_seen: string;
   last_seen: string;
   status: string;
@@ -296,4 +301,110 @@ export interface ComplianceCalendarItem {
   severity: string;
   due_date?: string;
   status: string;
+}
+
+export type OwaspStatus = 'classified' | 'unmapped' | 'not_applicable' | 'absent';
+
+export interface OwaspCategoryCount {
+  id: string;
+  name: string;
+  count: number;
+  by_severity: Record<string, number>;
+  by_source: Record<string, number>;
+}
+
+export interface OwaspRegistryEntry {
+  id: string;
+  name: string;
+  summary: string;
+  taxonomy_version: string;
+}
+
+export interface OwaspPosture {
+  taxonomy_version: string;
+  total_classified: number;
+  by_category: OwaspCategoryCount[];
+  coverage: Record<OwaspStatus, number>;
+  registry: OwaspRegistryEntry[];
+}
+
+export interface RiskBand {
+  bucket: string;
+  max: number;
+}
+
+export interface FrameworkDescriptor {
+  id: string;
+  name: string;
+  instrument: string;
+  applicability: 'applies' | 'conditional' | 'partial' | 'not_applicable';
+  applicable: boolean;
+  regulator: string;
+  rationale: string;
+  coverage: string;
+  gaps: string[];
+}
+
+export interface AlertRuleDescriptor {
+  id: string;
+  name: string;
+  severity: string;
+  condition_type: string;
+  channels: string[];
+  window_minutes: number | null;
+  max_alerts: number | null;
+}
+
+export interface PlatformModel {
+  risk_model: {
+    weights: Record<string, number>;
+    signal_labels: Record<string, string>;
+    severity_weights: Record<string, number>;
+    bands: RiskBand[];
+    appscan_ceiling_percentile: number;
+  };
+  compliance_model: {
+    weights: Record<string, Record<string, number>>;
+    frameworks: FrameworkDescriptor[];
+    scores_are_seeded: boolean;
+    scored_by: string | null;
+  };
+  alert_model: {
+    count: number;
+    rules: AlertRuleDescriptor[];
+  };
+  estate: {
+    provinces: number;
+    departments: number;
+    branches: number;
+    ministries: number;
+    clusters: number;
+  };
+}
+
+export interface NarrativeFacts {
+  riskWeightSummary?: string;
+  owaspTaxonomy?: string;
+  owaspClassifiedPct?: number | null;
+  owaspUnmapped?: number;
+  owaspNotApplicable?: number;
+  riskSignalLabels?: Record<string, string>;
+  safeMax?: number;
+  monitoredMax?: number;
+  bandSummary?: string;
+  popiaDomains?: string[];
+  popiaDomainLabels?: string[];
+  isoDomainCount?: number;
+  evidenceExpiryDays?: number;
+  alertRuleCount?: number;
+  alertRules?: AlertRuleDescriptor[];
+  complianceScoresSeeded?: boolean;
+  applicableFrameworks?: string[];
+  notApplicableFrameworks?: string[];
+  applicabilitySummary?: string;
+  provinces?: number;
+  departments?: number;
+  branches?: number;
+  ministries?: number;
+  clusters?: number;
 }

@@ -21,6 +21,10 @@ account_id: ""
 
 # Application ID for XYZ Application (demo.testfire.net)
 application_id: "b816b09c-4240-4ea7-a4b5-f8ae89f62f57"
+# Human-readable app name written as app_name on every ingested finding.
+# Without this, the connector falls back to the UUID above, which the
+# department_for_app() lookup can resolve but renders poorly in the UI.
+application_name: "demo.testfire.net"
 
 # Scope for issues query: 'application' (per-app) or 'org' (all apps in org)
 scope: "application"

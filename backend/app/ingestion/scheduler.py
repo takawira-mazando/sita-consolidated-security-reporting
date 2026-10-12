@@ -6,6 +6,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from app.bus.producer import Producer
 from app.bus.streams import STREAM_DLQ, STREAM_RAW
+from app.config import settings
 from app.connectors.apisec import ApiSecurityConnector
 from app.connectors.appscan import AppScanConnector
 from app.connectors.compliance import ComplianceConnector
@@ -22,22 +23,40 @@ circuit_breakers: dict[str, CircuitBreaker] = {}
 token_buckets: dict[str, TokenBucket] = {}
 producer: Producer | None = None
 
-CONNECTOR_CONFIGS = {
-    "appscan": {
-        "poll_interval": 300,
-        "rate_limit": 500,
-        "base_url": "https://cloud.appscan.com",
-        "api_key": "",
-        "account_id": "",
-        "application_id": "",
-        "page_size": 200,
-        "scope": "application",
-    },
-    "imperva_dam": {"poll_interval": 120, "rate_limit": 30, "base_url": "", "api_key": "", "source_type": "dam"},
-    "imperva_waf": {"poll_interval": 60, "rate_limit": 600, "base_url": "", "api_key": "", "source_type": "waf"},
-    "apisec": {"poll_interval": 3600, "rate_limit": 60, "base_url": "", "api_key": ""},
-    "compliance": {"poll_interval": 86400, "rate_limit": 10, "source_type": "csv"},
-}
+def _connector_configs() -> dict[str, dict]:
+    """Connector configuration, with credentials resolved from settings.
+
+    These used to be hardcoded empty strings, so AppScanConnector.authenticate()
+    bailed out on its first line and the streaming ingestion path could never
+    authenticate -- regardless of whether the environment was correctly
+    configured. The credential fields already exist on ``settings``; this is
+    what actually passes them through.
+    """
+    return {
+        "appscan": {
+            "poll_interval": 300,
+            "rate_limit": 500,
+            "base_url": settings.appscan_base_url,
+            # key_id / key_secret are the AppScan API's own two-part credential.
+            # Passed separately rather than joined, because the connector's
+            # "key_id:key_secret" fallback parses on ":" and a base64 secret can
+            # legitimately contain one.
+            "key_id": settings.appscan_key_id,
+            "key_secret": settings.appscan_key_secret,
+            "api_key": "",
+            "account_id": settings.appscan_account_id,
+            "application_id": settings.appscan_application_id,
+            "page_size": settings.appscan_page_size,
+            "scope": settings.appscan_scope,
+        },
+        "imperva_dam": {"poll_interval": 120, "rate_limit": 30, "base_url": "", "api_key": "", "source_type": "dam"},
+        "imperva_waf": {"poll_interval": 60, "rate_limit": 600, "base_url": "", "api_key": "", "source_type": "waf"},
+        "apisec": {"poll_interval": 3600, "rate_limit": 60, "base_url": "", "api_key": ""},
+        "compliance": {"poll_interval": 86400, "rate_limit": 10, "source_type": "csv"},
+    }
+
+
+CONNECTOR_CONFIGS = _connector_configs()
 
 async def poll_connector(name: str, connector_class, config: dict):
     global producer

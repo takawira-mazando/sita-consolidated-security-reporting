@@ -31,6 +31,13 @@ class Finding(Base):
     title = Column(String(500), nullable=False)
     description = Column(String)
     category = Column(String(200))
+    # Cross-source OWASP Top 10 classification. Additive: `category` above stays
+    # exactly as the OEM sent it, because the vendor taxonomy remains useful for
+    # anyone working in the vendor's own terms.
+    owasp_id = Column(String(10), index=True)
+    cwe_id = Column(String(20), index=True)
+    owasp_status = Column(String(20))
+    taxonomy_version = Column(String(32))
     raw_data = Column(JSON)
     first_seen = Column(DateTime(timezone=True), nullable=False)
     last_seen = Column(DateTime(timezone=True), nullable=False)

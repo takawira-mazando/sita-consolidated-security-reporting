@@ -1,3 +1,4 @@
+import logging
 from abc import ABC, abstractmethod
 
 import pandas as pd
@@ -8,6 +9,12 @@ class BaseConnector(ABC):
         self.name = name
         self.config = config
         self.session = None
+        # Provided here so every connector can log without each one having to
+        # remember to. AppScanConnector logs on every auth and fetch failure
+        # path; without this those paths raised AttributeError and masked the
+        # real error (a failed login surfaced as "'AppScanConnector' object has
+        # no attribute 'logger'" rather than "authentication failed").
+        self.logger = logging.getLogger(f"app.connectors.{name}")
 
     @abstractmethod
     async def authenticate(self) -> bool:

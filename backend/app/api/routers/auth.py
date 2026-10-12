@@ -10,6 +10,11 @@ from app.api.auth import JWTClaims, scope_covers, verify_token
 from app.config import settings
 from app.db import get_session
 from app.models.user import User
+from app.monitoring.access_audit import (
+    record_access,
+    request_context,
+    scope_digest,
+)
 from app.security import create_access_token, hash_password, verify_password
 from app.tenant import (
     BRANCHES,
@@ -326,6 +331,65 @@ def _account_default_scope(user: User) -> tuple[list[str], list[str], list[str]]
     )
 
 
+def _audit_auth(
+    session: AsyncSession,
+    request: Request | None,
+    action: str,
+    actor: str,
+    outcome: str,
+    issued: LoginResponse | None = None,
+    reason: str | None = None,
+) -> None:
+    """Append an authentication access record.
+
+    Failed attempts are recorded too: a spike of ``auth.login_failed`` against
+    one address is the signal a SOC needs, and it is only visible if the
+    failure path writes a record rather than only the success path.
+    """
+    user = issued.user if issued else None
+    depts = list(user.department_ids or []) if user else []
+    branches = list(user.branch_ids or []) if user else []
+    provinces = list(user.province_ids or []) if user else []
+    roles = list(user.roles or []) if user else []
+
+    detail = {"outcome": outcome, **request_context(request)}
+    if reason:
+        detail["reason"] = reason
+
+    record_access(
+        session,
+        action=action,
+        actor=actor,
+        target=actor,
+        tenant_scope={
+            "department_ids": depts,
+            "branch_ids": branches,
+            "province_ids": provinces,
+        },
+        actor_role=",".join(sorted(roles)) or None,
+        scope_hash=scope_digest(depts, branches, provinces, roles),
+        detail=detail,
+    )
+
+
+def _audit_auth_denied(
+    session: AsyncSession,
+    request: Request | None,
+    action: str,
+    actor: str,
+    status_code: int,
+    reason: str,
+) -> None:
+    _audit_auth(
+        session,
+        request,
+        action,
+        actor,
+        outcome="denied",
+        reason=f"{status_code}:{reason}",
+    )
+
+
 @router.post("/login", response_model=LoginResponse)
 async def login(
     body: LoginRequest,
@@ -333,24 +397,38 @@ async def login(
     _: None = Depends(login_rate_limit),
     session: AsyncSession = Depends(get_session),
 ):
+    attempted = body.email.lower().strip()
     user = (
-        await session.execute(select(User).where(User.email == body.email.lower().strip()))
+        await session.execute(select(User).where(User.email == attempted))
     ).scalar_one_or_none()
     if user is None or not verify_password(body.password, user.password_hash):
+        _audit_auth_denied(
+            session, request, "auth.login_failed", attempted, 401, "invalid_credentials"
+        )
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
+        _audit_auth_denied(
+            session, request, "auth.login_failed", attempted, 403, "account_disabled"
+        )
         raise HTTPException(status_code=403, detail="Account is disabled")
     if body.department_id or body.branch_id or body.province_id:
         depts, branches, provinces = _resolve_scope(
             body.department_id, body.branch_id, body.province_id
         )
         if not scope_covers(_scope_claims(user), depts, branches, provinces):
+            _audit_auth_denied(
+                session, request, "auth.login_failed", attempted, 403, "scope_escalation"
+            )
             raise HTTPException(
                 status_code=403,
                 detail="Requested tenancy scope is outside your assigned scope",
             )
-        return _issue(user, depts, branches, provinces)
-    return _issue(user)
+        issued = _issue(user, depts, branches, provinces)
+        _audit_auth(session, request, "auth.login", attempted, "success", issued)
+        return issued
+    issued = _issue(user)
+    _audit_auth(session, request, "auth.login", attempted, "success", issued)
+    return issued
 
 
 @router.post("/demo-login", response_model=LoginResponse)
@@ -372,22 +450,32 @@ async def demo_login(
         await session.execute(select(User).where(User.email == account["email"]))
     ).scalar_one_or_none()
     if user is None or not user.is_active:
+        _audit_auth_denied(
+            session, request, "auth.login_failed", account["email"], 401, "demo_unavailable"
+        )
         raise HTTPException(status_code=401, detail="Demo account not available")
     if body.department_id or body.branch_id or body.province_id:
         depts, branches, provinces = _resolve_scope(
             body.department_id, body.branch_id, body.province_id
         )
         if not scope_covers(_scope_claims(user), depts, branches, provinces):
+            _audit_auth_denied(
+                session, request, "auth.login_failed", account["email"], 403, "scope_escalation"
+            )
             raise HTTPException(
                 status_code=403,
                 detail="Requested tenancy scope is outside this demo account's scope",
             )
-        return _issue(user, depts, branches, provinces)
+        issued = _issue(user, depts, branches, provinces)
+        _audit_auth(session, request, "auth.demo_login", account["email"], "success", issued)
+        return issued
     # No override: demo accounts sign in as their admin-set (seeded) tenancy —
     # nationwide personas get the whole estate, department-scoped and
     # provincial personas get exactly their tenant subtree.
     depts, branches, provinces = _account_default_scope(user)
-    return _issue(user, depts, branches, provinces)
+    issued = _issue(user, depts, branches, provinces)
+    _audit_auth(session, request, "auth.demo_login", account["email"], "success", issued)
+    return issued
 
 
 @router.get("/demo-accounts", response_model=list[DemoAccount])
@@ -490,6 +578,7 @@ async def me(claims: JWTClaims = Depends(verify_token)):
 @router.post("/switch-tenant", response_model=LoginResponse)
 async def switch_tenant(
     body: SwitchTenantRequest,
+    request: Request,
     session: AsyncSession = Depends(get_session),
     claims: JWTClaims = Depends(verify_token),
 ):
@@ -499,9 +588,21 @@ async def switch_tenant(
     resets to the account's default (stored) scope.
 
     Only admin and transversal-admin roles can switch tenants.
+
+    Every switch is audited: it re-scopes a live session across tenant
+    boundaries without re-authenticating, so it is the single highest-value
+    event to have a signed, attributable record of.
     """
     # Restrict tenant switching to admin/transversal-admin roles only
     if not any(r in claims.roles for r in ["admin", "transversal-admin", "operator"]):
+        _audit_auth_denied(
+            session,
+            request,
+            "auth.switch_tenant",
+            claims.email or claims.sub,
+            403,
+            "role_not_permitted",
+        )
         raise HTTPException(
             status_code=403,
             detail="Tenant switching restricted to admin and transversal-admin roles"
@@ -510,16 +611,45 @@ async def switch_tenant(
         await session.execute(select(User).where(User.id == claims.sub))
     ).scalar_one_or_none()
     if user is None or not user.is_active:
-        raise HTTPException(status_code=401, detail="Account not available")
+        _audit_auth_denied(
+            session,
+            request,
+            "auth.switch_tenant",
+            claims.email or claims.sub,
+            401,
+            "account_not_available",
+        )
+        raise HTTPException(status_code=401, detail="Account is not available")
     if body.department_id or body.branch_id or body.province_id:
         depts, branches, provinces = _resolve_scope(
             body.department_id, body.branch_id, body.province_id
         )
         if not scope_covers(_scope_claims(user), depts, branches, provinces):
+            _audit_auth_denied(
+                session,
+                request,
+                "auth.switch_tenant",
+                claims.email or claims.sub,
+                403,
+                "scope_escalation",
+            )
             raise HTTPException(
                 status_code=403,
                 detail="Target tenant is outside your assigned scope",
             )
-        return _issue(user, depts, branches, provinces)
+        issued = _issue(user, depts, branches, provinces)
+    else:
+        depts, branches, provinces = _account_default_scope(user)
+        issued = _issue(user, depts, branches, provinces)
+
+    _audit_auth(
+        session,
+        request,
+        "auth.switch_tenant",
+        claims.email or claims.sub,
+        "success",
+        issued,
+    )
+    return issued
     depts, branches, provinces = _account_default_scope(user)
     return _issue(user, depts, branches, provinces)

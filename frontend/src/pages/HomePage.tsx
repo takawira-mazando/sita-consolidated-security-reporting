@@ -162,12 +162,27 @@ const PIPELINE_STAGES = [
   { n: '05', title: 'Dispatch', body: 'Severity-gated routing to email, Teams, and PagerDuty — each alert enriched with app ownership and priority.' },
 ];
 
-const FUSION_WEIGHTS = [
-  { label: 'AppScan findings', pct: 35, color: 'var(--flare-1)' },
-  { label: 'Imperva violations', pct: 25, color: 'var(--flare-2)' },
-  { label: 'API exposure', pct: 20, color: 'var(--link)' },
-  { label: 'Compliance penalty', pct: 20, color: 'var(--ok)' },
-];
+/** Display order and colour per fusion signal. The percentages are NOT here —
+ *  they come from `/api/v1/public/summary`, which serves
+ *  `risk_engine.DEFAULT_WEIGHTS` directly. A literal copy of these numbers is
+ *  the drift this project has already paid for once: the dashboard narrative
+ *  asserted 40/30/20/10 while the engine was 35/25/20/20, and nothing failed.
+ */
+const FUSION_SIGNALS = [
+  { key: 'appscan', label: 'AppScan findings', color: 'var(--flare-1)' },
+  { key: 'imperva', label: 'Imperva violations', color: 'var(--flare-2)' },
+  { key: 'exposure', label: 'API exposure', color: 'var(--link)' },
+  { key: 'compliance', label: 'Compliance penalty', color: 'var(--ok)' },
+] as const;
+
+/** Last-resort fallback so the section still renders if the endpoint is older
+ *  than this build. Never preferred over the served value. */
+const FALLBACK_WEIGHTS: Record<string, number> = {
+  appscan: 0.35,
+  imperva: 0.25,
+  exposure: 0.2,
+  compliance: 0.2,
+};
 
 const SOURCES = [
   { name: 'HCL AppScan', kind: 'AppSec · SAST/DAST' },
@@ -223,6 +238,20 @@ export default function HomePage() {
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<string>('');
   const resourcesRef = useRef<HTMLDivElement | null>(null);
+
+  // Fusion weights, resolved once. Served by the API from the risk engine;
+  // the fallback exists only so the section renders against an older backend.
+  const servedWeights = summary?.risk.weights;
+  const FUSION_ROWS = FUSION_SIGNALS.map((sig) => ({
+    key: sig.key,
+    label: sig.label,
+    color: sig.color,
+    pct: Math.round((servedWeights?.[sig.key] ?? FALLBACK_WEIGHTS[sig.key] ?? 0) * 100),
+  }));
+  const fusionSummary = servedWeights
+    ? `${FUSION_ROWS.map((r) => `${r.label} ${r.pct}%`).join(', ')}. ` +
+      'Every component is visible and exportable — nothing black-boxed.'
+    : 'Every component is visible and exportable — nothing black-boxed.';
 
   const loginAsDemo = async () => {
     setDemoLoginLoading(true);
@@ -529,14 +558,16 @@ export default function HomePage() {
                 <span>How the score is built</span>
                 <span className="preview-mono">weighted · 0–100</span>
               </div>
-              {FUSION_WEIGHTS.map((w) => (
-                <div key={w.label} className="fusion-row">
-                  <span className="fusion-label">{w.label}</span>
-                  <div className="bar-track"><div className="bar-fill" style={{ width: `${w.pct}%`, background: w.color }} /></div>
-                  <span className="fusion-pct">{w.pct}%</span>
-                </div>
-              ))}
-              <p className="fusion-note">AppScan severity counts drive 35% of the score, Imperva violations 25%, API exposure 20%, and compliance penalties 20%. Every component is visible and exportable — nothing black-boxed.</p>
+              {FUSION_ROWS.map((row) => (
+                  <div key={row.key} className="fusion-row">
+                    <span className="fusion-label">{row.label}</span>
+                    <div className="bar-track"><div className="bar-fill" style={{ width: `${row.pct}%`, background: row.color }} /></div>
+                    <span className="fusion-pct">{row.pct}%</span>
+                  </div>
+                ))}
+              <p className="fusion-note">
+                {fusionSummary}
+              </p>
             </div>
             <div className="fusion-side">
               <div className="fusion-side-t">Score buckets</div>
@@ -770,15 +801,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="metrics-band">
-        <div className="container metrics-grid">
-          <div className="metric"><strong>{summary ? summary.assets.apps : 4}</strong><span>{summary ? 'applications scored' : 'OEM sources fused'}</span></div>
-          <div className="metric"><strong>{summary ? summary.assets.monitored_databases : 1}</strong><span>{summary ? 'databases monitored' : 'risk score per app'}</span></div>
-          <div className="metric"><strong>{summary ? summary.findings.open : 5}</strong><span>{summary ? 'open findings' : 'min recompute cadence'}</span></div>
-          <div className="metric"><strong>{summary ? `${summary.connectors.healthy}/${summary.connectors.total}` : 3}</strong><span>{summary ? 'connectors healthy' : 'dispatch channels'}</span></div>
-        </div>
-      </section>
-
       <section className="estate-section" id="estate">
         <div className="container">
           <div className="section-head">
@@ -823,17 +845,6 @@ export default function HomePage() {
                 <div className="estate-row"><span className="estate-row-l">Databases (monitored)</span><strong>{summary ? `${summary.assets.monitored_databases}/${summary.assets.databases}` : '—'}</strong></div>
                 <div className="estate-row"><span className="estate-row-l">API endpoints</span><strong>{summary?.assets.api_endpoints ?? '—'}</strong></div>
                 <div className="estate-row"><span className="estate-row-l">Agents / WAF blocks</span><strong>{summary ? `${summary.assets.agents} / ${summary.assets.waf_blocks}` : '—'}</strong></div>
-              </div>
-            </div>
-            <div className="estate-card estate-card-wide">
-              <div className="estate-card-t">Three-tier government tenancy</div>
-              <div className="estate-mandate">
-                <div><strong>{summary?.tenancy.departments ?? '—'}</strong><span>departments ({summary?.tenancy.provincial_departments ?? '—'} provincial)</span></div>
-                <div><strong>{summary?.tenancy.branches ?? '—'}</strong><span>organisational branches</span></div>
-                <div><strong>{summary?.tenancy.provinces ?? '—'}</strong><span>provinces</span></div>
-              </div>
-              <div className="estate-sub">
-                Every application and database is denormalised to its department and branch at write time, so a department-scoped login literally cannot see outside its assigned tenants.
               </div>
             </div>
           </div>
@@ -905,13 +916,6 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
-
-      <section className="cta-band">
-        <div className="container">
-          <h2>See your own view before rolling this out.</h2>
-          <p>Every role — from executive and compliance to delegated department, branch, and provincial admins — is provisioned with live demo data. Use <strong>Sign In</strong> in the top-right to explore your persona's dashboard.</p>
         </div>
       </section>
 

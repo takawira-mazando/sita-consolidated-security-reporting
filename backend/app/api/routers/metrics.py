@@ -8,7 +8,7 @@ connectors) and stored via app/lake/writer.py.
 """
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,6 +25,7 @@ from app.models.metrics import (
     SystemMetric,
     WafBlock,
 )
+from app.processing import owasp
 
 router = APIRouter(tags=["metrics"])
 
@@ -112,6 +113,97 @@ async def get_api_exposure(
         "total": len(items),
         "shadow_total": sum(1 for i in items if i["is_shadow"]),
         "items": items,
+    }
+
+
+@router.get("/metrics/appsec/owasp")
+async def get_owasp_posture(
+    app: str | None = Query(None),
+    session: AsyncSession = Depends(get_session),
+    claims = Depends(require_roles("findings")),
+):
+    """Cross-source OWASP Top 10 posture.
+
+    This is the rollup no OEM can produce. AppScan reports its own findings
+    against OWASP; Imperva reports its own in its own vocabulary; API Security
+    reports its own. None of them can answer "what is our estate's combined
+    OWASP exposure", because none of them sees the other two.
+
+    Scoped with `tenant_filter` on every branch, exactly as the rest of the
+    metrics surface is. The `unmapped` bucket is returned rather than hidden:
+    it is the platform's own coverage gap and an auditor should see it.
+    """
+    base = [Finding.owasp_status, Finding.owasp_id]
+    filters = [Finding.owasp_id.isnot(None)]
+    scope = tenant_filter(claims, Finding)
+    if scope is not None:
+        filters.append(scope)
+    if app:
+        filters.append(Finding.app_name == app)
+
+    q = (
+        select(*base, func.count().label("n"))
+        .where(*filters)
+        .group_by(*base)
+        .order_by(func.count().desc())
+    )
+    rows = (await session.execute(q)).all()
+
+    registry = owasp.categories()
+    by_category: dict[str, dict] = {}
+    for _, owasp_id, n in rows:
+        cid = owasp_id or "UNMAPPED"
+        entry = by_category.setdefault(
+            cid,
+            {
+                "id": cid,
+                "name": registry[cid].name if cid in registry else "Unmapped",
+                "count": 0,
+                "by_severity": {},
+                "by_source": {},
+            },
+        )
+        entry["count"] += int(n)
+
+    # Severity and source breakdowns, scoped the same way.
+    for column, bucket in ((Finding.severity, "by_severity"), (Finding.source, "by_source")):
+        sq = (
+            select(column, Finding.owasp_id, func.count().label("n"))
+            .where(*filters)
+            .group_by(column, Finding.owasp_id)
+        )
+        for value, owasp_id, n in (await session.execute(sq)).all():
+            entry = by_category.setdefault(
+                owasp_id or "UNMAPPED",
+                {
+                    "id": owasp_id or "UNMAPPED",
+                    "name": registry[owasp_id].name if owasp_id in registry else "Unmapped",
+                    "count": 0,
+                    "by_severity": {},
+                    "by_source": {},
+                },
+            )
+            entry[bucket][value] = entry[bucket].get(value, 0) + int(n)
+
+    status_q = select(Finding.owasp_status, func.count().label("n")).group_by(Finding.owasp_status)
+    if scope is not None:
+        status_q = status_q.where(scope)
+    if app:
+        status_q = status_q.where(Finding.app_name == app)
+    coverage = {s: int(n) for s, n in (await session.execute(status_q)).all() if s}
+
+    total = sum(v["count"] for v in by_category.values())
+    return {
+        "taxonomy_version": owasp.taxonomy_version(),
+        "total_classified": total,
+        "by_category": sorted(by_category.values(), key=lambda c: c["id"]),
+        "coverage": {
+            "classified": coverage.get(owasp.CLASSIFIED, 0),
+            "unmapped": coverage.get(owasp.UNMAPPED, 0),
+            "not_applicable": coverage.get(owasp.NOT_APPLICABLE, 0),
+            "absent": coverage.get(owasp.ABSENT, 0),
+        },
+        "registry": owasp.as_dicts(),
     }
 
 
