@@ -109,9 +109,14 @@ if settings.environment.lower() in ("dev", "development", "test", "testing"):
     allowed_origins = ["*"]
     allow_credentials = True
 else:
-    # In production, only allow the frontend origin
-    allowed_origins = ["http://192.168.101.20:8088", "https://sita.example.com"]
-    allow_credentials = False  # Don't allow credentials with wildcard origins
+    # In production, only allow approved frontend origins (direct LAN + SSH tunnel)
+    allowed_origins = [
+        "http://192.168.101.20:8088",
+        "http://localhost:8802",
+        "http://127.0.0.1:8802",
+        "https://sita.example.com",
+    ]
+    allow_credentials = True
 
 app.add_middleware(
     CORSMiddleware,

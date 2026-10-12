@@ -4,7 +4,7 @@ from math import ceil
 from typing import Any, Mapping
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -43,6 +43,15 @@ router = APIRouter(tags=["admin"])
 logger = logging.getLogger(__name__)
 
 VALID_ROLES = set(ROLES_HIERARCHY.keys())
+
+
+def _mask_id_number(val: str | None) -> str | None:
+    if val is None:
+        return None
+    s = str(val).strip()
+    if len(s) <= 4:
+        return "****"
+    return "*" * (len(s) - 4) + s[-4:]
 
 
 def _audit_admin_read(
@@ -137,6 +146,12 @@ class UserCreate(BaseModel):
     person_id: str | None = None
     identifier_scheme: str | None = None
     identifier_value: str | None = None
+
+    @model_validator(mode="after")
+    def _validate_hr_person(self):
+        if not self.person_id and not (self.identifier_scheme and self.identifier_value):
+            raise ValueError("person_id or (identifier_scheme and identifier_value) is required")
+        return self
 
 
 class UserUpdate(BaseModel):
