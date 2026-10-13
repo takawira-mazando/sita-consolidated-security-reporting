@@ -4,9 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SITA Consolidated Security Reporting Platform — Executive Briefing</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin="anonymous">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet" crossorigin="anonymous" referrerpolicy="no-referrer">
   <script>
     // Immediately apply saved theme before render to avoid flash
     (function() {
@@ -267,6 +267,45 @@
       pointer-events: auto;
       transform: scale(1) translateY(0);
       z-index: 10;
+    }
+
+    /* Slides taller than the fixed viewport (e.g. the HR integration slide,
+       which carries two cards + a table + two cards) scroll internally rather
+       than clipping. Applied automatically by measuring overflow, so it tracks
+       content changes instead of being hardcoded per slide.
+
+       justify-content must flip from center to flex-start: with flex centring
+       AND overflow, the content above the scroll origin is pushed out of reach
+       and cannot be scrolled to. .slide-measuring forces that same state
+       temporarily so overflow can be measured accurately before the class is
+       committed. */
+    .slide.slide-measuring {
+      justify-content: flex-start;
+      overflow-y: hidden;
+    }
+
+    .slide.slide-scroll {
+      justify-content: flex-start;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 0.85rem;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line) transparent;
+      overscroll-behavior: contain;
+    }
+
+    .slide.slide-scroll::-webkit-scrollbar {
+      width: 8px;
+    }
+    .slide.slide-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .slide.slide-scroll::-webkit-scrollbar-thumb {
+      background: var(--line);
+      border-radius: 4px;
+    }
+    .slide.slide-scroll::-webkit-scrollbar-thumb:hover {
+      background: var(--flare-1);
     }
 
     /* Slide Content Typography */
@@ -703,8 +742,106 @@
       </table>
     </div>
 
-    <!-- SLIDE 5: DHA PROOF OF CONCEPT -->
+    <!-- SLIDE 5: SITA & GOVERNMENT HR INTEGRATION -->
     <div class="slide" data-index="5">
+      <div class="slide-tag">Identity &amp; HR System Integration</div>
+      <h2 class="slide-title">Government HR Integration: <span class="hl-sapphire">Sourced Employees, Created Authority</span></h2>
+      <p class="slide-desc">
+        Employee attributes are consumed from the government HR estate; roles, accounts and tenancy scope are created inside the platform. The two are joined by reference, never by copy-authority.
+      </p>
+
+      <div class="grid-2">
+        <div class="card accent-sapphire">
+          <div class="card-num">SOURCED &mdash; READ-ONLY MIRROR</div>
+          <h3 class="card-title">Employee &amp; Person Attributes</h3>
+          <p class="card-body">
+            Originates in government HR systems. SITA Command Center is the consuming authority &mdash; the platform is <strong>not</strong> the source of truth.
+          </p>
+          <ul style="padding-left: 1.2rem; font-size: 0.82rem; color: var(--hi); margin-top: 0.6rem; line-height: 1.65;">
+            <li><strong>PERSAL</strong> &mdash; National Treasury personnel &amp; salary system, 8-digit number</li>
+            <li><strong>SAP HCM</strong> &mdash; SITA's own HR estate; IFMS HR module (DPSA / NT / SITA)</li>
+            <li><strong>Departmental SCIM</strong> feeds</li>
+            <li>HR sync <strong>never</strong> writes roles or tenancy scope</li>
+          </ul>
+        </div>
+        <div class="card accent-emerald">
+          <div class="card-num">CREATED HERE &mdash; PLATFORM AUTHORITY</div>
+          <h3 class="card-title">Roles, Accounts &amp; Scope</h3>
+          <p class="card-body">
+            <strong>Built in this platform</strong> under delegated one-way authority. 54 accounts carrying 28 distinct roles, 17 with estate-wide scope.
+          </p>
+          <ul style="padding-left: 1.2rem; font-size: 0.82rem; color: var(--hi); margin-top: 0.6rem; line-height: 1.65;">
+            <li>A caller may only grant roles <strong>strictly below</strong> their own tier</li>
+            <li>Scope is baked into the JWT at issue and re-derived per request</li>
+            <li>Every create / update / delete is <strong>signed into the audit trail</strong></li>
+            <li>Separation soft-disables the account; it never deletes the record</li>
+          </ul>
+        </div>
+      </div>
+
+      <table class="slide-table" style="margin-top: 1.1rem;">
+        <thead>
+          <tr>
+            <th>Identifier Scheme</th>
+            <th>Form</th>
+            <th>Issued By</th>
+            <th>Identifies</th>
+            <th>Lifecycle</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>persal</code></td>
+            <td>8 digits</td>
+            <td>National Treasury &mdash; PERSAL</td>
+            <td><span class="tag-pill tag-gold">the employment</span></td>
+            <td>Bound to the employment record. A transfer keeps it; a reappointment yields a new one.</td>
+          </tr>
+          <tr>
+            <td><code>sap_personnel</code></td>
+            <td>4&ndash;20 alnum</td>
+            <td>SITA SAP HCM / IFMS HR</td>
+            <td><span class="tag-pill tag-gold">the employment</span></td>
+            <td>Client-defined numbering; validate against the live feed.</td>
+          </tr>
+          <tr>
+            <td><code>internal_hr</code></td>
+            <td>3&ndash;64 chars</td>
+            <td>Originating feed</td>
+            <td><span class="tag-pill tag-gold">the employment</span></td>
+            <td>Fallback where no national scheme applies.</td>
+          </tr>
+          <tr>
+            <td><code>id_number</code> <span class="tag-pill tag-cyan">excluded</span></td>
+            <td>13 digits</td>
+            <td>Home Affairs population register</td>
+            <td><span class="tag-pill tag-cyan">the person</span></td>
+            <td>Never an account key &mdash; it collides across reappointment and is the estate's most sensitive unique identifier under POPIA s.57.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="grid-2" style="margin-top: 1.1rem;">
+        <div class="card accent-cyan">
+          <h3 class="card-title">Internal Key, Not a Government Key</h3>
+          <p class="card-body">
+            <code>identity.users.person_id</code> stays an internal UUID. A government identifier is an <strong>attribute</strong> of an account, never its primary key &mdash; so a corrected or reissued PERSAL number never forces an account re-key or rewrites audit history.
+          </p>
+        </div>
+        <div class="card accent-gold">
+          <h3 class="card-title">Guard Rails at the Boundary</h3>
+          <ul style="padding-left: 1.2rem; font-size: 0.82rem; color: var(--hi); margin-top: 0.5rem; line-height: 1.65;">
+            <li><strong>13-digit identity numbers rejected</strong> as employment identifiers, validated by date prefix + Luhn check digit</li>
+            <li><strong>Ambiguity is never guessed</strong> &mdash; an unrecognised shape is surfaced, not coerced into a scheme</li>
+            <li><strong>Duplicate PERSAL refused</strong> rather than reassigned between people</li>
+            <li>2,451 person records mirrored, each carrying a scheme-qualified identifier</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: DHA PROOF OF CONCEPT -->
+    <div class="slide" data-index="6">
       <div class="slide-tag">Proof of Concept Demonstration</div>
       <h2 class="slide-title">The DHA Testbed: <span class="hl-gold">Department of Home Affairs</span></h2>
       <p class="slide-desc">
@@ -735,8 +872,8 @@
       </div>
     </div>
 
-    <!-- SLIDE 6: REAL OEM INGESTION -->
-    <div class="slide" data-index="6">
+    <!-- SLIDE 7: REAL OEM INGESTION -->
+    <div class="slide" data-index="7">
       <div class="slide-tag">Data Lake & OEM Connectors</div>
       <h2 class="slide-title">Real OEM Telemetry: <span class="hl-cyan">AppScan & Thales DAM</span></h2>
       <p class="slide-desc">
@@ -772,8 +909,8 @@
       </div>
     </div>
 
-    <!-- SLIDE 7: PERSONA-SPECIFIC DASHBOARDS -->
-    <div class="slide" data-index="7">
+    <!-- SLIDE 8: PERSONA-SPECIFIC DASHBOARDS -->
+    <div class="slide" data-index="8">
       <div class="slide-tag">Operational Experience & RBAC</div>
       <h2 class="slide-title">21 RBAC Views: <span class="hl-gold">Tailored to Each Operational Persona</span></h2>
       <p class="slide-desc">
@@ -807,44 +944,71 @@
       </div>
     </div>
 
-    <!-- SLIDE 8: AUDITOR-GENERAL & POPIA -->
-    <div class="slide" data-index="8">
-      <div class="slide-tag">Regulatory Integrity & Attestation</div>
-      <h2 class="slide-title">Auditor-General (AG) Export: <span class="hl-emerald">Cryptographic Proof</span></h2>
+    <!-- SLIDE 9: AUDITOR-GENERAL & POPIA -->
+    <div class="slide" data-index="9">
+      <div class="slide-tag">Regulatory Integrity &amp; Attestation</div>
+      <h2 class="slide-title">Auditor-General (AG) Export: <span class="hl-emerald">ECDSA Digital Signatures</span></h2>
       <p class="slide-desc">
-        Eliminating audit manual overhead with verifiable SHA-256 integrity hash chaining and automated POPIA PII stripping.
+        Eliminating audit manual overhead with aggregation-only attestations, signed <strong>ECDSA NIST P-256</strong> and verifiable offline against a published public key &mdash; no trust in the database required.
       </p>
       <div class="grid-2">
         <div class="card accent-emerald">
-          <h3 class="card-title">SHA-256 Hash Verification</h3>
+          <div class="card-num">ECDSA_P256_SHA256 &middot; SECP256R1</div>
+          <h3 class="card-title">Asymmetric Signature Verification</h3>
           <p class="card-body">
-            Every attestation generated by <code>/api/v1/exports/ag-compliance</code> produces an immutable cryptographic hash chain stored in PostgreSQL:
+            Every attestation from <code>/api/v1/exports/ag-compliance</code> is hashed <strong>and digitally signed</strong>. The signed bytes and the signature are stored beside the hash, so verification is a real signature check rather than a database-existence test.
           </p>
           <div style="background: rgba(0,0,0,0.4); padding: 0.8rem; border-radius: 8px; margin-top: 0.8rem; font-family: var(--font-mono); font-size: 0.72rem; color: var(--gold);">
-            {<br>
-            &nbsp;&nbsp;"actor": "compliance@example.com",<br>
-            &nbsp;&nbsp;"scope": "home-affairs-digital",<br>
-            &nbsp;&nbsp;"sha256": "4f9a2c88e7b10...d3e1",<br>
-            &nbsp;&nbsp;"valid": true<br>
-            }
+            <strong>"signing_algorithm"</strong>: "ECDSA_P256_SHA256",<br>
+            <strong>"key_id"</strong>: "baa30ac535769463",<br>
+            <strong>"integrity_hash"</strong>: "8a1e038b6139c6...a28d374",<br>
+            <strong>"policy_version"</strong>: "ag-export-v2",<br>
+            <strong>"scope_hash"</strong>: "6f2a91c0...e4d7",<br>
+            <strong>"valid"</strong>: true,<br>
+            <strong>"reason_code"</strong>: "signature_valid"
           </div>
           <p class="card-body" style="margin-top: 0.75rem;">
-            Verifiable on demand via <code>GET /api/v1/exports/ag-compliance/verify/{hash}</code>.
+            <strong>Three independent checks</strong>, all required: re-hashing the stored bytes reproduces the recorded hash; the ECDSA signature validates over exactly those bytes; the record is complete. Any one failing yields <code>valid: false</code> &mdash; a missing signature is a <em>failure</em>, never a pass.
           </p>
         </div>
         <div class="card accent-cyan">
-          <h3 class="card-title">POPIA & Privacy Safeguards</h3>
-          <ul style="padding-left: 1.2rem; font-size: 0.85rem; color: var(--text-muted); line-height: 1.7; margin-top: 0.5rem;">
-            <li><strong>Automated PII Redaction</strong>: Citizen ID numbers, personal email addresses, and employee names are stripped from public exports.</li>
-            <li><strong>Aggregation-Only Control Scores</strong>: External audit packs receive pass/fail compliance percentages rather than raw exploit payloads.</li>
-            <li><strong>Immutable Action Audit Log</strong>: Every export request, tenant switch, and administrative update writes to the <code>audit.action_audit</code> warehouse ledger.</li>
+          <div class="card-num">OFFLINE VERIFIABLE &middot; NO TRUST REQUIRED</div>
+          <h3 class="card-title">Cryptographic Properties</h3>
+          <ul style="padding-left: 1.2rem; font-size: 0.84rem; color: var(--hi); margin-top: 0.5rem; line-height: 1.7;">
+            <li><strong>Public key published</strong> at <code>/exports/ag-compliance/public-key</code> as X.509 SubjectPublicKeyInfo PEM &mdash; an auditor verifies with the public key alone, never the signing key.</li>
+            <li><strong>Key fingerprinting</strong>: SHA-256 over the DER public key; the first 16 hex chars are the <code>key_id</code>, so a verifier can detect key rotation after the fact.</li>
+            <li><strong>Reproducible</strong>: no wall-clock value inside the signed bytes, so identical data yields an identical hash <em>and</em> an identical signature.</li>
+            <li><strong>All-or-nothing verification</strong> across every row carrying a hash &mdash; one forged record fails the whole attestation rather than being skipped by first-match.</li>
+            <li><strong>Append-only ledger</strong>: UPDATE/DELETE/TRUNCATE rejected at the database, plus a guard that fails loudly if the trigger is ever disabled.</li>
+            <li><strong>Scope-bound</strong>: each record binds actor, role, policy version and scope hash, so it answers <em>who</em>, under <em>what authority</em>, at <em>which version</em>.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="grid-2" style="margin-top: 1rem;">
+        <div class="card accent-gold">
+          <h3 class="card-title">POPIA &amp; Privacy Safeguards</h3>
+          <ul style="padding-left: 1.2rem; font-size: 0.84rem; color: var(--hi); margin-top: 0.5rem; line-height: 1.7;">
+            <li><strong>Aggregation-only by construction</strong>: the signed body carries control status/severity distributions and scope metrics &mdash; never raw findings, exploit payloads or per-asset rows.</li>
+            <li><strong>Identity numbers encrypted at rest</strong> with AES-256-GCM at the column layer; masked on every output path via a single central PII policy.</li>
+            <li><strong>Access-audited</strong>: exports, tenant switches, privilege changes and reads of person records each append a signed row.</li>
+          </ul>
+        </div>
+        <div class="card accent-sapphire">
+          <div class="card-num">ENCRYPTION AT REST &amp; KEY CUSTODY</div>
+          <h3 class="card-title">Data Protection Controls</h3>
+          <ul style="padding-left: 1.2rem; font-size: 0.84rem; color: var(--hi); margin-top: 0.5rem; line-height: 1.7;">
+            <li><strong>Identity numbers encrypted at rest</strong> with AES-256-GCM, applied transparently at the column layer &mdash; a database dump no longer exposes them. The GCM tag is bound to the column, so a ciphertext moved between employees' rows fails to decrypt rather than authenticating silently.</li>
+            <li><strong>Signing keys are static in production.</strong> The platform refuses to start rather than mint an ephemeral attestation key that would change every deploy and silently invalidate prior attestations.</li>
+            <li><strong>Transport is separate and explicit</strong>: TLS 1.3 at the edge; session tokens are HS256 JWTs, distinct from the ECDSA attestation key.</li>
+            <li><strong>Scope is not legal compliance.</strong> A verifiable signature proves an attestation was not altered; it is not evidence that the underlying controls are effective, nor that POPIA s.57 authorisation has been obtained.</li>
+            <li><strong>Residual</strong>: the rest of the person record &mdash; name, work phone, email, clearance &mdash; is personal information but not encrypted at rest; minimisation and output masking are the controls there.</li>
           </ul>
         </div>
       </div>
     </div>
 
-    <!-- SLIDE 9: PROVINCIAL PEER BLINDING -->
-    <div class="slide" data-index="9">
+    <!-- SLIDE 10: PROVINCIAL PEER BLINDING -->
+    <div class="slide" data-index="10">
       <div class="slide-tag">Inter-Governmental Analytics</div>
       <h2 class="slide-title">Provincial Peer Blinding: <span class="hl-sapphire">Collaborative Posture</span></h2>
       <p class="slide-desc">
@@ -874,8 +1038,8 @@
       </div>
     </div>
 
-    <!-- SLIDE 10: QUALITY GATES & TEST METRICS -->
-    <div class="slide" data-index="10">
+    <!-- SLIDE 11: QUALITY GATES & TEST METRICS -->
+    <div class="slide" data-index="11">
       <div class="slide-tag">Quality Assurance & Certification</div>
       <h2 class="slide-title">Test Exit Criteria (TEC): <span class="hl-emerald">100% Quality Gate Pass</span></h2>
       <p class="slide-desc">
@@ -931,8 +1095,8 @@
       </table>
     </div>
 
-    <!-- SLIDE 11: PRODUCTION ROADMAP -->
-    <div class="slide" data-index="11">
+    <!-- SLIDE 12: PRODUCTION ROADMAP -->
+    <div class="slide" data-index="12">
       <div class="slide-tag">Execution Strategy & Next Phases</div>
       <h2 class="slide-title">National Rollout Plan: <span class="hl-gold">Phase 1 to Phase 3</span></h2>
       <p class="slide-desc">
@@ -969,8 +1133,8 @@
       </div>
     </div>
 
-    <!-- SLIDE 12: BOARD DECISION REQUEST -->
-    <div class="slide" data-index="12">
+    <!-- SLIDE 13: BOARD DECISION REQUEST -->
+    <div class="slide" data-index="13">
       <div class="slide-tag">Decision & Governance Sign-Off</div>
       <h2 class="slide-title">Board Recommendation: <span class="hl-emerald">Accept PoC & Advance to Production</span></h2>
       <p class="slide-desc">
@@ -1004,7 +1168,7 @@
         </div>
       </div>
       <div style="text-align: center;">
-        <a href="http://localhost:3000" target="_blank" class="btn-ctrl" style="display: inline-flex; font-size: 1rem; padding: 10px 24px; border-color: var(--gold); color: var(--gold); background: rgba(245,158,11,0.15);">
+        <a href="http://localhost:3000" target="_blank" rel="noopener noreferrer" class="btn-ctrl" style="display: inline-flex; font-size: 1rem; padding: 10px 24px; border-color: var(--gold); color: var(--gold); background: rgba(245,158,11,0.15);">
           Launch Live SITA Security Platform ➔
         </a>
       </div>
@@ -1055,7 +1219,31 @@
 
         currentSlideNum.textContent = current + 1;
         progressFill.style.width = ((current + 1) / total * 100) + '%';
+
+        updateScrollability(slides[current]);
       }
+
+      /* Toggle internal scrolling on a slide whose content overflows it.
+         Measured with justify-content:flex-start so the measurement matches
+         the scrolled layout rather than the centred one — under centring, an
+         overflowing slide reports no scroll range and the top stays unreachable. */
+      function updateScrollability(slide) {
+        if (!slide) return;
+        slide.classList.add('slide-measuring');
+        const needsScroll = slide.scrollHeight > slide.clientHeight + 4;
+        slide.classList.remove('slide-measuring');
+
+        slide.classList.toggle('slide-scroll', needsScroll);
+        if (!needsScroll) slide.scrollTop = 0;
+      }
+
+      /* Re-measure the active slide on resize, since the available height
+         changes with the viewport. */
+      let resizeTimer = null;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => updateScrollability(slides[current]), 120);
+      });
 
       function nextSlide() { updateSlide(current + 1); }
       function prevSlide() { updateSlide(current - 1); }
@@ -1105,6 +1293,16 @@
 
       // Keyboard navigation
       window.addEventListener('keydown', (e) => {
+        // Vertical arrows scroll the active slide when it overflows; otherwise
+        // they fall through untouched, preserving the existing bindings.
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          const active = slides[current];
+          if (active && active.classList.contains('slide-scroll')) {
+            e.preventDefault();
+            active.scrollTop += (e.key === 'ArrowDown' ? 1 : -1) * 90;
+            return;
+          }
+        }
         if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
           e.preventDefault();
           nextSlide();
@@ -1135,6 +1333,35 @@
         if (touchEndX < touchStartX - 50) nextSlide();
         if (touchEndX > touchStartX + 50) prevSlide();
       }, { passive: true });
+
+      // Mouse wheel: scroll within an overflowing slide, then advance once the
+      // slide reaches its edge. Trackpad momentum emits a long burst of events,
+      // so advancing is debounced to avoid skipping several slides at once.
+      let wheelLock = 0;
+      window.addEventListener('wheel', (e) => {
+        const active = slides[current];
+        const scrollingDown = e.deltaY > 0;
+
+        if (active && active.classList.contains('slide-scroll')) {
+          const atTop = active.scrollTop <= 0;
+          const atBottom = active.scrollTop + active.clientHeight >= active.scrollHeight - 1;
+          const hasRoom = scrollingDown ? !atBottom : !atTop;
+          if (hasRoom) {
+            e.preventDefault();
+            active.scrollTop += e.deltaY;
+            return;
+          }
+        }
+
+        const now = Date.now();
+        if (now - wheelLock < 650) return;
+        wheelLock = now;
+        if (scrollingDown) nextSlide(); else prevSlide();
+      }, { passive: false });
+
+      // Initial measurement: slide 1 is marked .active in the markup rather than
+      // via updateSlide(), so without this its scroll state is never evaluated.
+      updateScrollability(slides[0]);
     })();
   </script>
 </body>

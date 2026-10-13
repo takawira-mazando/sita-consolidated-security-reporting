@@ -79,10 +79,12 @@ class TestCredentialAndSecretGuardrails:
             jwt_secret="strong-entropy-secret-key-12345678901234567890",
             bootstrap_admin_password="K8#vP9$mQ2!wZ5*rL1^yT7&nB3@xS6",
             seed_demo_users_enabled=False,
+            pii_encryption_key="yT4+g0PLabEdGYd3EXWOCunKX3g8jvPYvYW4QaSTpBc=",
         )
         assert s.environment == "production"
         assert s.bootstrap_admin_password == "K8#vP9$mQ2!wZ5*rL1^yT7&nB3@xS6"
         assert s.seed_demo_users_enabled is False
+        assert s.pii_encryption_key == "yT4+g0PLabEdGYd3EXWOCunKX3g8jvPYvYW4QaSTpBc="
 
     def test_dev_environment_allows_local_defaults(self):
         """In local development profile, default dev credentials remain permissible for rapid testing."""

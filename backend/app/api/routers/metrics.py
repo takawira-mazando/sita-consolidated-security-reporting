@@ -296,7 +296,7 @@ async def get_slo_metrics(
 @router.get("/metrics/sre/system")
 async def get_system_metrics(
     session: AsyncSession = Depends(get_session),
-    claims = Depends(require_roles("dashboard")),
+    claims = Depends(require_roles("sre", "admin_read")),
 ):
     rows = (await session.execute(select(SystemMetric).order_by(SystemMetric.recorded_at.desc()))).scalars().all()
     items = [
@@ -318,7 +318,7 @@ async def get_system_metrics(
 @router.get("/metrics/sre/agents")
 async def get_agents(
     session: AsyncSession = Depends(get_session),
-    claims = Depends(require_roles("dashboard")),
+    claims = Depends(require_roles("sre", "admin_read")),
 ):
     rows = (await session.execute(select(Agent).order_by(Agent.name))).scalars().all()
     items = [

@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 from math import ceil
 from typing import Any, Mapping
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -398,8 +398,8 @@ async def get_connectors(
 @router.get("/dead-letter")
 async def get_dead_letter(
     source: str | None = None,
-    page: int = 1,
-    size: int = 20,
+    page: int = Query(default=1, ge=1, le=10000),
+    size: int = Query(default=20, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("admin_read")),
 ):
@@ -478,8 +478,8 @@ async def reprocess_dlq(
 @router.get("/users", response_model=dict)
 async def list_users(
     request: Request,
-    page: int = 1,
-    size: int = 20,
+    page: int = Query(default=1, ge=1, le=10000),
+    size: int = Query(default=20, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("admin_read")),
 ):
@@ -896,8 +896,8 @@ async def list_persons(
     q: str | None = None,
     source: str | None = None,
     employment_status: str | None = None,
-    page: int = 1,
-    size: int = 50,
+    page: int = Query(default=1, ge=1, le=10000),
+    size: int = Query(default=50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("admin_read")),
 ):
@@ -906,7 +906,9 @@ async def list_persons(
     page = max(page, 1)
     filters = []
     if q:
-        like = f"%{q.lower()}%"
+        if "\x00" in q or "%00" in q:
+            raise HTTPException(status_code=400, detail="Invalid character in search query")
+        like = f"%{q.strip().lower()}%"
         filters.append(
             Person.employee_number.ilike(like)
             | Person.surname.ilike(like)
@@ -915,9 +917,13 @@ async def list_persons(
             | Person.job_title.ilike(like)
         )
     if source:
-        filters.append(Person.source == source)
+        if "\x00" in source or "%00" in source:
+            raise HTTPException(status_code=400, detail="Invalid character in source parameter")
+        filters.append(Person.source == source.strip())
     if employment_status:
-        filters.append(Person.employment_status == employment_status)
+        if "\x00" in employment_status or "%00" in employment_status:
+            raise HTTPException(status_code=400, detail="Invalid character in employment_status parameter")
+        filters.append(Person.employment_status == employment_status.strip())
     scope = tenant_filter(claims, Person)
     if scope is not None:
         filters.append(scope)

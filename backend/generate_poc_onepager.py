@@ -1,6 +1,6 @@
 """Generate the executive POC one-pager Word document.
 
-Source of truth is markdown_docs/POC_ONE_PAGER.md. Renders a compact,
+Source of truth is docs/POC_ONE_PAGER.md. Renders a compact,
 board-ready .docx (Calibri, accent headings, Light Grid Accent tables) using
 the same conventions as generate_system_doc.py.
 """
@@ -12,7 +12,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.shared import Inches, Pt, RGBColor
 
-SRC = r"C:\sita-platform\markdown_docs\POC_ONE_PAGER.md"
+SRC = r"C:\sita-platform\docs\POC_ONE_PAGER.md"
 OUT = r"C:\sita-platform\POC_ONE_PAGER.docx"
 
 ACCENT = RGBColor(0x1F, 0x4E, 0x79)

@@ -93,7 +93,11 @@ async def login_rate_limit(request: Request) -> None:
 DEMO_ROLE_MAP = {account["role"]: account for account in DEMO_ACCOUNTS}
 
 
+from pydantic import BaseModel, ConfigDict
+
+
 class LoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     email: str
     password: str
     department_id: str | None = None
@@ -102,12 +106,14 @@ class LoginRequest(BaseModel):
 
 
 class SwitchTenantRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     department_id: str | None = None
     branch_id: str | None = None
     province_id: str | None = None
 
 
 class DemoLoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
     role: str
     department_id: str | None = None
     branch_id: str | None = None

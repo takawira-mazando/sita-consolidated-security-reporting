@@ -1,6 +1,6 @@
 """Generate a styled, self-contained HTML one-pager for the executive POC.
 
-Source of truth is markdown_docs/POC_ONE_PAGER.md. The markdown -> HTML
+Source of truth is docs/POC_ONE_PAGER.md. The markdown -> HTML
 rendering is reused from generate_system_doc_html so both documents stay
 consistent; only the page chrome and CSS differ (executive one-pager layout,
 A4 print rules).
@@ -9,7 +9,7 @@ import re
 
 from generate_system_doc_html import render  # reuse the shared renderer
 
-SRC = r"C:\sita-platform\markdown_docs\POC_ONE_PAGER.md"
+SRC = r"C:\sita-platform\docs\POC_ONE_PAGER.md"
 OUT = r"C:\sita-platform\POC_ONE_PAGER.html"
 
 CSS = """
@@ -140,7 +140,7 @@ def main():
 </header>
 {body}
 <footer>All figures verified live against the running platform &middot;
-generated from <code>markdown_docs/POC_ONE_PAGER.md</code> &middot;
+generated from <code>docs/POC_ONE_PAGER.md</code> &middot;
 <a href="POC_ONE_PAGER.docx">Download Word version</a></footer>
 <script>{JS}</script>
 </body>

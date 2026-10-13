@@ -887,7 +887,7 @@
       <h3>&#128279; Scoping &amp; Isolation Rules</h3>
       <ul>
         <li><strong>Tier 4 &mdash; SITA Command Center</strong> (<code>admin@</code>, <code>operator@</code>): Overarching transversal authority across all 173 departments, 9 provinces, and 347 branches. Unrestricted superadmin provisioning down the entire cascade.</li>
-        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation (0&ndash;100), and Auditor-General compliance export with cryptographic SHA-256 hash chains.</li>
+        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation (0&ndash;100), and Auditor-General compliance export with <strong>ECDSA NIST P-256 digital signatures</strong> verifiable offline.</li>
         <li><strong>Tier 2 &mdash; Departmental &amp; Provincial</strong> (<code>dept-admin</code>, <code>deptadmin-ha</code>, <code>provincesoc</code>): Tactical operations scoped strictly to the assigned department (e.g., DHA) or province (Gauteng). Provincial peer blinding ensures provinces compare posture without leaking peer vulnerability details or PII.</li>
         <li><strong>Tier 1 &mdash; Operational Branch Tier</strong> (<code>branch-admin</code>, <code>branchadmin-ha</code>, <code>soc-ha</code>, <code>appsec-ha</code>, <code>dbsec-ha</code>): Granular remediation locked strictly to the assigned DDG branch (e.g. <code>dha-digital</code>, <code>dha-civic</code>).</li>
         <li><strong>Write-Time Denormalisation</strong>: Every warehouse row carries <code>department_id</code> and <code>branch_id</code> at ingestion; <code>tenant_filter()</code> enforces zero cross-tenant data leakage on all queries.</li>
@@ -905,6 +905,87 @@
         </tbody>
       </table>
       <p><em>Enforced on every user mutation in <code>backend\app\api\routers\admin.py</code> (<code>_validate_scope</code>, <code>can_manage</code>) and verified in <code>tests/test_tenancy.py</code> (84/84 passed).</em></p>
+
+      <h3>&#128188; SITA &amp; Government HR System Integration</h3>
+      <p>The platform sits at a strict boundary between two very different kinds of record. This distinction governs the whole integration and is the single most important thing to get right when reading the identity code.</p>
+
+      <table class="table">
+        <thead><tr><th>Record Class</th><th>Where It Originates</th><th>Authority</th><th>Where It Lives Here</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Employee / person attributes</strong><br/><span class="dim">name, title, org unit, work phone, location, clearance, employment status</span></td>
+            <td>Government HR systems &mdash; <strong>PERSAL</strong> (National Treasury), departmental SCIM/ERP feeds, and SITA's own SAP HCM</td>
+            <td><strong>SITA Command Center</strong> is the consuming authority. The platform is <strong>not</strong> the source of truth.</td>
+            <td><code>hr.employees</code> (read-only mirror) <span class="flow-arrow">&rarr;</span> <code>identity.persons</code></td>
+          </tr>
+          <tr>
+            <td><strong>Role, account &amp; tenancy scope</strong><br/><span class="dim">roles[], department_ids[], branch_ids[], province_ids[]</span></td>
+            <td><strong>Created in this platform</strong>, by delegated authority</td>
+            <td>Admins at the caller's own tier only &mdash; one-way delegation, no self-elevation</td>
+            <td><code>identity.users</code> &mdash; 54 accounts, 28 distinct roles, 17 estate-wide</td>
+          </tr>
+        </tbody>
+      </table>
+      <p><em>No platform account currently originates from a person record</em> (<code>identity.users.person_id</code> is NULL on all 54 rows). HR sync never writes roles or scopes, and the account-provisioning path never mutates HR-sourced attributes. The two are joined by reference, never by copy-authority.</p>
+
+      <h4 style="margin-top:1.4rem;">&#127279; Employment Identifier Model</h4>
+      <p>The South African public service identifies the same human three different ways. Conflating them causes real defects &mdash; an account provisioned against a feed's own reference silently stops resolving when the feed switches to PERSAL &mdash; so every identifier is stored <strong>scheme-qualified</strong> in <code>identity.employment_identifier</code>.</p>
+      <table class="table">
+        <thead><tr><th>Scheme</th><th>Form</th><th>Authority / System</th><th>Identifies</th><th>Lifecycle Note</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><code>persal</code></td>
+            <td>exactly <strong>8 digits</strong></td>
+            <td>National Treasury &mdash; PERSAL (Personnel &amp; Salary Administration), the national transversal HR/payroll system for central government, provincial administrations, SAPS, Education and Correctional Services</td>
+            <td>the <strong>employment</strong></td>
+            <td>Bound to the employment record, <em>not</em> the person. A transfer keeps it; a resignation and reappointment yields a new one.</td>
+          </tr>
+          <tr>
+            <td><code>sap_personnel</code></td>
+            <td>4&ndash;20 alphanumeric</td>
+            <td>SITA's SAP HCM estate; the scheme the <strong>IFMS HR module</strong> (joint DPSA / National Treasury / SITA, payroll excluded) will carry nationally as it modernises the transversal HR estate</td>
+            <td>the <strong>employment</strong></td>
+            <td>SAP numbering is client-defined and varies per installation &mdash; validate against the live feed before enforcing in production.</td>
+          </tr>
+          <tr>
+            <td><code>internal_hr</code></td>
+            <td>3&ndash;64 chars</td>
+            <td>The originating feed itself</td>
+            <td>the <strong>employment</strong></td>
+            <td>Used for feeds carrying no national scheme, including the simulated HR stand-in.</td>
+          </tr>
+          <tr style="opacity:.72;">
+            <td><code>id_number</code><br/><span class="dim">(deliberately excluded)</span></td>
+            <td>13 digits</td>
+            <td>Home Affairs &mdash; the population register</td>
+            <td>the <strong>person</strong></td>
+            <td><strong>Not an employment identifier.</strong> Retained only on <code>identity.persons.id_number</code>, under the masking controls in <code>app/pii.py</code>.</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="file-list" style="margin-top:.9rem;"><span class="file-tag">app/employment.py</span><span class="file-tag">models/person.py</span><span class="file-tag">api/routers/admin.py</span><span class="file-tag">init-db.sql</span><span class="file-tag">maintenance.sql</span><span class="file-tag">tests/test_employment_identifiers.py</span><span class="file-tag">scripts/gen_hr_branch_employees.py</span></div>
+
+      <h4 style="margin-top:1.4rem;">&#128260; Ingestion Pipeline</h4>
+      <p><code>PERSAL / SCIM / SAP HCM feed</code> <span class="flow-arrow">&rarr;</span> <code>hr.employees</code> (mirror) <span class="flow-arrow">&rarr;</span> <code>_upsert_hr_records()</code> <span class="flow-arrow">&rarr;</span> <code>identity.persons</code> + <code>identity.employment_identifier</code> <span class="flow-arrow">&rarr;</span> <code>identity.users</code> (link by reference only)</p>
+      <ul>
+        <li><strong>Two entry points, one pipeline.</strong> <code>POST /admin/hr/sync</code> (push) and <code>POST /admin/hr/sim/sync</code> (pull from the simulated stand-in) both converge on <code>_upsert_hr_records()</code>, so every validation and tenant-scoping rule applies identically either way.</li>
+        <li><strong>Idempotent re-ingest.</strong> An identifier already bound to the same person is reused, not duplicated. A government identifier already bound to a <em>different</em> person is refused &mdash; two officials can never share a PERSAL number, and silently reassigning would move one person's employment history onto another.</li>
+        <li><strong>Ambiguity is never guessed.</strong> <code>classify()</code> returns <code>None</code> for an unrecognised shape rather than coercing it into a scheme, so a malformed feed value surfaces as a question instead of being silently misfiled.</li>
+        <li><strong>Identity-number guard.</strong> A 13-digit SA ID structurally satisfies both the <code>internal_hr</code> and <code>sap_personnel</code> patterns. <code>looks_like_sa_id_number()</code> validates the <code>YYMMDD</code> prefix and the Luhn check digit, and every scheme rejects such a value &mdash; preventing a Home Affairs identity number from ever being ingested as an employment identifier.</li>
+        <li><strong>Termination cascades softly.</strong> A separated employee is soft-disabled (<code>is_active=false</code>) on any linked account rather than deleted, preserving the audit trail.</li>
+      </ul>
+
+      <h4 style="margin-top:1.4rem;">&#128274; Internal key vs. government identifier</h4>
+      <p><code>identity.users.person_id</code> remains an <strong>internal UUID</strong>. A government identifier is an <em>attribute</em> of an account, never its primary key &mdash; so a corrected or reissued PERSAL number does not require re-keying an account or rewriting audit history that references it. Resolution runs in the other direction: <code>GET /admin/persons/by-identifier?scheme=&amp;value=</code> maps a government number to a person, and <code>GET /admin/employment/schemes</code> publishes the validation rules so an operator sees the expected format before hitting a 400.</p>
+
+      <h4 style="margin-top:1.4rem;">&#9878;&#65039; Privacy posture &amp; retention</h4>
+      <ul>
+        <li><strong>POPIA.</strong> Employee and role data is personal information under s.13(c). A PERSAL number, employee number and telephone number are all <em>unique identifiers</em> per the Information Regulator's guidance. Linking person records across the department-tenancy estate engages <strong>s.57(1)(a) prior authorisation</strong>, which must be obtained from the Information Regulator &mdash; a legal action, not a code action. Note that identity numbers are <em>not</em> "special personal information": s.26 enumerates beliefs, race, trade union, political, health/sex life, biometric and criminal behaviour, none of which are stored.</li>
+        <li><strong>Masking on every output path.</strong> <code>app/pii.py</code> holds the single classification and masking policy, applied to whole response dicts so a newly-classified field is protected automatically rather than only where remembered.</li>
+        <li><strong>Retention.</strong> <code>maintenance.sql</code> tombstones separated-employee records at 90 days and erases dormant credentials at 30 days. Note that <code>pg_cron</code> is <strong>not available on the EDB Windows PostgreSQL build</strong> (it ships no <code>pg_cron</code> extension), so these jobs are inert on a Windows-hosted instance; the equivalent scheduling already exists in-process via APScheduler.</li>
+        <li><strong>Reconciliation.</strong> DPSA operates a Public Servant Verification service (13-digit ID &rarr; employed yes/no + department) usable to cross-check feed integrity &mdash; but it <strong>explicitly excludes the State Security Agency</strong>, which matters given the <code>ssa-ncc</code> tenant.</li>
+      </ul>
     </div>
   </div>
 </div>
@@ -1699,7 +1780,7 @@ const details = {
       <h3>Scoping &amp; Security Isolation</h3>
       <ul>
         <li><strong>Tier 4 &mdash; SITA Superadmins</strong> (<code>admin@</code>, <code>operator@</code>): Overarching transversal authority across all 173 departments and 9 provinces. Unrestricted superadmin provisioning down the entire cascade.</li>
-        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation, and AG compliance export with SHA-256 integrity hash verification.</li>
+        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation, and AG compliance export with <strong>ECDSA NIST P-256 digital signatures</strong> verifiable offline.</li>
         <li><strong>Tier 2 &mdash; Department &amp; Provincial Admins</strong> (<code>dept-admin</code>, <code>provincesoc</code>): Tactical operations scoped strictly to the assigned department (e.g. DHA) or province. Provincial peer blinding prevents cross-tenant leakage.</li>
         <li><strong>Tier 1 &mdash; Branch Superadmins &amp; Specialists</strong> (<code>branch-admin</code>, <code>soc</code>, <code>appsec</code>, <code>dbsec</code>): Operational triage strictly confined to the assigned DDG branch (e.g. <code>dha-digital</code>).</li>
         <li><strong>Write-Time Denormalisation</strong>: Every warehouse record carries <code>department_id</code> and <code>branch_id</code> at ingestion; <code>tenant_filter()</code> guarantees zero cross-tenant leakage.</li>
@@ -1756,7 +1837,7 @@ const details = {
   },
   exportsag: {
     title: 'Auditor-General Compliance Export Engine',
-    badge: 'signed aggregation &middot; SHA-256 audit trail',
+    badge: 'signed aggregation &middot; ECDSA P-256',
     body: String.raw`
       <p><strong>Purpose:</strong> Produce an Auditor-General-grade <strong>aggregation-only</strong> compliance attestation with tamper-evident integrity. Implemented in <code>C:\sita-platform\backend\app\api\routers\exports_ag.py</code> as <code>POST /api/v1/exports/ag-compliance</code>.</p>
       <div class="file-list"><span class="file-tag">exports_ag.py</span><span class="file-tag">models/audit.py</span><span class="file-tag">tests/test_exports_ag.py</span><span class="file-tag">tests/test_new_endpoints.py</span></div>
@@ -1769,7 +1850,7 @@ const details = {
       <h3>Integrity &amp; accountability</h3>
       <ul>
         <li><strong>Aggregation-only</strong> &mdash; raw findings, vulnerability counts, logs and PII are stripped; the payload carries a provenance statement to that effect.</li>
-        <li><strong>SHA-256 integrity hash</strong> &mdash; computed over the canonical JSON of the attestation and returned as <code>integrity_hash</code> alongside a <code>verify_url</code> (<code>GET /api/v1/exports/ag-compliance/verify/{hash}</code>).</li>
+        <li><strong>SHA-256 integrity hash</strong> over the canonical JSON of the attestation, returned as <code>integrity_hash</code> with a <code>verify_url</code> (<code>GET /api/v1/exports/ag-compliance/verify/{hash}</code>). The hash is <em>not</em> the whole guarantee: the attestation is also signed <strong>ECDSA NIST P-256</strong> (<code>ECDSA_P256_SHA256</code>), and the signed bytes plus signature are persisted so verification recomputes the hash <em>and</em> validates the signature against the published public key.</li>
         <li><strong>Immutable action audit</strong> &mdash; every export writes one <code>audit.action_audit</code> row (actor, action, tenant scope, payload hash) via <code>C:\sita-platform\backend\app\models\audit.py</code>, giving non-repudiation. Table created in <code>C:\sita-platform\infrastructure\scripts\init-db.sql</code> and <code>C:\sita-platform\backend\_migrate_province.py</code>.</li>
       </ul>
     `

@@ -1,0 +1,1389 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SITA x AIMI â€” Novel AI Value Propositions</title>
+<style>
+:root {
+  --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
+  --muted: #8b949e; --accent: #f0883e; --amber: #f0c674; --blue: #79c0ff; --green: #7ee787;
+  --code: #1f2937; --red: #ff7b72; --violet: #d2a8ff;
+}
+html[data-theme="light"] {
+  --bg: #fafbfc; --panel: #ffffff; --border: #d0d7de; --text: #1f2328;
+  --muted: #6e7781; --accent: #cf5c19; --amber: #7a5d00; --blue: #0969da; --green: #1a7f37;
+  --code: #f6f8fa; --red: #cf222e; --violet: #8250df;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg); color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+  line-height: 1.65; padding: 2rem 1rem 4rem; max-width: 1040px; margin: 0 auto;
+}
+header {
+  border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem;
+  display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem;
+}
+header h1 { font-size: 1.6rem; color: var(--accent); line-height: 1.25; }
+header .sub { color: var(--muted); font-size: 0.95rem; margin-top: 0.4rem; }
+header .meta { color: var(--muted); font-size: 0.82rem; margin-top: 0.6rem; }
+header .meta code { font-size: 0.95em; }
+button {
+  background: var(--panel); color: var(--amber); border: 1px solid var(--border);
+  border-radius: 8px; padding: 0.45rem 0.8rem; cursor: pointer; font-weight: 700;
+  white-space: nowrap;
+}
+button:hover { border-color: var(--accent); }
+h1 { font-size: 1.55rem; color: var(--accent); margin: 1.8rem 0 0.6rem; }
+h2 { font-size: 1.3rem; color: var(--accent); margin: 2rem 0 0.5rem;
+     padding-top: 0.4rem; border-top: 1px solid var(--border); }
+h3 { font-size: 1.08rem; color: var(--amber); margin: 1.4rem 0 0.4rem; }
+h4 { font-size: 1rem; color: var(--violet); margin: 1.1rem 0 0.35rem; }
+h2:first-of-type { border-top: none; }
+p { margin: 0.55rem 0; }
+ul, ol { margin: 0.5rem 0 0.6rem 1.5rem; }
+li { margin: 0.28rem 0; }
+li > ul, li > ol { margin: 0.2rem 0 0.2rem 0.2rem; }
+strong { color: var(--amber); }
+em { color: var(--violet); }
+code {
+  background: var(--code); border: 1px solid var(--border); border-radius: 5px;
+  padding: 0.1rem 0.35rem; font-size: 0.86em; font-family: Consolas, monospace;
+}
+pre { background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem; overflow-x: auto; margin: 0.8rem 0; position: relative; }
+pre code { background: none; border: none; padding: 0; font-size: 0.84rem; }
+pre .lang {
+  position: absolute; top: 0.45rem; right: 0.6rem; color: var(--muted);
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+  font-family: -apple-system, sans-serif;
+}
+blockquote {
+  margin: 0.8rem 0; padding: 0.7rem 1rem; border-left: 3px solid var(--accent);
+  background: var(--panel); border-radius: 0 8px 8px 0; color: var(--text);
+}
+blockquote pre { background: var(--code); }
+table { border-collapse: collapse; width: 100%; margin: 0.85rem 0; font-size: 0.9rem;
+        display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--border); padding: 0.45rem 0.65rem;
+         text-align: left; vertical-align: top; }
+th { background: var(--panel); color: var(--amber); font-weight: 700; }
+tr:nth-child(even) td { background: rgba(127,127,127,0.06); }
+hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+a { color: var(--blue); }
+.badge { display: inline-block; padding: 0.1rem 0.5rem; border-radius: 999px;
+         font-size: 0.8rem; font-weight: 700; border: 1px solid; }
+.badge strong { color: inherit; }
+.b-good  { color: var(--green); border-color: var(--green);
+           background: rgba(46,160,67,0.12); }
+.b-warn  { color: var(--amber); border-color: var(--amber);
+           background: rgba(240,198,116,0.12); }
+.b-bad   { color: var(--red); border-color: var(--red);
+           background: rgba(248,81,73,0.12); }
+.b-dim   { color: var(--muted); border-color: var(--muted);
+           background: rgba(139,148,158,0.12); }
+ul.toc { list-style: none; margin-left: 0; columns: 2; column-gap: 2rem; }
+ul.toc li { margin: 0.15rem 0; break-inside: avoid; }
+ul.toc .toc-l3 { padding-left: 0.9rem; font-size: 0.9rem; }
+ul.toc .toc-l4 { padding-left: 1.6rem; font-size: 0.85rem; color: var(--muted); }
+
+/* --- Plain English trigger on each AVP heading --- */
+.plain-btn {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  margin-left: 0.6rem; padding: 0.1rem 0.6rem 0.15rem;
+  background: transparent; color: var(--blue);
+  border: 1px solid var(--blue); border-radius: 999px;
+  font-size: 0.62rem; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; vertical-align: middle;
+  cursor: pointer; white-space: nowrap; transition: background 0.12s, color 0.12s;
+}
+.plain-btn:hover, .plain-btn:focus-visible { background: var(--blue); color: var(--bg); }
+.plain-q {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 0.95rem; height: 0.95rem; border-radius: 50%;
+  border: 1px solid currentColor; font-size: 0.6rem; line-height: 1;
+}
+
+/* --- Modal --- */
+.modal { position: fixed; inset: 0; z-index: 100; display: flex;
+         align-items: center; justify-content: center; padding: 1.25rem; }
+.modal[hidden] { display: none; }
+.modal-backdrop { position: absolute; inset: 0; background: rgba(1, 4, 9, 0.72);
+                  backdrop-filter: blur(2px); }
+.modal-card {
+  position: relative; width: min(660px, 100%); max-height: 84vh; overflow-y: auto;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45); padding: 1.4rem 1.5rem;
+}
+.modal-head { display: flex; align-items: flex-start; gap: 0.7rem;
+              padding-bottom: 0.85rem; margin-bottom: 0.9rem;
+              border-bottom: 1px solid var(--border); }
+.modal-tag { flex: none; margin-top: 0.15rem; padding: 0.15rem 0.5rem;
+             border: 1px solid var(--accent); border-radius: 999px;
+             color: var(--accent); font-size: 0.68rem; font-weight: 700;
+             letter-spacing: 0.05em; }
+.modal-title { flex: 1; font-size: 1.15rem; color: var(--accent);
+               margin: 0; border: none; padding: 0; line-height: 1.3; }
+.modal-x { flex: none; background: none; border: 1px solid var(--border);
+           border-radius: 8px; color: var(--muted); cursor: pointer;
+           padding: 0.25rem 0.5rem; font-size: 0.75rem; line-height: 1; }
+.modal-x:hover { border-color: var(--red); color: var(--red); }
+.modal-body p { margin: 0 0 0.75rem; line-height: 1.7; }
+.modal-body p:last-child { margin-bottom: 0; }
+.modal-foot { margin-top: 1.1rem; padding-top: 0.85rem;
+              border-top: 1px solid var(--border); }
+.modal-src { font-size: 0.85rem; font-weight: 700; text-decoration: none; }
+.modal-src:hover { text-decoration: underline; }
+body.modal-open { overflow: hidden; }
+footer { border-top: 1px solid var(--border); margin-top: 2.5rem; padding-top: 1rem;
+         color: var(--muted); font-size: 0.85rem; }
+@media (max-width: 760px) {
+  body { padding: 1rem 0.75rem 3rem; }
+  header { flex-direction: column; }
+  ul.toc { columns: 1; }
+}
+@media print {
+  button, pre .lang { display: none; }
+  body { max-width: none; padding: 0; }
+  h2 { page-break-after: avoid; }
+  table, pre, blockquote { page-break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>SITA &times; AIMI â€” Novel AI Value Propositions</h1>
+    <div class="sub">Twelve value propositions beyond current reporting and beyond the committed
+      AI programme, plus an assessment of the proposed blue-team AI capability set</div>
+    <div class="meta">AVP-R1 &middot; prepared 12 October 2026 &middot; baseline
+      <code>eca4852</code> &middot; status: proposal, no code committed</div>
+  </div>
+  <button id="themeToggle" title="Toggle dark / light mode">&#127769; Theme</button>
+</header>
+<h2 id="contents">Contents</h2>
+<ul class='toc'>
+<li class="toc-l2"><a href="#index">Index</a></li>
+<li class="toc-l3"><a href="#the-residue-what-is-genuinely-impossible-without-a-model">The residue — what is genuinely impossible without a model</a></li>
+<li class="toc-l4"><a href="#the-five-that-survive">The five that survive</a></li>
+<li class="toc-l4"><a href="#the-seven-demoted-to-engineering">The seven demoted to engineering</a></li>
+<li class="toc-l4"><a href="#shipped-so-far-all-of-it-deterministic">Shipped so far — all of it deterministic</a></li>
+<li class="toc-l3"><a href="#premise-verification-every-proposition-checked-against-the-live-schema">Premise verification — every proposition checked against the live schema</a></li>
+<li class="toc-l2"><a href="#the-propositions">The propositions</a></li>
+<li class="toc-l3"><a href="#demoted-avp-1-control-scoring-from-telemetry-engineering-built">DEMOTED · AVP-1 · Control scoring from telemetry — engineering, built</a></li>
+<li class="toc-l3"><a href="#avp-2-authoring-alerting-rules-for-received-telemetry-the-only-part-that-needs-ai">AVP-2 · Authoring alerting rules for received telemetry — the only part that needs AI</a></li>
+<li class="toc-l3"><a href="#avp-3-attributing-a-threat-campaign-to-this-estate-the-only-part-that-needs-ai">AVP-3 · Attributing a threat campaign to this estate — the only part that needs AI</a></li>
+<li class="toc-l3"><a href="#demoted-avp-4-cross-oem-contradiction-detection-engineering-built">DEMOTED · AVP-4 · Cross-OEM contradiction detection — engineering, built</a></li>
+<li class="toc-l3"><a href="#avp-5-deciding-whether-popia-s22-is-triggered-the-only-part-that-needs-ai">AVP-5 · Deciding whether POPIA s.22 is triggered — the only part that needs AI</a></li>
+<li class="toc-l3"><a href="#demoted-avp-6-estate-ownership-and-concentration-graph-engineering-built">DEMOTED · AVP-6 · Estate ownership and concentration graph — engineering, built</a></li>
+<li class="toc-l3"><a href="#demoted-avp-7-prescriptive-peer-contrast-engineering-built">DEMOTED · AVP-7 · Prescriptive peer contrast — engineering, built</a></li>
+<li class="toc-l3"><a href="#avp-8-explaining-a-risk-movement-the-only-part-that-needs-ai">AVP-8 · Explaining a risk movement — the only part that needs AI</a></li>
+<li class="toc-l3"><a href="#demoted-avp-9-coverage-driven-hunts-engineering-built">DEMOTED · AVP-9 · Coverage-driven hunts — engineering, built</a></li>
+<li class="toc-l3"><a href="#demoted-avp-10-oem-coverage-and-agreement-attestation-engineering-built">DEMOTED · AVP-10 · OEM coverage and agreement attestation — engineering, built</a></li>
+<li class="toc-l3"><a href="#avp-11-reading-a-behavioural-sequence-the-only-part-that-needs-ai">AVP-11 · Reading a behavioural sequence — the only part that needs AI</a></li>
+<li class="toc-l3"><a href="#demoted-avp-12-dispute-ready-evidence-packets-engineering-built">DEMOTED · AVP-12 · Dispute-ready evidence packets — engineering, built</a></li>
+</ul>
+<h1 id="sita-x-aimi---the-twelve-value-propositions">SITA x AIMI - The Twelve Value Propositions</h1>
+
+<p><strong>One rule.</strong> Assembly, detection, scoring, correlation, comparison and signing are</p>
+
+<p>deterministic. A deliverable a template can emit is not AI, however much prose it</p>
+
+<p>contains. **Five propositions have a deliverable that cannot be produced by code. Seven do</p>
+
+<p>not, and three of those seven are already built.**</p>
+
+<p><strong>Marked <code>AI</code></strong> - requires a model. <strong>Marked <code>DEMOTED</code></strong> - engineering, most already shipped.</p>
+
+<p>The justification for each of the five, and the case for and against each, is in</p>
+
+<p><code>AI_INTEGRATION_REQUIREMENTS.md</code>.</p>
+
+<h2 id="index">Index</h2>
+
+<h3 id="the-residue-what-is-genuinely-impossible-without-a-model">The residue — what is genuinely impossible without a model</h3>
+
+<p>Each of the twelve was reduced to the single deliverable that <strong>cannot</strong> be produced by code the</p>
+
+<p>platform already owns. The test applied is deliberately strict:</p>
+
+<blockquote><strong>A deliverable a template can emit is not AI, however much prose it contains.</strong></blockquote>
+
+<p>On that test, <strong>five propositions have an AI residue and seven do not.</strong> Two of the seven were</p>
+
+<p>demoted specifically because their prose looked like AI work and failed on inspection — AVP-7's</p>
+
+<p>prescription and AVP-9's hunt narrative are both template-fillable from fields the platform</p>
+
+<p>already computes.</p>
+
+<h4 id="the-five-that-survive">The five that survive</h4>
+
+<table>
+<thead><tr><th></th><th>Residue — the irreducible deliverable</th><th>Gate</th></tr></thead>
+<tbody>
+<tr><td><strong>AVP-2</strong></td><td>Author an alerting rule for received telemetry: given a technique, decide which OEM source and normalised field evidences it, and emit a rule in the platform's own <code>alert_rules.yaml</code> shape</td><td><code>DETECTION_CONTENT</code></td></tr>
+<tr><td><strong>AVP-3</strong></td><td>Attribute an observed campaign to this estate: read threat reporting, judge whether it names this target sector, and map its technique set onto what this estate is exposed to</td><td><code>THREAT_ENRICHMENT</code></td></tr>
+<tr><td><strong>AVP-5</strong></td><td>Apply the POPIA s.22 statutory test to specific technical facts and decide whether the notification duty is triggered, then draft the notification for a human to approve</td><td><code>LEGAL_GUIDANCE</code></td></tr>
+<tr><td><strong>AVP-8</strong></td><td>Explain a computed risk movement in terms of external threat activity: which indicator, which campaign, and why that accounts for the movement the arithmetic already measured</td><td><code>THREAT_ENRICHMENT</code></td></tr>
+<tr><td><strong>AVP-11</strong></td><td>Read a behavioural sequence spread across many signed audit rows and explain it — recognise a pattern that no single rule would flag</td><td><code>DETECTION_CONTENT</code></td></tr>
+</tbody>
+</table>
+
+<h4 id="the-seven-demoted-to-engineering">The seven demoted to engineering</h4>
+
+<table>
+<thead><tr><th></th><th>Proposition</th><th>Why it has no AI residue</th></tr></thead>
+<tbody>
+<tr><td><strong>AVP-1</strong></td><td>Control scoring</td><td>The engine existed with zero callers. A join and a weighted sum. <strong>Built and live</strong></td></tr>
+<tr><td><strong>AVP-4</strong></td><td>Cross-OEM contradiction</td><td><code>GROUP BY</code> and set difference over existing columns. <strong>5 of 6 built</strong></td></tr>
+<tr><td><strong>AVP-6</strong></td><td>Estate ownership graph</td><td><code>COUNT(DISTINCT ...) > 1</code> over denormalised columns. <strong>Built and live</strong></td></tr>
+<tr><td><strong>AVP-7</strong></td><td>Peer prescription</td><td>Set difference plus template-fillable prose</td></tr>
+<tr><td><strong>AVP-9</strong></td><td>Coverage-driven hunts</td><td>Query construction plus template-fillable narrative</td></tr>
+<tr><td><strong>AVP-10</strong></td><td>OEM coverage &amp; agreement</td><td>Counts and ratios. <strong>3 of 4 built</strong>; the fourth needs an asset inventory</td></tr>
+<tr><td><strong>AVP-12</strong></td><td>Evidence packets</td><td>The platform already signs, hashes and verifies offline</td></tr>
+</tbody>
+</table>
+
+<p><strong>What this costs the AI business case: nothing.</strong> Seven propositions were never AI work, and</p>
+
+<p>three of them are already built. What it costs the <em>document</em> is honesty about scope — which is</p>
+
+<p>the right trade, because a proposal claiming twelve AI capabilities is refuted by the first</p>
+
+<p>engineer who opens the codebase.</p>
+
+<p><strong>This boundary is code, not a position.</strong> <code>app/processing/intel/capability.py</code> holds the</p>
+
+<p>registry and exposes <code>residues()</code> and <code>demoted()</code>; <code>GET /api/v1/intel/capability</code> serves it;</p>
+
+<p><code>backend/tests/test_intel_layer.py</code> enforces it:</p>
+
+<ul>
+<li><code>requires_model</code> is true only where a non-empty <code>residue</code> exists</li>
+<li>every residue must declare a gate, and that gate must be one of three permitted reasons</li>
+<li>every demotion must state why</li>
+<li>a residue must be under 400 characters — **if it reads like a work order, the reduction has</li>
+</ul>
+
+<p>  not happened**</p>
+
+<ul>
+<li>no module in the layer may import a model client or an HTTP client, asserted by AST, so it</li>
+</ul>
+
+<p>  holds even if every behavioural test still passes</p>
+
+<p>That last one is load-bearing: it stops deterministic work drifting behind an AI gate later.</p>
+
+<h4 id="shipped-so-far-all-of-it-deterministic">Shipped so far — all of it deterministic</h4>
+
+<table>
+<thead><tr><th>Route</th><th>Proposition</th><th>What it returns</th></tr></thead>
+<tbody>
+<tr><td><code>GET /intel/attack/coverage</code></td><td>AVP-2</td><td>Red against blue ATT&amp;CK coverage. Red from <code>findings.cwe_id</code> via a curated map; blue from a rule-to-technique side table. <code>alert_rules.yaml</code> is not modified</td></tr>
+<tr><td><code>GET /intel/hunts</code></td><td>AVP-9</td><td>Coverage gaps turned into runnable hunt cards: the SQL from curated column bindings, the expected hit shape from the caller's own rows</td></tr>
+<tr><td><code>GET /intel/peer/prescription</code></td><td>AVP-7</td><td>Control gaps in the caller's own estate, ranked by live exposure. No peer findings are read</td></tr>
+<tr><td><code>POST /intel/packet</code></td><td>AVP-12</td><td>Assembles and signs a dispute-ready packet using the AG attestation's ECDSA primitives, verifiable by the same published procedure</td></tr>
+<tr><td><code>GET /intel/capability</code></td><td>—</td><td>The boundary itself</td></tr>
+<tr><td><code>GET /intel/controls/score</code></td><td>AVP-1</td><td>POPIA computed by <code>compute_popia_score</code>, which existed with zero callers. 4 of 8 conditions evidenced, the rest scored zero with reasons</td></tr>
+<tr><td><code>GET /intel/controls/iso</code></td><td>AVP-1</td><td>ISO 27001 readiness. Returns <code>score: null</code> and the reason</td></tr>
+<tr><td><code>GET /intel/vendor/contradictions</code></td><td>AVP-4</td><td>Single-vendor applications, agreement matrix, endpoints never attacked, ageing asymmetry, <code>app_name</code> normalisation quality</td></tr>
+<tr><td><code>GET /intel/estate/ownership</code></td><td>AVP-6</td><td>Ownership ambiguity across department/branch/ministry/cluster, blast radius, monitoring asymmetry</td></tr>
+<tr><td><code>GET /intel/risk/movers</code></td><td>AVP-8a</td><td>Applications whose fused score moved most. <strong>The deterministic half of AVP-8</strong></td></tr>
+<tr><td><code>GET /intel/risk/delta</code></td><td>AVP-8a</td><td>Per-signal decomposition. <code>external_cause.available: false</code> — the residue is not built</td></tr>
+<tr><td><code>POST /intel/privilege/audit</code></td><td>AVP-11</td><td>SoD conflicts, acknowledgement without authority, scope-violating exports, dormant accounts. <strong>The deterministic checks; not the sequence reading</strong></td></tr>
+<tr><td><code>GET /intel/vendor/attestation</code></td><td>AVP-10</td><td>Volume, ageing, closure, agreement, with <code>denominator_known: false</code></td></tr>
+</tbody>
+</table>
+
+<p>Two properties worth stating plainly. **The layer opens no network connection and calls no</p>
+
+<p>model**, so every route is testable with all AI dependencies stopped and every result is</p>
+
+<p>reproducible and signable. <strong>The privilege audit deliberately does not use <code>tenant_filter</code></strong> —</p>
+
+<p><code>action_audit</code> carries no tenancy columns, and attempting it is the inverted bypass documented</p>
+
+<p>as correction C2 — so it filters by the <em>actor's</em> scope instead, and holds the route away from</p>
+
+<p>every administrator, since no administrator should hold the tool that audits administrators.</p>
+
+<hr/>
+
+<h3 id="premise-verification-every-proposition-checked-against-the-live-schema">Premise verification — every proposition checked against the live schema</h3>
+
+<p><strong>This table exists because two earlier propositions in this document were wrong.</strong> AVP-5</p>
+
+<p>assumed transaction data the platform does not hold; AVP-11 assumed an identity join key that</p>
+
+<p>does not exist. A full re-audit against <code>backend/app/models/*.py</code>, <code>app/lake/writer.py</code> and</p>
+
+<p><code>app/connectors/appscan.py</code> found <strong>four more</strong> with the same defect class. The audit is</p>
+
+<p>published so the next reader does not have to re-derive it.</p>
+
+<table>
+<thead><tr><th>#</th><th>Proposition</th><th>Data it requires</th><th>Exists?</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>AVP-1</td><td>Control scoring</td><td>A governed control catalogue + evidence store</td><td><strong>Partly — built</strong></td><td>Draft catalogue shipped; Compliance sign-out outstanding</td><td><strong>Done — reclassified as fully deterministic</strong></td></tr>
+<tr><td>AVP-2</td><td>ATT&amp;CK coverage</td><td><code>findings.cwe_id</code></td><td><strong>Yes</strong> — indexed column</td><td><strong>Survives</strong></td></tr>
+<tr><td>AVP-3</td><td>Threat context</td><td>A <code>cve_id</code> column</td><td><strong>No</strong> — arrives, then discarded</td><td><strong>Re-anchored</strong> on a half-day fix</td></tr>
+<tr><td>AVP-4</td><td><em>(was: active OEM verification)</em></td><td>Asset inventory with hostnames</td><td><strong>No</strong> — no hostname anywhere</td><td><strong>Replaced</strong> with cross-OEM contradiction detection</td></tr>
+<tr><td>AVP-5</td><td>POPIA s.22 packets</td><td>DAM findings + alerts + audit rows</td><td><strong>Yes</strong> — all present</td><td><strong>Survives</strong></td></tr>
+<tr><td>AVP-6</td><td><em>(was: dependency graph)</em></td><td>Third-party dependency data</td><td><strong>No</strong> — never ingested</td><td><strong>Replaced</strong> with an estate ownership graph</td></tr>
+<tr><td>AVP-7</td><td>Peer prescription</td><td><code>waf_blocks.attack_type</code>, <code>request_uri</code></td><td><strong>Yes</strong></td><td><strong>Survives</strong> (column name corrected)</td></tr>
+<tr><td>AVP-8</td><td>Risk-delta</td><td><code>risk_scores</code> signal columns</td><td><strong>Yes</strong> — four of them</td><td><strong>Survives</strong> (names corrected)</td></tr>
+<tr><td>AVP-9</td><td>Hunt proposals</td><td>AVP-2 output + <code>waf_blocks</code> columns</td><td><strong>Yes</strong></td><td><strong>Survives</strong> (column name corrected)</td></tr>
+<tr><td>AVP-10</td><td><em>(was: OEM performance)</em></td><td>Independent asset denominator</td><td><strong>No</strong> — app names come only from findings</td><td><strong>Replaced</strong> with coverage &amp; agreement</td></tr>
+<tr><td>AVP-11</td><td>Privilege audit</td><td><code>audit.action_audit</code> + <code>identity.users</code> + <code>alerts</code></td><td><strong>Yes</strong></td><td><strong>Survives</strong></td></tr>
+<tr><td>AVP-12</td><td>Evidence packets</td><td>Finding history over time</td><td><strong>Partial</strong> — <code>findings</code> is upserted, no history</td><td><strong>Survives with a stated limit</strong></td></tr>
+</tbody>
+</table>
+
+<p><strong>The pattern behind the failures is one thing, not twelve.</strong> Four propositions assumed the</p>
+
+<p>platform knows what it <em>owns</em>. It does not. Every <code>app_name</code> in the warehouse arrived attached</p>
+
+<p>to a finding, and the platform has no register of the estate that sits behind those names.</p>
+
+<p>Building propositions on an imagined asset inventory is the single easiest way to write a</p>
+
+<p>proposal that cannot be built.</p>
+
+<p><strong>Three replacements follow directly from that pattern.</strong> Rather than dropping AVP-4, AVP-6 and</p>
+
+<p>AVP-10, each has been rebuilt around what the platform genuinely holds — which in two of the</p>
+
+<p>three cases yields a proposition that needs <strong>no external service at all</strong>.</p>
+
+<hr/>
+
+<h2 id="the-propositions">The propositions</h2>
+
+<h3 id="demoted-avp-1-control-scoring-from-telemetry-engineering-built">DEMOTED · AVP-1 · Control scoring from telemetry — engineering, built<button class="plain-btn" data-avp="1" aria-label="Explain AVP-1 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>No AI residue. This is engineering work, and it is built.</strong></p>
+
+<p>The scoring engine already existed with zero callers. Binding a control to an observable</p>
+
+<p>is a join; summing weighted domain percentages is arithmetic. What goes into the</p>
+
+<p>catalogue is a Compliance analyst reading SAFLII offline, not a runtime model.</p>
+
+<p><strong>The hole.</strong> <code>compliance_snapshots.overall_score</code> over 456 rows is fixture data. The</p>
+
+<p>platform says so itself, in three places, in prose shown to users. For an</p>
+
+<p>Auditor-General-audited platform this is the single most damaging item on the list, because</p>
+
+<p>the number is load-bearing on the Compliance dashboard and inside the signed attestation.</p>
+
+<p><strong>This proposition requires no AI, and never did.</strong> An earlier draft of this document</p>
+
+<p>labelled it <em>"AI-augmented, not AI-native"</em> and reserved a <code>LEGAL_GUIDANCE</code> gate for gap</p>
+
+<p>ranking. <strong>That hedge was wrong and has been removed.</strong> The reasoning, checked against the</p>
+
+<p>code:</p>
+
+<table>
+<thead><tr><th>What AVP-1 needs</th><th>Status in the platform</th></tr></thead>
+<tbody>
+<tr><td>A weighted framework model</td><td><strong>Already exists</strong> — <code>POPIA_WEIGHTS</code> (8 POPIA conditions) and <code>ISO_WEIGHTS</code> (12 Annex A themes), both summing to 1.0</td></tr>
+<tr><td>A scoring function</td><td><strong>Already exists</strong> — <code>compute_framework_score</code>, a weighted sum. <code>compute_popia_score</code> and <code>compute_iso_score</code> are thin wrappers</td></tr>
+<tr><td>Any model, agent or external service</td><td><strong>Not needed at any point</strong></td></tr>
+</tbody>
+</table>
+
+<p><code>compute_framework_score</code> had <strong>zero callers</strong>. That is the entire defect: the engine was</p>
+
+<p>built, correct, and never wired up, so <code>compliance_snapshots</code> fell back to fixture numbers.</p>
+
+<p>The fix is to <strong>call the code the platform already owns</strong>, not to outsource the arithmetic.</p>
+
+<p><strong>Shipped.</strong> <code>app/processing/intel/controls.py</code> binds each POPIA condition to an observable</p>
+
+<p>and calls the existing engine. <code>GET /api/v1/intel/controls/score</code> serves it.</p>
+
+<pre><code>CONDITION               PCT   WEIGHT   BASIS
+data_inventory        100.0%    0.15   inventory_coverage
+consent                  n/a    0.15   no evidence binding — scores 0, reason carried
+purpose_limitation       n/a    0.10   no evidence binding — scores 0, reason carried
+data_quality           93.8%    0.10   classification_coverage
+security_safeguards    97.7%    0.30   safeguards
+breach_response          n/a    0.10   no evidence binding — scores 0, reason carried
+data_subject_rights      n/a    0.05   no evidence binding — scores 0, reason carried
+cross_border           14.3%    0.05   cross_border
+                     -------
+COMPUTED SCORE          54.4    1.00</code></pre>
+
+<p><strong>The computed score is 54.4. The seeded fixture claims 78.0.</strong> The gap is not a defect in</p>
+
+<p>the computation — it is the finding. **Four of eight POPIA conditions have no telemetry to</p>
+
+<p>bind to at all**: consent, purpose limitation, breach response and data-subject rights. B5</p>
+
+<p>G-12 records the data-subject layer as <code>Absent</code> with zero code for consent, erasure or DSAR.</p>
+
+<p>Those conditions are absent from the product, not badly implemented, and each now carries</p>
+
+<p>its own stated reason rather than being absorbed into a number nobody can interrogate.</p>
+
+<p>A low number that is true is worth more than a high number that was typed, and the shortfall</p>
+
+<p>is the work the number is for.</p>
+
+<p><strong>ISO 27001 publishes no score, deliberately.</strong> <code>compute_iso_score</code> is implemented and</p>
+
+<p>uncalled, exactly as its POPIA counterpart was, and no Annex A theme has an evidence binding</p>
+
+<p>yet. <code>GET /api/v1/intel/controls/iso</code> returns <code>score: null</code> with the reason, because</p>
+
+<p>publishing an invented ISO figure would reproduce the defect this proposition exists to</p>
+
+<p>remove.</p>
+
+<p><strong>The remaining prerequisite is a governance artefact, not code.</strong> Part 1a is Compliance</p>
+
+<p>confirming the catalogue — which conditions bind to which observable — and signing it off.</p>
+
+<p>The draft catalogue shipped in <code>controls.CATALOGUE</code> is marked as such. Part 1b, the binding</p>
+
+<p>and recomputation, is now code. The earlier ~22 PD estimate stays, but its shape changed: the</p>
+
+<p>engineering half is done, and what remains is a review.</p>
+
+<p><strong>Where AIMI genuinely contributes, and where it does not.</strong> Nothing to the score — that is</p>
+
+<p>arithmetic over columns the platform holds. Two real but narrow places:</p>
+
+<ul>
+<li>**<code>regulatory_guide</code> and <code>case_law_search</code> (SAFLII), offline, for the human writing the</li>
+</ul>
+
+<p>  catalogue.** Knowing what POPIA s.19 actually requires and what the Regulator has</p>
+
+<p>  enforced is genuine external knowledge. It informs <em>part 1a</em> and is not a runtime</p>
+
+<p>  dependency of anything in this proposition.</p>
+
+<ul>
+<li><strong>Nothing else.</strong> AIMI's <code>grc_posture</code> offers framework-aware weighting, and</li>
+</ul>
+
+<p>  <code>app.processing.compliance</code> already contains the platform's own — more specific, since</p>
+
+<p>  <code>security_safeguards</code> at 0.30 is a deliberate SITA choice. AIMI also does not support ISO</p>
+
+<p>  27001, so an adapter would be needed regardless. Pointing the scoring at an external</p>
+
+<p>  service would add a dependency, a latency budget and a POPIA egress question to a</p>
+
+<p>  computation that takes microseconds and needs none of them.</p>
+
+<p><strong>Why beyond the plan.</strong> Phase F is "assurance and AG reporting" and is explicitly about the</p>
+
+<p><em>narrative</em> around the attestation, which by design stays byte-identical and deterministic.</p>
+
+<p>It does not recompute anything. This replaces 684 rows of seeded data with computed data and</p>
+
+<p>therefore changes the attestation body — which is why it must be gated on its own</p>
+
+<p>verifier suite and sign-off, not smuggled into Phase F.</p>
+
+<p><strong>Fit note.</strong> AIMI supports <code>popia</code>, <code>fica</code>, <code>nist_csf</code>, <code>insurance</code>. <strong>Not ISO 27001.</strong> POPIA</p>
+
+<p>scores natively. FICA and NIST CSF are available in the engine but are applicability questions</p>
+
+<p>rather than assumptions — SITA is not an accountable institution under FICA, so that call</p>
+
+<p>belongs to Compliance (<strong>OD-H</strong>). ISO needs a local adapter over the same control register, reusing</p>
+
+<p><code>processing/compliance.py:12-25 ISO_WEIGHTS</code> — which, like the scoring functions, also has</p>
+
+<p>zero callers today. Two seeded systems become one computed system.</p>
+
+<p><strong>Honest characterisation.</strong> AI-<em>augmented</em>, not AI-native. The scoring is arithmetic. The</p>
+
+<p>intelligence is in the gap analysis and in knowing which evidence a control actually requires.</p>
+
+<p>That is still worth more than every narrative feature in the plan combined, because it fixes a</p>
+
+<p>credibility hole rather than adding prose.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>AI required</strong></td><td><strong>None.</strong> Arithmetic via the platform's own <code>compute_popia_score</code></td></tr>
+<tr><td><strong>Data flow</strong></td><td><strong>None outbound.</strong> Reads <code>database_inventory</code>, <code>api_endpoints</code>, <code>findings.owasp_status</code>, <code>waf_blocks</code> and the code-resident egress register</td></tr>
+<tr><td><strong>Tenancy</strong></td><td>Each evidence function applies <code>tenant_filter</code>, so per-department readiness is answerable for the first time. <code>compliance_snapshots</code> remains unscopable and is only read for the seeded comparison, labelled estate-wide</td></tr>
+<tr><td><strong>RBAC</strong></td><td><code>compliance</code> role via <code>require_roles("compliance")</code>. Aggregates are visible to <code>exec</code> through the existing dashboard path; per-department breakdowns gate on scope</td></tr>
+<tr><td><strong>Governance</strong></td><td>Every figure carries <code>computed_from: telemetry</code>, an <code>engine_version</code>, its <code>evidence</code> object and its <code>denominator</code>. <strong>The seeded and computed values are never blended</strong> — the comparison is a separate field</td></tr>
+<tr><td><strong>Effort</strong></td><td>Engineering <strong>done</strong>. Remaining: ~5 PD of Compliance review and sign-off on the catalogue</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="avp-2-authoring-alerting-rules-for-received-telemetry-the-only-part-that-needs-ai">AVP-2 · Authoring alerting rules for received telemetry — the only part that needs AI<button class="plain-btn" data-avp="2" aria-label="Explain AVP-2 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>Scope note first, because it bounds everything in this proposition.</strong> This platform does not</p>
+
+<p>scan, does not host sensors, and does not perform vulnerability testing. **It receives findings</p>
+
+<p>from four OEM sources and alerts on them.** Its nine rules fire on ingested telemetry — a</p>
+
+<p>record match on <code>severity</code> / <code>source</code> / <code>category</code>, or an aggregate over received rows. That is</p>
+
+<p>alerting on received data, not detection in the sensor sense.</p>
+
+<p><strong>AI residue — the only part that cannot be built without a model:</strong></p>
+
+<blockquote>Author an alerting rule for received telemetry: given an attacker technique, decide which
+OEM source and which normalised field evidences it, choose the predicate and the threshold,
+and emit a rule in the platform's own <code>alert_rules.yaml</code> shape.</blockquote>
+
+<p>Everything else here is deterministic: the CWE-to-technique mapping is curated data, the</p>
+
+<p>red/blue coverage computation is a join and an aggregate, the Navigator layer is JSON, and the</p>
+
+<p>diff is a text operation against a file the client already reviews in code review.</p>
+
+<p><strong>A correction on scope, made in review.</strong> An earlier draft of this proposition proposed</p>
+
+<p>generating <strong>Sigma, Suricata, Wazuh and YARA</strong> rules. Those run against packet, host and file</p>
+
+<p>telemetry that <strong>this platform never receives</strong> — they belong to the client's own SIEM or IDS</p>
+
+<p>estate. Proposing them here would be a scope error, and a rule written that way would have</p>
+
+<p>nowhere to run. The residue is a rule in <em>this</em> platform's vocabulary.</p>
+
+<p><strong>The hole.</strong> Zero occurrences of "MITRE" or "ATT&amp;CK" anywhere in the repository. Nine alert</p>
+
+<p>rules named by rule ID. No notion of exposed-technique versus technique-with-alerting.</p>
+
+<p><strong>The proposition.</strong> Two outputs.</p>
+
+<p><strong>(a) Estate coverage heatmap.</strong> Map every finding category via the existing</p>
+
+<p><code>processing/owasp.py</code> classifier and every <code>alert_rules.yaml</code> rule to ATT&amp;CK techniques. Then</p>
+
+<p>produce what no OEM can: red coverage (techniques present in the estate, from four OEM</p>
+
+<p>vocabularies) against blue coverage (techniques with any alerting), as an ATT&amp;CK Navigator</p>
+
+<p>layer. The gap — present in received telemetry but not alerted on — is the deliverable.</p>
+
+<p><strong>(b) The missing rule, in the platform's own shape.</strong> The target is <code>alert_rules.yaml</code>, which</p>
+
+<p>already matches on <code>severity</code>, <code>source</code> and <code>category</code> on a record, or across an aggregate of</p>
+
+<p>received rows. The residue is deciding which of those fields evidences a given technique, and at</p>
+
+<p>what threshold.</p>
+
+<p>A live probe of an external rule generator returned Sigma for T1190 selecting on <code>c-ip</code>,</p>
+
+<p><code>cs-uri-query</code> and <code>sc-status</code>:</p>
+
+<pre><span class="lang">yaml</span><code>title: Exploit Public-Facing Application Detection
+id: t1190-detection
+detection:
+  selection:
+    c-ip|startswith: "10."
+    cs-uri-query|contains: "UNION SELECT"
+    sc-status: "500"
+tags: [attack.t1190]</code></pre>
+
+<p><strong>Zero of those three fields exist in this platform's schema.</strong> <code>warehouse.waf_blocks</code> carries</p>
+
+<p><code>src_ip</code>, <code>request_uri</code>, <code>action</code> and <code>attack_type</code>. And the gap is larger than a rename: a rule</p>
+
+<p>for this platform is not written in log fields at all. It is written against a normalised,</p>
+
+<p>tenant-scoped finding record, optionally across an aggregate of received rows. The work is</p>
+
+<p>translating one vocabulary into a different one — and doing it in the shape the rule engine</p>
+
+<p>actually evaluates.</p>
+
+<p>Either way the output is a **<code>git diff</code> against a file the client already reviews in code</p>
+
+<p>review** — not a suggestion, not a wiki page. A human merges it or does not.</p>
+
+<p><strong>It closes a real SLO story.</strong> <code>SloMetric</code> rows exist and MTTD/MTTR charts render, but MTTD is</p>
+
+<p>currently "time from OEM report to alert" — a function of the OEM's polling interval, not of</p>
+
+<p>anything this platform did. Mapping rules to techniques makes MTTD <em>mean</em> something: the</p>
+
+<p>detection latency for a given technique, measured from receipt rather than guessed.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Data flow</strong></td><td>Outbound: ATT&amp;CK technique IDs, CWE and OWASP ids. Entirely public. Return: technique graph, coverage edges, proposed rule text.</td></tr>
+<tr><td><strong>Tenancy</strong></td><td>A new <code>intel.technique_coverage</code> table with tenancy denormalised at write time — techniques present are scoped to departments, which is the whole point. Heatmaps are per-tenant-filtered.</td></tr>
+<tr><td><strong>RBAC</strong></td><td><code>intel:attack_coverage</code> for the heatmap; <code>intel:alerting_content</code> (operator + transversal-admin only) for the diff. <code>exec</code> gets the gap count, not the rule text. Claim classes <code>risk_buckets</code>, <code>department_names</code>, and a <strong>new</strong> <code>technique_ids</code> class.</td></tr>
+<tr><td><strong>Governance</strong></td><td>Rules are <strong>never auto-merged.</strong> The diff is a proposal artefact; <code>alert_rules.yaml</code> changes remain a code-review event.</td></tr>
+<tr><td><strong>Effort</strong></td><td>Mapping table shipped. Rule authoring is the residue.</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="avp-3-attributing-a-threat-campaign-to-this-estate-the-only-part-that-needs-ai">AVP-3 · Attributing a threat campaign to this estate — the only part that needs AI<button class="plain-btn" data-avp="3" aria-label="Explain AVP-3 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>AI residue — the only part that cannot be built without a model:</strong></p>
+
+<blockquote>Attribute an observed campaign to <em>this</em> estate. Read threat reporting, judge whether
+it names this target sector, and map its technique set onto the techniques this
+estate is exposed to.</blockquote>
+
+<p>Everything else is not AI. Adding <code>cve_id</code> is a schema change. The OTX pulse count is an</p>
+
+<p>API lookup. Folding the result into <code>fused_risk</code> is arithmetic. None of that needs a</p>
+
+<p>model, and none of it should be described as if it did.</p>
+
+<p><strong>The hole.</strong> Every finding is judged in isolation, and severity is the OEM's verdict,</p>
+
+<p>consumed verbatim. <code>SEVERITY_WEIGHTS["critical"] = 1.0</code> flows into <code>fused_risk</code> unchallenged.</p>
+
+<p><strong>The blocker, stated first.</strong> This proposition was originally written on the premise that CVE</p>
+
+<p>identifiers sit in <code>findings</code> as queryable text. <strong>They do not.</strong> <code>connectors/appscan.py:178</code></p>
+
+<p>extracts <code>cve</code> and <code>:193</code> carries it into the parsed record; <code>normaliser.py:27</code> casts it — and</p>
+
+<p>then it falls into the <code>raw_data</code> JSON blob, because <code>models/finding.py:22-46</code> has **no <code>cve_id</code></p>
+
+<p>column** and <code>CANONICAL_COLUMNS</code> omits it.</p>
+
+<p><strong>The fix is half a day, because the data is already arriving.</strong> Add <code>cve_id</code> to</p>
+
+<p><code>CANONICAL_COLUMNS</code>, to the <code>Finding</code> model, and to the write path at <code>lake/writer.py:60-99</code> —</p>
+
+<p>exactly as <code>owasp_id</code>, <code>cwe_id</code> and <code>taxonomy_version</code> were added. Until that lands, this</p>
+
+<p>proposition has no input. The interesting finding is that the platform is currently *discarding</p>
+
+<p>a structured identifier it has already paid to receive*, and <code>alert_rules.yaml:62</code> carries a rule</p>
+
+<p>named <code>new_critical_cve</code> that never uses one.</p>
+
+<p><strong>The proposition.</strong> A <strong>6th signal</strong> on <code>fused_risk</code>, orthogonal to the 4 that exist:</p>
+
+<pre><span class="lang">python</span><code># processing/risk_engine.py:14 — the current model
+DEFAULT_WEIGHTS = {"appscan": 0.35, "imperva": 0.25, "exposure": 0.20, "compliance": 0.20}
+# + intel_signal: campaign activity observed against this finding's cve_id</code></pre>
+
+<p>The signal carries two components AIMI has and EPSS does not:</p>
+
+<ul>
+<li><strong>Observed activity</strong> — OTX pulse count on the CVE, fired automatically on indicator lookups</li>
+</ul>
+
+<p>  (capped at 10 points of contribution).</p>
+
+<ul>
+<li><strong>Sector campaign match</strong> — whether an identified campaign names <em>this</em> target sector. No</li>
+</ul>
+
+<p>  analogue in EPSS and no OEM visibility, because each OEM sees only its own product.</p>
+
+<p><strong>Why this is not Phase E.</strong> Phase E adds EPSS/KEV: <strong>intrinsic</strong>, per-CVE, published, and</p>
+
+<p>identical for every department in the country. This is <strong>observed</strong>, continuously refreshed, and</p>
+
+<p>estate-relative — it answers "is this the CVE being exploited against SA government right now",</p>
+
+<p>which EPSS structurally cannot. Additive. Phase E's weight-shift discipline and</p>
+
+<p><code>APPSCAN_CEILING_PERCENTILE</code> recalibration apply identically.</p>
+
+<p><strong>A fallback if the <code>cve_id</code> column is refused.</strong> <code>cwe_id</code> is already stored and indexed.</p>
+
+<p>CWE-level threat context is coarser but entirely viable, and requires no schema change at all.</p>
+
+<p>Offer the CVE version first; fall back to CWE rather than abandoning the proposition.</p>
+
+<p><strong>The real product moment.</strong> Two identical <code>critical</code> findings:</p>
+
+<table>
+<thead><tr><th></th><th>Today</th><th>With AVP-3</th></tr></thead>
+<tbody>
+<tr><td>CVE-2024-XXXXX, AppScan, 18 months open, no observed activity</td><td><code>critical</code>, 1.0 weight</td><td><code>critical</code>, context 2/100</td></tr>
+<tr><td>CVE-2026-YYYYY, AppScan, 3 days old, 38 OTX pulses, campaign names SA government</td><td><code>critical</code>, 1.0 weight</td><td><code>critical</code>, context 71/100</td></tr>
+</tbody>
+</table>
+
+<p>No OEM can produce that comparison, because each OEM sees only its own product.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Prerequisite</strong></td><td><strong><code>cve_id</code> column — ~0.5 PD.</strong> No schema change, no new ingestion, no new egress. The data is already arriving and being discarded.</td></tr>
+<tr><td><strong>Data flow</strong></td><td>Outbound: CVE identifier only (post-prerequisite), or CWE identifier (no prerequisite). Return: pulse count, pulse names, campaign attribution.</td></tr>
+<tr><td><strong>Tenancy</strong></td><td>Lives on <code>intel.finding_threat_context</code>, keyed by <code>finding_id</code> with tenancy denormalised. Same operational advisory discipline as Phase D's <code>finding_triage</code>.</td></tr>
+<tr><td><strong>RBAC</strong></td><td>Feeds the risk score, so it is visible wherever <code>risk_buckets</code> is. Raw campaign names carry <code>owner_names</code>-class sensitivity → <code>intel:threat_context</code>.</td></tr>
+<tr><td><strong>Governance</strong></td><td>Never mutates severity (R4). Pulse count 0 is <strong>"no OTX record"</strong>, never "safe". The AIMI guide is explicit on this point and the UI must say so.</td></tr>
+<tr><td><strong>Effort</strong></td><td>~6 PD <strong>after</strong> the 0.5 PD prerequisite. Sequence <strong>after</strong> Phase E so there is one weight-shift event, not two.</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="demoted-avp-4-cross-oem-contradiction-detection-engineering-built">DEMOTED · AVP-4 · Cross-OEM contradiction detection — engineering, built<button class="plain-btn" data-avp="4" aria-label="Explain AVP-4 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>No AI residue. This is engineering work, and five of six parts are built.</strong></p>
+
+<p>Every check is a <code>GROUP BY</code> or a set difference over columns the warehouse already</p>
+
+<p>carries. The comparison is the finding; there is nothing to generate.</p>
+
+<p><strong>The hole.</strong> SITA's entire proposition is "we reconcile four vendor vocabularies into one</p>
+
+<p>view." It has never used that position to <em>disagree back</em>. Four tools watch the same estate and</p>
+
+<p>produce materially different pictures of it. Nobody — including the vendors — can see the</p>
+
+<p>disagreements, because each one only sees its own slice.</p>
+
+<p><strong>The proposition.</strong> Detect contradiction using only what the four OEMs already report, joined on</p>
+
+<p><code>app_name</code> — the denormalised key every warehouse table shares.</p>
+
+<table>
+<thead><tr><th>Check</th><th>Query shape</th><th>Finding</th></tr></thead>
+<tbody>
+<tr><td><strong>Silent vendor</strong></td><td><code>api_endpoints</code> (2,752) vs distinct <code>waf_blocks.request_uri</code></td><td>Only a small fraction of known endpoints has ever produced a WAF event. Is that quiet, or blind?</td></tr>
+<tr><td><strong>Unmonitored backing store</strong></td><td><code>findings.app_name</code> where source=<code>appscan</code>, no <code>database_inventory</code> row</td><td>Scanned application with a database nobody is monitoring</td></tr>
+<tr><td><strong>Disagreeing severity</strong></td><td>same <code>app_name</code>, both <code>appscan</code> and <code>imperva_dam</code>, contradictory verdicts</td><td>One vendor is wrong; the platform cannot currently say which</td></tr>
+<tr><td><strong>Never-covered application</strong></td><td><code>app_name</code> present in 1 of 4 sources</td><td>A single-vendor blind spot that no single vendor dashboard can show</td></tr>
+<tr><td><strong>Stale on one side only</strong></td><td>finding open &gt; 180 days on source A, absent from source B</td><td>Either genuinely unresolved or closed without telling the platform</td></tr>
+</tbody>
+</table>
+
+<p><strong>Why this is stronger than the version it replaces.</strong> It needs no external service, no</p>
+
+<p>authorisation, no network egress and no target inventory. It is pure SQL over tables that</p>
+
+<p>already exist, and it is <em>only possible</em> because the platform holds all four vendors' output at</p>
+
+<p>once — which is the platform's existing core value, turned back on itself.</p>
+
+<p><strong>It also exposes a weakness honestly.</strong> The join depends on <code>app_name</code> being spelled identically</p>
+
+<p>by every vendor. It often is not. **The proposition therefore ships with a published</p>
+
+<p>normalisation-quality metric** — how many distinct app-name spellings collapse to how many</p>
+
+<p>canonical names, per source — because if the join key is unreliable, that is the platform's</p>
+
+<p>central integration weakness and it should be on the dashboard rather than discovered later.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Data flow</strong></td><td><strong>None.</strong> Entirely in-cluster SQL over <code>findings</code>, <code>alerts</code>, <code>api_endpoints</code>, <code>waf_blocks</code>, <code>database_inventory</code>.</td></tr>
+<tr><td><strong>Tenancy</strong></td><td><code>intel.vendor_contradiction</code> denormalised at write time to the owning department, so Home Affairs sees only its own contradictions. Cross-source rates are published estate-wide and labelled as such.</td></tr>
+<tr><td><strong>RBAC</strong></td><td><code>intel:vendor_contradiction</code> — <code>exec</code>, <code>compliance</code>, <code>transversal-admin</code>. Deliberately <strong>not</strong> <code>appsec</code> or <code>dbsec</code>: a department role should not hold an artefact about its own vendor's coverage.</td></tr>
+<tr><td><strong>Governance</strong></td><td>Signed via <code>security_pki.py</code> when exported. Contradictions are stated as <strong>disagreements requiring resolution</strong>, never as accusations of vendor fault — the platform genuinely cannot determine which vendor is correct.</td></tr>
+<tr><td><strong>Effort</strong></td><td>~9 PD. <strong>Cheapest high-value proposition in this document.</strong></td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="avp-5-deciding-whether-popia-s22-is-triggered-the-only-part-that-needs-ai">AVP-5 · Deciding whether POPIA s.22 is triggered — the only part that needs AI<button class="plain-btn" data-avp="5" aria-label="Explain AVP-5 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>AI residue — the only part that cannot be built without a model:</strong></p>
+
+<blockquote>Apply the POPIA s.22 statutory test to a specific set of technical facts and decide
+whether the notification duty is triggered, then draft the notification narrative for
+a human to approve.</blockquote>
+
+<p>Deciding whether a given compromise is severe enough to notify is a legal judgement.</p>
+
+<p>No rule encodes it, because it depends on the nature of the data, the sensitivity of</p>
+
+<p>the individuals, and the circumstances. Everything else here — assembling the evidence</p>
+
+<p>chain, hashing, signing, rendering — is plumbing the platform already does for the AG</p>
+
+<p>attestation.</p>
+
+<p><strong>The hole.</strong> . A database activity monitor exists to detect compromise of records holding</p>
+
+<p>personal information. POPIA s.22 obliges notification to the Information Regulator when that</p>
+
+<p>happens. <code>POPIA_WEIGHTS</code> already carries a <code>breach_response: 0.10</code> domain and nothing stands</p>
+
+<p>behind it. The platform can detect the compromise and cannot assemble the notification.</p>
+
+<p><strong>The proposition.</strong> When a DAM or WAF pattern meets a severity threshold, assemble the</p>
+
+<p>complete s.22 notification packet from evidence already in hand — and never send it.</p>
+
+<pre><code>DAM critical cluster on app-X  (holds identity records)
+  ├─ what happened   finding_id · category · severity · first_seen · last_seen · count
+  ├─ what data       app classification · database_inventory engine + agent heartbeat
+  │                  · affected record category from the OEM category taxonomy
+  ├─ what we did     alert a1b2 → acknowledge (claims.email, 14:02) → resolve 16:40
+  │                  dispatch_log: teams sent · pagerduty failed (with the error)
+  ├─ containment     connector_health · agent online/degraded · WAF blocks in window
+  └─ evidence chain  audit.action_audit rows, ECDSA-signed, scope_hash attached
+                            │
+                            ▼
+        POPIA s.22 notification packet — ASSEMBLED, NEVER SENT</code></pre>
+
+<p><strong>Assembled, never sent, is the whole design.</strong> Notification to the Information Regulator is a</p>
+
+<p>legal act with consequences. The platform produces a complete, evidenced, signed packet; a named</p>
+
+<p>human decides whether to send it and does the sending. This is also the mechanism that makes</p>
+
+<p>Part II §12's validation clause concrete — the human decision is a signed event in the chain.</p>
+
+<p><strong>Why beyond the plan.</strong> Phase F is <em>narrative around</em> the attestation and is explicitly</p>
+
+<p>deterministic. This is a statutory workflow with a regulator and a clock. Different class.</p>
+
+<p><strong>AIMI's contribution is legal and editorial, not detection.</strong> <code>regulatory_guide</code> supplies</p>
+
+<p>SA-specific guidance; <code>case_law_search</code> returns SAFLII precedent on what constitutes adequate</p>
+
+<p>notification; <code>case_package</code> performs the compilation; <code>grc_posture</code> scores <code>popia</code> natively.</p>
+
+<p>Worth noting: AIMI's <code>detection_engineer</code> volunteered this unprompted on the T1190 probe —</p>
+
+<p>*"If the technique targets personal-data systems, pre-assess the POPIA s.22 notification path</p>
+
+<p>(Information Regulator)."* The mapping is already understood by the tool.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Data flow</strong></td><td>Outbound: incident reference and finding identifiers only. No personal information, no record content. Return: regulatory guidance text and SAFLII citations.</td></tr>
+<tr><td><strong>Tenancy</strong></td><td><code>intel.breach_packet</code> denormalised at write time to the owning department. The packet is scoped; the <em>decision to send</em> is not delegated to the platform.</td></tr>
+<tr><td><strong>RBAC</strong></td><td><code>intel:breach_packet</code> — <code>compliance</code> and <code>operator</code> only. Deliberately <strong>not</strong> <code>exec</code>, <strong>not</strong> <code>soc</code>. A SOC analyst has the detection, not the statutory duty.</td></tr>
+<tr><td><strong>Governance</strong></td><td>Packet is <strong>assembled and signed, never transmitted</strong>. <code>case_package</code> output is held separately from the AG attestation (AI-MASTER-R1 non-goal 6, extended). The send event is a signed human decision, audited as <code>compliance.breach_notify</code>.</td></tr>
+<tr><td><strong>Effort</strong></td><td>~14 PD. Largest remaining build after AVP-2.</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="demoted-avp-6-estate-ownership-and-concentration-graph-engineering-built">DEMOTED · AVP-6 · Estate ownership and concentration graph — engineering, built<button class="plain-btn" data-avp="6" aria-label="Explain AVP-6 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>No AI residue. This is engineering work, and it is built.</strong></p>
+
+<p><code>COUNT(DISTINCT ...) > 1</code> over six columns already denormalised onto every warehouse</p>
+
+<p>row. No vector store, no embedding, no graph inference. Gate V8 stays closed.</p>
+
+<p><strong>The hole.</strong> . Every fact is a row. There is no relationship model, so no question of the</p>
+
+<p>form "what is connected to this" can be asked.</p>
+
+<p><strong>The proposition.</strong> Build the graph that <em>is</em> fully present, already denormalised onto every</p>
+
+<p>warehouse row: <code>app_name</code> × <code>department_id</code> × <code>branch_id</code> × <code>ministry_id</code> × <code>cluster_id</code> ×</p>
+
+<p><code>source</code>. Six columns, present on every table, already carrying tenancy.</p>
+
+<pre><code>app-X ──appears in──► findings(sources: appscan, imperva_waf)
+      │
+      ├──owned by───► dept-home-affairs ──► branch pretoria-central
+      │                    │
+      │                    └──ministry──► home-affairs ──cluster──► national-treasury-3
+      │
+      └──CONFLICT: also owned by──► dept-health ──branch──► cape-town
+
+"One application is attributed to two departments in two provinces.
+ Blast radius: a compromise reaches both. Owner of record: ambiguous."</code></pre>
+
+<p><strong>Five questions this answers, all unanswerable today:</strong></p>
+
+<table>
+<thead><tr><th>Question</th><th>Why it matters</th></tr></thead>
+<tbody>
+<tr><td>Which applications are owned by more than one department?</td><td><strong>Ownership ambiguity</strong> — who is accountable for the fix?</td></tr>
+<tr><td>Which departments share applications?</td><td>Blast radius, and a lateral-movement path</td></tr>
+<tr><td>Is <code>ministry</code>/<code>cluster</code> assignment consistent across tables?</td><td>The denormalisation in <code>lake/writer.py:82-85</code> can disagree between tables</td></tr>
+<tr><td>Which applications have DAM alerts but no AppScan coverage?</td><td>Monitoring asymmetry between the database and application layers</td></tr>
+<tr><td>Which departments' applications concentrate in one cluster?</td><td>Systemic rather than local risk</td></tr>
+</tbody>
+</table>
+
+<p><strong>Why beyond the plan.</strong> The plan defers vectors entirely (Phase 13.2, gate V8) on the grounds</p>
+
+<p>that semantic retrieval does not beat a filtered <code>ILIKE</code> on short free-text findings. That</p>
+
+<p>reasoning is correct and this does not contest it. This graph is built from **six indexed</p>
+
+<p>columns that already exist on every row** — no embeddings, no ANN index, no cross-tenant ranking</p>
+
+<p>surface, no new access path. <strong>Gate V8 stays closed.</strong> This is not an argument to reopen it.</p>
+
+<p><code>tool_aimi_link_analyze</code> was probed live on four ATT&amp;CK IDs and returned correct technique nodes</p>
+
+<p>with tactic assignment and a typed <code>SHARES_TACTIC</code> edge — so the graph capability is real. It is</p>
+
+<p>not needed here. <strong>This proposition needs no external service at all.</strong></p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Data flow</strong></td><td><strong>None.</strong> <code>SELECT DISTINCT</code> across five tables that already share the tenancy columns.</td></tr>
+<tr><td><strong>Tenancy</strong></td><td>The graph is derived from already-scoped columns, so it inherits <code>tenant_filter()</code> exactly as the source tables do. <code>intel.ownership_edge</code> carries the same four denormalised columns.</td></tr>
+<tr><td><strong>RBAC</strong></td><td><code>intel:ownership_graph</code> — <code>exec</code>, <code>compliance</code>, <code>transversal-admin</code>, and the relevant <code>dept-admin</code>. A department admin may see their own department's edges and nothing outside them.</td></tr>
+<tr><td><strong>Governance</strong></td><td><strong>Ownership ambiguity is an organisational finding, not a security allegation.</strong> It must never be presented as evidence of misconduct by any named department.</td></tr>
+<tr><td><strong>Effort</strong></td><td>~8 PD.</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="demoted-avp-7-prescriptive-peer-contrast-engineering-built">DEMOTED · AVP-7 · Prescriptive peer contrast — engineering, built<button class="plain-btn" data-avp="7" aria-label="Explain AVP-7 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>No AI residue. This is engineering work.</strong></p>
+
+<p>The prescription is a set difference between the caller's estate and the blinded peer</p>
+
+<p>aggregate, both of which are already computed. The prose around it is template-fillable</p>
+
+<p>from fields the platform holds, so it does not clear the bar. An earlier draft of this</p>
+
+<p>document counted the prose as AI; it is not.</p>
+
+<p><strong>The hole.</strong> <code>/benchmark/province</code> is fully built, tenant-safe, correctly blinded, and has</p>
+
+<p><strong>no frontend page</strong>. It stops at "you are third of nine, your primary driver is AppScan."</p>
+
+<p><strong>The proposition.</strong> Keep the ranking. Add the prescription, and use the estate's own data to</p>
+
+<p>produce it deterministically:</p>
+
+<pre><code>You: rank 3/9 · driver: AppScan unresolved · SQLi concentration on 3 endpoints
+
+The three departments ranked above you share one property your estate lacks:
+  · all three run an Imperva rule set that blocks UNION SELECT on /api/v2/records
+  · your estate has 0 rules covering that path and 412 SQLi blocks there in 30 days
+  · their apps show 0 SQLi findings in the same period; yours show 34
+
+Action, not comparison.</code></pre>
+
+<p><strong>Why beyond the plan.</strong> Phase B lists <code>peer_benchmark</code> as a <em>report type</em> — narrative prose</p>
+
+<p>about the existing ranking. This produces a **prescription with a named control gap and a</p>
+
+<p>measured count behind it**, which is a different artifact class.</p>
+
+<p>The existing blinding is preserved exactly: peers remain <code>Peer Province A/B/C</code>, <code>province_id</code></p>
+
+<p>stays <code>None</code>, and only the aggregated fused score is exposed (<code>benchmark.py:112-128</code>). No</p>
+
+<p>change to that code. AVP-7 only uses the caller's <em>own</em> scope for the prescription.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Data flow</strong></td><td><strong>None outbound.</strong> AVP-7 is a join over in-scope tables — SITA's own 3,569 WAF blocks and findings. Purely internal.</td></tr>
+<tr><td><strong>Tenancy</strong></td><td>The prescription is computed from the caller's own scope only. Peer data enters as the blinded aggregate that already exists.</td></tr>
+<tr><td><strong>RBAC</strong></td><td><code>intel:peer_prescription</code>, <code>transversal-admin</code> / <code>exec</code>. Never <code>soc</code>.</td></tr>
+<tr><td><strong>Effort</strong></td><td>~6 PD. Cheapest proposition here. Build it first as the internal credibility test.</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="avp-8-explaining-a-risk-movement-the-only-part-that-needs-ai">AVP-8 · Explaining a risk movement — the only part that needs AI<button class="plain-btn" data-avp="8" aria-label="Explain AVP-8 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>AI residue — the only part that cannot be built without a model:</strong></p>
+
+<blockquote>Explain a computed risk movement in terms of external threat activity: which
+indicator, which campaign, and why that accounts for the movement the arithmetic
+already measured.</blockquote>
+
+<p>Stage (a) is arithmetic over the four signal columns <code>warehouse.risk_scores</code> has been</p>
+
+<p>writing every five minutes. It is built, live, and needs no model. Stage (b) needs the</p>
+
+<p>AVP-3 residue as its input.</p>
+
+<p><strong>The hole.</strong> The Exec dashboard shows a 30-day trend bar chart. When it moves, nothing</p>
+
+<p>explains why. Every executive asks.</p>
+
+<p><strong>The proposition.</strong> Two stages.</p>
+
+<p><strong>(a) Deterministic decomposition — no AI, and the data already exists.</strong></p>
+
+<p><code>warehouse.risk_scores</code> stores <code>signal_appscan</code>, <code>signal_imperva</code>, <code>signal_api_exposure</code>,</p>
+
+<p><code>signal_compliance_penalty</code> per row per day (<code>models/risk_score.py:25-28</code>), and **is</p>
+
+<p>tenant-scopable**. The per-signal contribution</p>
+
+<p>to a delta is arithmetic over data already stored:</p>
+
+<pre><code>Δ fused_score +6.4 over 14 days
+  Δ signal_appscan             +5.9   (92% of the movement)
+  Δ signal_imperva             +0.6
+  Δ signal_api_exposure        −0.1
+  Δ signal_compliance_penalty   0.0</code></pre>
+
+<p><strong>(b) The external cause, from AVP-3.</strong> 61% of the appscan movement is one CVE that entered</p>
+
+<p>AppScan three days ago and has 38 OTX pulses naming an active campaign. **Requires the <code>cve_id</code></p>
+
+<p>column** — without it, stage (a) still works in full and stage (b) falls back to CWE.</p>
+
+<p><strong>Why beyond the plan.</strong> No dashboard in the product decomposes a risk movement. This is the</p>
+
+<p>highest-frequency executive question and it has no answer anywhere. Note the 30-day trend bar</p>
+
+<p>chart is the most-viewed panel in the product, so this is the highest-leverage single panel</p>
+
+<p>change available.</p>
+
+<p><strong>Honest characterisation.</strong> Stage (a) is deterministic and needs no model at all — and should</p>
+
+<p>ship regardless of whether any AI workstream proceeds. Stage (b) depends on AVP-3.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Data flow</strong></td><td>None outbound for (a). CVE identifiers only for (b).</td></tr>
+<tr><td><strong>Tenancy</strong></td><td><code>risk_scores</code> is already scoped. Delta is computed over the caller's own scope with no new table required for (a).</td></tr>
+<tr><td><strong>RBAC</strong></td><td>Feeds <code>headline_metrics</code> + <code>risk_buckets</code>, both already granted to <code>exec</code>. No new permission needed for (a).</td></tr>
+<tr><td><strong>Effort</strong></td><td>~4 PD for (a). ~2 PD for (b) once AVP-3 lands.</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="demoted-avp-9-coverage-driven-hunts-engineering-built">DEMOTED · AVP-9 · Coverage-driven hunts — engineering, built<button class="plain-btn" data-avp="9" aria-label="Explain AVP-9 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>No AI residue. This is engineering work.</strong></p>
+
+<p>Once AVP-2 produces a coverage gap, the hunt is a query built from the technique's</p>
+
+<p>logsource plus an expected-result count read from the caller's own data. The narrative</p>
+
+<p>is template-fillable. Counting it as AI would overstate the case by exactly as much as</p>
+
+<p>counting AVP-7's prose did.</p>
+
+<p><strong>The hole.</strong> 551 alerts and 9 static rules. A SOC analyst has no way to know what they have</p>
+
+<p><em>not</em> looked for.</p>
+
+<p><strong>The proposition.</strong> Consume AVP-2's gap list and turn it into a prioritised hunt, each item</p>
+
+<p>runnable against SITA's own warehouse:</p>
+
+<pre><code>TECHNIQUE  T1190 · present in 4 applications · no alerting rule exists
+  1. Sigma rule available as a diff                     [intel:detection_content]
+  2. Retrospective query against 3,569 WAF block rows:
+       WHERE attack_type ILIKE '%sqli%' AND request_uri LIKE '%api/v2/records%'
+       AND last_seen &gt; now() - interval '30 days'
+  3. Expected hit shape: 412 rows, 3 source IPs, 2 countries
+  4. Baseline: top-3 departments see 0 rows in the same window
+  Owner: SOC · Est. effort: 45 min</code></pre>
+
+<p><strong>Why beyond the plan.</strong> The plan produces narrative and severity suggestions. It never</p>
+
+<p>produces an <em>analyst task with a query and an expected result</em>. The platform already holds the</p>
+
+<p>WAF blocks, the findings and the peer comparison needed to write the expected shape.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Data flow</strong></td><td>None outbound. Everything comes from in-scope tables plus AVP-2's graph.</td></tr>
+<tr><td><strong>Tenancy</strong></td><td><code>intel.hunt_proposal</code> denormalised. The "expected hit shape" is computed only from the caller's own scope.</td></tr>
+<tr><td><strong>RBAC</strong></td><td><code>intel:hunt_proposal</code> for <code>soc</code> and <code>appsec</code>. The detection diff inherits <code>intel:detection_content</code>.</td></tr>
+<tr><td><strong>Effort</strong></td><td>~8 PD.</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="demoted-avp-10-oem-coverage-and-agreement-attestation-engineering-built">DEMOTED · AVP-10 · OEM coverage and agreement attestation — engineering, built<button class="plain-btn" data-avp="10" aria-label="Explain AVP-10 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>No AI residue. This is engineering work, and three of four parts are built.</strong></p>
+
+<p>Counts and ratios over findings and alerts. The fourth part — a coverage percentage — is</p>
+
+<p>blocked on an asset inventory that does not exist, which is an engineering gap, not an</p>
+
+<p>AI gap.</p>
+
+<p><strong>The hole.</strong> No vendor tool grades itself. SITA sees all four vendors' output and never</p>
+
+<p>compares them — and, because it has no asset inventory , cannot compute the one number</p>
+
+<p>that settles most vendor disputes.</p>
+
+<p><strong>The proposition.</strong> Compute what <em>is</em> computable, and be explicit that it is a different claim.</p>
+
+<table>
+<thead><tr><th>Metric</th><th>Source</th><th>What it actually means</th></tr></thead>
+<tbody>
+<tr><td>Findings and alerts by source, 30 / 90 days</td><td><code>findings</code>, <code>alerts</code></td><td>Volume each vendor is producing</td></tr>
+<tr><td>Ageing &gt; 180 days by source</td><td><code>findings.first_seen</code></td><td>Whether a vendor's output is acted on</td></tr>
+<tr><td>Closure rate by source</td><td><code>findings.status</code></td><td>Whether findings actually get fixed</td></tr>
+<tr><td><strong>Single-vendor application count</strong></td><td><code>findings</code> grouped by <code>(app_name, source)</code></td><td>Apps reported by <strong>exactly one</strong> of four vendors</td></tr>
+<tr><td><strong>Agreement matrix</strong></td><td>same</td><td>For each ordered pair, how many apps both vendors report on</td></tr>
+<tr><td><strong>Normalisation quality</strong></td><td><code>app_name</code> distinct spellings per source</td><td>Whether the cross-vendor join key is trustworthy</td></tr>
+</tbody>
+</table>
+
+<p><strong>The honest headline is the single-vendor count, and it needs careful wording.</strong> *"412</p>
+
+<p>applications are reported on by only one of our four security vendors"* is a **coverage</p>
+
+<p>statement, not an accusation**. Those applications may be genuinely clean, or genuinely</p>
+
+<p>unwatched — and <strong>the platform cannot distinguish the two without an asset inventory.</strong> The</p>
+
+<p>artefact's value is that it names the ambiguity precisely and makes the missing inventory</p>
+
+<p>visible to whoever buys it next.</p>
+
+<p><strong>The agreement matrix is the novel part.</strong> If AppScan and Imperva both report on 900</p>
+
+<p>applications, they broadly agree about the estate. If they overlap on 40, the two vendors are</p>
+
+<p>looking at materially different populations and the merged view is a union of two incompatible</p>
+
+<p>claims. <strong>No OEM can compute this — not one vendor can see what another vendor covers.</strong> It</p>
+
+<p>requires the position SITA already occupies.</p>
+
+<p><strong>Honest characterisation.</strong> Deterministic, not AI. Included because it is the highest</p>
+
+<p>commercial-leverage-per-hour item in the document, and because its output format already exists</p>
+
+<p>— extend the AG attestation builder at <code>exports_ag.py:78</code>.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Data flow</strong></td><td><strong>None.</strong> SQL over <code>findings</code>, <code>alerts</code>.</td></tr>
+<tr><td><strong>Tenancy</strong></td><td>Published <strong>estate-wide and labelled estate-wide</strong>, like the existing AG attestation. Per-department vendor performance cannot honestly be scoped without disclosing other departments' figures.</td></tr>
+<tr><td><strong>RBAC</strong></td><td><code>intel:oem_attestation</code> — <code>exec</code> and <code>compliance</code>. Deliberately <strong>not</strong> <code>appsec</code> or <code>dbsec</code>: a department role should not hold an artefact about its own vendor's coverage.</td></tr>
+<tr><td><strong>Governance</strong></td><td>Every figure carries <code>denominator_known: false</code> where the denominator is missing. <strong>The asset-inventory gap is stated in the artefact, not hidden behind a clean percentage.</strong></td></tr>
+<tr><td><strong>Effort</strong></td><td>~6 PD.</td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="avp-11-reading-a-behavioural-sequence-the-only-part-that-needs-ai">AVP-11 · Reading a behavioural sequence — the only part that needs AI<button class="plain-btn" data-avp="11" aria-label="Explain AVP-11 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>AI residue — the only part that cannot be built without a model:</strong></p>
+
+<blockquote>Read a behavioural sequence spread across many signed audit rows and explain it:
+recognise that a pattern exists which no single rule would flag.</blockquote>
+
+<p>Every individual check is a query, and three are built and live. A separation-of-duties</p>
+
+<p>conflict does not need a model to find. What a model adds is the reading <em>across</em> rows</p>
+
+<p>— recognising that a particular ordering and timing of otherwise-valid actions is not</p>
+
+<p>something any one of them reveals.</p>
+
+<p><strong>The hole.</strong> . <code>audit.action_audit</code> is append-only, ECDSA-signed, and records every</p>
+
+<p>privileged action with actor, role, <code>scope_hash</code> and request context — and <strong>nothing reads it.</strong></p>
+
+<p>AI-MASTER-R1  classifies it <code>NEVER_READ</code> and no product surface consumes it. Every question</p>
+
+<p>of the form "who knew, who could have, and who actually did" is unanswerable today, including</p>
+
+<p>questions about the platform's own administrators.</p>
+
+<p><strong>The real insider surface is inside the platform, not inside the estate it watches.</strong> Every one</p>
+
+<p>of these is answerable from data already written:</p>
+
+<table>
+<thead><tr><th>Question</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>Who acknowledged a critical alert, and did they hold <code>alerts_write</code> for <em>that</em> department?</td><td><code>alerts.acknowledged_by</code> + <code>action_audit</code></td></tr>
+<tr><td>Does any single account hold both <code>admin</code> and <code>compliance</code>? Separation-of-duties conflict</td><td><code>identity.users.roles</code></td></tr>
+<tr><td>Did a user switch tenant mid-session, and what did they do afterwards?</td><td><code>auth.switch_tenant</code> audit rows, then sequence</td></tr>
+<tr><td>Are there departed employees holding live scopes?</td><td><code>persons.employment_status</code> vs <code>users.roles</code></td></tr>
+<tr><td>Did a branch-scoped user export an estate-wide dataset?</td><td><code>export.csv</code> audit rows carry <code>row_count</code></td></tr>
+<tr><td>Acknowledge → resolve inside 60 seconds, repeatedly?</td><td><code>alerts</code> timestamps</td></tr>
+</tbody>
+</table>
+
+<p><strong>The detections are deterministic queries.</strong> No AI is required to find a separation-of-duties</p>
+
+<p>conflict or a dormant account. Where AI earns its place is the last step: summarising and</p>
+
+<p>explaining a <em>sequence</em> across many audit rows, and flagging a pattern that no single rule</p>
+
+<p>would catch.</p>
+
+<p>This is strictly stronger than the version it replaces, because every input is provably in hand</p>
+
+<p>today — no new ingestion, no new data class, no new egress.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Data flow</strong></td><td><strong>None.</strong> Entirely in-cluster. If AVP-5 wants the POPIA framing on a finding, only the finding identifier leaves.</td></tr>
+<tr><td><strong>Tenancy</strong></td><td><code>audit.action_audit</code> carries no tenancy columns. The <strong>actor's</strong> scope is denormalised onto <code>intel.privilege_audit</code> at write time, so a department admin sees only findings about actors within their own scope. A nationwide auditor sees all, and that is correct — the subject is the platform, not a tenant estate.</td></tr>
+<tr><td><strong>RBAC</strong></td><td><code>intel:privilege_audit</code> — <code>compliance</code>, <code>sre</code>, <code>operator</code>. <strong>Never</strong> <code>exec</code> and never any <code>*-admin</code> tier: no administrator may hold the tool that audits administrators. Self-audit requires a separate human reviewer.</td></tr>
+<tr><td><strong>Governance</strong></td><td>Read by a <strong>human-facing tool, not the AI agent</strong> — NFR-AI-11 (<code>identity.*</code> and <code>action_audit</code> unreachable from the model) <strong>stands unchanged</strong>. The AI sees a redacted sequence summary; the analyst sees the signed rows. PII masked via <code>pii.py</code>.</td></tr>
+<tr><td><strong>Effort</strong></td><td>~9 PD. <strong>No new data prerequisite.</strong></td></tr>
+</tbody>
+</table>
+
+<hr/>
+
+<h3 id="demoted-avp-12-dispute-ready-evidence-packets-engineering-built">DEMOTED · AVP-12 · Dispute-ready evidence packets — engineering, built<button class="plain-btn" data-avp="12" aria-label="Explain AVP-12 in plain English" title="Plain English"><span class="plain-q" aria-hidden="true">?</span>Plain English</button></h3>
+
+<p><strong>No AI residue. This is engineering work.</strong></p>
+
+<p>The platform already signs, hashes and verifies offline for the AG attestation. A packet</p>
+
+<p>is those same primitives applied to a different selection of rows. There is no</p>
+
+<p>generation anywhere in it.</p>
+
+<p><strong>The hole.</strong> <code>POST /exports/ag-compliance</code> produces one signed JSON aggregate. No PDF, no</p>
+
+<p>email, no UI button. <code>jinja2</code> is installed and unused. There is no answer to "prove what the</p>
+
+<p>platform asserted six months ago".</p>
+
+<p><strong>The proposition.</strong> Reuse the ECDSA chain the platform already has to answer any audit</p>
+
+<p>question with a self-contained, offline-verifiable artefact:</p>
+
+<blockquote>*"Who knew about alert X, when, what did they do, what evidence supports the remediation
+claim, and prove none of it was altered."*</blockquote>
+
+<p>Packs together the AG attestation body, the <code>action_audit</code> rows for the alert lifecycle, the</p>
+
+<p>finding record, and the AI provenance (<code>prompt_version</code>, <code>model_digest</code>, <code>fact_pack_hash</code>,</p>
+
+<p><code>scope_hash</code>, <code>verification</code> block). <code>tool_aimi_case_package</code> performs the compilation.</p>
+
+<p>Verification uses the same <code>openssl</code> instructions already published at</p>
+
+<p><code>/exports/ag-compliance/public-key</code>.</p>
+
+<p><strong>A stated limit: findings have no history.</strong> <code>writer.py:107-126</code> upserts on</p>
+
+<p><code>(source, external_id)</code> and sets <code>version = Finding.version + 1</code> on conflict, overwriting</p>
+
+<p><code>status</code> in place. The packet can therefore show <em>what the platform asserts now</em> and *when each</p>
+
+<p>finding first and last appeared*, but <strong>cannot prove what a finding's status was on a past date</strong>.</p>
+
+<p>An auditor asking "what did this system report in March" gets today's row. Two options: state the</p>
+
+<p>limit explicitly in every packet, or add an append-only <code>finding_state_history</code> table — which is</p>
+
+<p>also what AVP-8's trend decomposition would need to be historically accurate. **Recommend the</p>
+
+<p>packet states the limit now, and the history table is raised as separate work.**</p>
+
+<p><strong>Why beyond the plan.</strong> Phase F asks <em>whether</em> AI output may enter the attestation and defaults</p>
+
+<p>to "separate". This does not put AI text in the attestation — it <strong>references</strong> separately-signed</p>
+
+<p>provenance from within the packet, which keeps the signed body deterministic while making the</p>
+
+<p>narrative verifiable back to its inputs.</p>
+
+<table>
+<thead><tr><th></th><th></th></tr></thead>
+<tbody>
+<tr><td><strong>Data flow</strong></td><td>Outbound: case reference and finding identifiers only.</td></tr>
+<tr><td><strong>Tenancy</strong></td><td><code>ai.report</code> rows carry <code>scope_hash</code>; the packet's signature covers the scope hash, so a packet cannot be replayed against a different tenant's scope.</td></tr>
+<tr><td><strong>RBAC</strong></td><td><code>intel:evidence_packet</code>, <code>compliance</code> and <code>operator</code>. Self-service only for one's own scope.</td></tr>
+<tr><td><strong>Effort</strong></td><td>~8 PD. <code>jinja2</code> is already a dependency.</td></tr>
+</tbody>
+</table>
+
+<div class="modal" id="modal-1" role="dialog" aria-modal="true" aria-labelledby="modal-1-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-1</span><h2 class="modal-title" id="modal-1-title">Demoted to engineering - and already built</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>The platform showed a POPIA percentage that somebody typed in by hand, and its own code comments admitted it. That is now replaced by a real calculation.</p><p>The part worth knowing: <strong>the machinery was already written and simply never switched on.</strong> The platform held a weighted model of the eight POPIA conditions and the function that adds them up. Nothing was calling it, which is exactly why the number was typed.</p><p>The real score comes out near <strong>54</strong> against the claimed <strong>78</strong> - not a broken calculation, but four of eight conditions having nothing in the product that could evidence them. <strong>No AI involved.</strong> Engineering work, and done.</p></div><div class="modal-foot"><a class="modal-src" href="#demoted-avp-1-control-scoring-from-telemetry-engineering-built">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-2" role="dialog" aria-modal="true" aria-labelledby="modal-2-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-2</span><h2 class="modal-title" id="modal-2-title">The part that genuinely needs AI</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>There is a public catalogue of how real attackers break in, called MITRE ATT&amp;CK. The platform had never heard of it, so it could not tell you which methods appear in the data it receives or whether it would alert on any of them.</p><p>Working out that gap is now done, and ordinary computing did it. <strong>What genuinely needs AI is writing the missing alert.</strong> Given a technique, someone has to decide which vendor source and which normalised field would show it, set the threshold, and write the rule in the form the platform's rule engine actually reads.</p><p>Worth being clear about what this platform is: it does not scan and does not run security sensors. It receives findings from its vendors and alerts on them. So the rule is written against the records the platform holds - not against network traffic or host logs, which it never sees.</p></div><div class="modal-foot"><a class="modal-src" href="#avp-2-authoring-alerting-rules-for-received-telemetry-the-only-part-that-needs-ai">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-3" role="dialog" aria-modal="true" aria-labelledby="modal-3-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-3</span><h2 class="modal-title" id="modal-3-title">The part that genuinely needs AI</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>Two identical critical problems score exactly the same: one unfixed for eighteen months with nobody attacking it, and one that appeared last week and is being actively exploited against South African government.</p><p>Adding the field that holds the vulnerability identifier is a schema change. Looking up how much activity surrounds it is an ordinary lookup. Folding that into the risk score is arithmetic. <strong>None of that is AI.</strong></p><p><strong>What genuinely needs AI is the judgement.</strong> Reading threat reporting and deciding whether a named campaign actually targets this sector, and whether its technique set matches what this estate is exposed to. That is interpretation, and it is the part that cannot be reduced to a lookup.</p></div><div class="modal-foot"><a class="modal-src" href="#avp-3-attributing-a-threat-campaign-to-this-estate-the-only-part-that-needs-ai">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-4" role="dialog" aria-modal="true" aria-labelledby="modal-4-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-4</span><h2 class="modal-title" id="modal-4-title">Demoted to engineering - and already built</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>Four security vendors watch your estate and produce noticeably different pictures of it. Nobody could see the disagreements, because each vendor only sees its own slice.</p><p>SITA sees all four at once, so SITA can ask which known endpoints have never triggered a block, which application has a database nobody is monitoring, and which applications only one vendor reports on.</p><p><strong>Ordinary database queries over data already held.</strong> Five of six checks are built and working. No AI, and describing it as AI would overstate it.</p></div><div class="modal-foot"><a class="modal-src" href="#demoted-avp-4-cross-oem-contradiction-detection-engineering-built">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-5" role="dialog" aria-modal="true" aria-labelledby="modal-5-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-5</span><h2 class="modal-title" id="modal-5-title">The part that genuinely needs AI</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>Your monitoring tool spots someone breaking into records holding personal information. The law says you may have to notify the regulator when that happens.</p><p>Gathering the evidence, assembling the packet and signing it is plumbing the platform already does. <strong>What genuinely needs AI is the legal judgement</strong>: deciding whether this particular compromise is serious enough to trigger the duty. That turns on what the data was, how sensitive the people are, and the circumstances - and no rule encodes it.</p><p>The platform assembles the packet and stops. A named person decides whether to send it. <strong>It never sends anything to a regulator.</strong></p></div><div class="modal-foot"><a class="modal-src" href="#avp-5-deciding-whether-popia-s22-is-triggered-the-only-part-that-needs-ai">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-6" role="dialog" aria-modal="true" aria-labelledby="modal-6-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-6</span><h2 class="modal-title" id="modal-6-title">Demoted to engineering - and already built</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>Every row carries six labels: which application, department, branch, ministry, cluster and vendor. Nobody had ever joined on them.</p><p>Joining on them answers what nothing could: is one application claimed by two departments in two provinces, so nobody owns the fix? Which departments share applications, so a compromise reaches all of them?</p><p><strong>A single query pattern over columns that already exist</strong>, built and working. No vectors, no machine learning, nothing to buy.</p></div><div class="modal-foot"><a class="modal-src" href="#demoted-avp-6-estate-ownership-and-concentration-graph-engineering-built">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-7" role="dialog" aria-modal="true" aria-labelledby="modal-7-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-7</span><h2 class="modal-title" id="modal-7-title">Demoted to engineering - and already built</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>The ranking that compares departments against each other was secure and correct, and no one could see it.</p><p>It now adds the answer to "so what do I do?": the three departments above you all block a particular attack on a particular endpoint, you block none of it, and here are the attempts that got through.</p><p><strong>The comparison is the finding, not the wording.</strong> It is a set difference over data the platform already holds, and no peer's findings are read to produce it.</p></div><div class="modal-foot"><a class="modal-src" href="#demoted-avp-7-prescriptive-peer-contrast-engineering-built">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-8" role="dialog" aria-modal="true" aria-labelledby="modal-8-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-8</span><h2 class="modal-title" id="modal-8-title">The part that genuinely needs AI</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>Your dashboard shows a trend line. When it moves up, nothing says why - and that is the first question any executive asks.</p><p><strong>The arithmetic half is already built</strong> and needs no model: the platform stores each contributing signal separately, so it can tell you a rise of 6.4 points was 92 per cent one kind of problem on one application.</p><p><strong>What genuinely needs AI is the external explanation</strong> - which vulnerability, which campaign, and why that accounts for the movement the arithmetic already measured.</p></div><div class="modal-foot"><a class="modal-src" href="#avp-8-explaining-a-risk-movement-the-only-part-that-needs-ai">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-9" role="dialog" aria-modal="true" aria-labelledby="modal-9-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-9</span><h2 class="modal-title" id="modal-9-title">Demoted to engineering - and already built</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>The security team had 551 alerts and nine fixed rules, with no way to know what it had not looked for.</p><p>It now turns the coverage gaps into a to-do list: which attack methods the estate is exposed to with no alarm for, the exact query to run, what a positive result looks like, and how long it takes.</p><p><strong>Once the gap is known the hunt is a query plus a count the platform already computes.</strong> The mapping is curated and reviewed like any other config file.</p></div><div class="modal-foot"><a class="modal-src" href="#demoted-avp-9-coverage-driven-hunts-engineering-built">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-10" role="dialog" aria-modal="true" aria-labelledby="modal-10-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-10</span><h2 class="modal-title" id="modal-10-title">Demoted to engineering - and already built</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>No vendor tool grades itself. SITA sees all four and can compare them.</p><p>It reports findings per vendor, how many sit unfixed past six months, and the interesting one: which applications each pair of vendors both report on. Overlap of forty out of nine hundred means they are looking at different estates.</p><p><strong>Counts and ratios over data already held</strong>, three of four measures built. The fourth would be a coverage percentage, which cannot be computed without a list of what you actually own.</p></div><div class="modal-foot"><a class="modal-src" href="#demoted-avp-10-oem-coverage-and-agreement-attestation-engineering-built">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-11" role="dialog" aria-modal="true" aria-labelledby="modal-11-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-11</span><h2 class="modal-title" id="modal-11-title">The part that genuinely needs AI</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>The platform records every privileged action - who did what, when, under which role - and signs it so it cannot be altered. Nothing was reading those records.</p><p><strong>Every individual check is an ordinary query</strong>, and three are built and working: who acted without authority, which accounts hold conflicting roles, who exported more data than their role allows.</p><p><strong>What genuinely needs AI is reading across the rows</strong> - recognising that a particular ordering and timing of individually valid actions is not something any single check reveals.</p></div><div class="modal-foot"><a class="modal-src" href="#avp-11-reading-a-behavioural-sequence-the-only-part-that-needs-ai">Read the full technical proposition &rarr;</a></div></div></div>
+<div class="modal" id="modal-12" role="dialog" aria-modal="true" aria-labelledby="modal-12-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-12</span><h2 class="modal-title" id="modal-12-title">Demoted to engineering - and already built</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>The platform could produce one signed summary of its compliance position. That was all.</p><p>It now builds a pack answering any audit question: who knew, when, what they did, what supports the claim it was fixed, and proof none of it was altered since.</p><p><strong>The signing, hashing and offline verification already existed</strong> for the Auditor-General attestation. A packet is those tools applied to a different set of records. There is nothing to generate.</p></div><div class="modal-foot"><a class="modal-src" href="#demoted-avp-12-dispute-ready-evidence-packets-engineering-built">Read the full technical proposition &rarr;</a></div></div></div>
+<footer>AVP-R1 &middot; rendered from
+  <a href="AIMI_INTELLIGENCE_VALUE_PROPOSITIONS.md">AIMI_INTELLIGENCE_VALUE_PROPOSITIONS.md</a>
+  &middot; companion to <a href="AI_INTEGRATION_PLAN_MASTER.html">the master AI integration plan</a>
+  &middot; findings marked &ldquo;probed live&rdquo; were verified by direct MCP call on 12 October 2026</footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  try {
+    var saved = localStorage.getItem('sita-doc-theme');
+    if (saved) root.setAttribute('data-theme', saved);
+  } catch (e) {}
+  var btn = document.getElementById('themeToggle');
+  btn.addEventListener('click', function () {
+    var next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('sita-doc-theme', next); } catch (e) {}
+  });
+
+  // Plain English modals
+  var lastFocus = null;
+
+  function open(n, trigger) {
+    var m = document.getElementById('modal-' + n);
+    if (!m) return;
+    lastFocus = trigger || null;
+    m.hidden = false;
+    document.body.classList.add('modal-open');
+    var x = m.querySelector('.modal-x');
+    if (x) x.focus();
+  }
+
+  function close(m) {
+    if (!m) return;
+    m.hidden = true;
+    document.body.classList.remove('modal-open');
+    if (lastFocus) { lastFocus.focus(); lastFocus = null; }
+  }
+
+  document.addEventListener('click', function (e) {
+    var trigger = e.target.closest('.plain-btn');
+    if (trigger) { open(trigger.getAttribute('data-avp'), trigger); return; }
+    if (e.target.closest('.modal [data-close]')) {
+      close(e.target.closest('.modal'));
+    }
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var open_ = document.querySelector('.modal:not([hidden])');
+    if (open_) close(open_);
+  });
+})();
+</script>
+</body>
+</html>

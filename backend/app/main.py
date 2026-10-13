@@ -73,9 +73,98 @@ else:
         openapi_url=None,
     )
 
-# Security headers middleware
+from jose import JWTError, jwt
+
+# Security headers & global token validation middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
+    # Guard against null byte injection in URL or query string (prevents 500 DB errors)
+    raw_query = request.url.query or ""
+    if "\x00" in request.url.path or "\x00" in raw_query or "%00" in raw_query.lower():
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=400,
+            content={"detail": "Invalid request: Null byte injection detected"},
+            headers={"X-Content-Type-Options": "nosniff"},
+        )
+
+    # Guard against weak signature / forged / alg:none JWTs on all requests bearing Authorization
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.strip().lower().startswith("bearer "):
+        token = auth_header.strip()[7:].strip()
+        parts = token.split(".")
+        if len(parts) < 2 or not parts[0]:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Invalid token structure"},
+                headers={
+                    "WWW-Authenticate": "Bearer",
+                    "X-Content-Type-Options": "nosniff",
+                    "X-Frame-Options": "DENY",
+                },
+            )
+
+        # Explicitly inspect token algorithm in header to reject 'none'
+        try:
+            import base64
+            import json
+            header_b64 = parts[0]
+            header_b64 += "=" * ((4 - len(header_b64) % 4) % 4)
+            header_data = json.loads(base64.urlsafe_b64decode(header_b64.encode("utf-8")))
+            alg = str(header_data.get("alg", "")).strip().lower()
+            if not alg or alg in ("none", "null", "undefined"):
+                from fastapi.responses import JSONResponse
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Algorithm 'none' is forbidden"},
+                    headers={
+                        "WWW-Authenticate": "Bearer",
+                        "X-Content-Type-Options": "nosniff",
+                        "X-Frame-Options": "DENY",
+                    },
+                )
+        except Exception:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Malformed token header"},
+                headers={
+                    "WWW-Authenticate": "Bearer",
+                    "X-Content-Type-Options": "nosniff",
+                    "X-Frame-Options": "DENY",
+                },
+            )
+
+        # Cryptographically verify signature using allowed algorithms
+        try:
+            if settings.auth0_domain:
+                jwt.decode(
+                    token,
+                    settings.auth0_domain,
+                    algorithms=settings.auth0_algorithms,
+                    audience=settings.auth0_audience,
+                    options={"verify_aud": bool(settings.auth0_audience), "verify_signature": True},
+                )
+            else:
+                jwt.decode(
+                    token,
+                    settings.jwt_secret,
+                    algorithms=["HS256"],
+                    options={"verify_signature": True},
+                )
+        except (JWTError, Exception):
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=401,
+                content={"detail": "Invalid or expired token"},
+                headers={
+                    "WWW-Authenticate": "Bearer",
+                    "X-Content-Type-Options": "nosniff",
+                    "X-Frame-Options": "DENY",
+                },
+            )
+
     response: Response = await call_next(request)
     # Security headers
     response.headers["X-Frame-Options"] = "DENY"
@@ -83,6 +172,9 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    response.headers["Cross-Origin-Embedder-Policy"] = "credentialless"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     # Hide server version
     if "Server" in response.headers:
         del response.headers["Server"]
@@ -104,24 +196,27 @@ async def add_security_headers(request: Request, call_next):
     return response
 
 
-# CORS configuration - restrict to trusted origins in production
-if settings.environment.lower() in ("dev", "development", "test", "testing"):
-    allowed_origins = ["*"]
-    allow_credentials = True
-else:
-    # In production, only allow approved frontend origins (direct LAN + SSH tunnel)
-    allowed_origins = [
-        "http://192.168.101.20:8088",
-        "http://localhost:8802",
-        "http://127.0.0.1:8802",
-        "https://sita.example.com",
-    ]
-    allow_credentials = True
+# CORS configuration - strict trusted origins to prevent overly permissive CORS
+allowed_origins = [
+    "http://192.168.101.20:8088",
+    "http://192.168.101.20:8000",
+    "http://localhost:8088",
+    "http://localhost:8000",
+    "http://localhost:8801",
+    "http://localhost:8802",
+    "http://127.0.0.1:8801",
+    "http://127.0.0.1:8802",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://sita.example.com",
+]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=allow_credentials,
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
     max_age=600,
