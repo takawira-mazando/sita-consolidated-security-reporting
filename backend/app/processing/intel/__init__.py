@@ -13,6 +13,22 @@ AI dependency switched off, reproducible run to run, and safe to sign.
 New AI work should arrive here first and move out to a gated module only if a
 reviewer can name the thing that is impossible to compute.
 """
+from app.processing.intel import (
+    attack,
+    author_rules,
+    behaviour,
+    campaign,
+    capability,
+    causal,
+    controls,
+    delta,
+    estate,
+    packet,
+    peer,
+    popia,
+    privilege,
+    vendor,
+)
 from app.processing.intel.capability import (
     DETECTION_CONTENT,
     DETERMINISTIC,
@@ -36,6 +52,22 @@ from app.processing.intel.privilege import privilege_audit
 from app.processing.intel.vendor import attestation, contradictions
 
 __all__ = [
+    # modules
+    "attack",
+    "author_rules",
+    "behaviour",
+    "campaign",
+    "capability",
+    "causal",
+    "controls",
+    "delta",
+    "estate",
+    "packet",
+    "peer",
+    "popia",
+    "privilege",
+    "vendor",
+    # symbols
     "CATALOGUE",
     "DETERMINISTIC",
     "DETECTION_CONTENT",

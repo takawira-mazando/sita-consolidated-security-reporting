@@ -17,19 +17,24 @@ administrators: it audits the platform's own privileged actions, so no admin tie
 and no executive role may hold it. See the module docstring in
 ``app.processing.intel.privilege``.
 """
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.auth import require_roles
 from app.db import get_session
 from app.processing.intel import (
     attack,
+    author_rules,
+    behaviour,
+    campaign,
     capability,
+    causal,
     controls,
     delta,
     estate,
     packet,
     peer,
+    popia,
     privilege,
     vendor,
 )
@@ -215,3 +220,135 @@ async def post_privilege_audit(
     the tool that audits administrators.
     """
     return await privilege.privilege_audit(session, window_days)
+
+
+# ---------------------------------------------------------------------------
+# AI-Residue endpoints  (advisory-only, require human review before any action)
+# ---------------------------------------------------------------------------
+
+@router.post("/attack/author-rule", tags=["intel", "ai-residue"])
+async def post_author_rule(
+    technique_id: str = Query(..., min_length=3, max_length=16,
+                               description="MITRE ATT&CK technique ID, e.g. T1190"),
+    technique_name: str | None = Query(None, max_length=255),
+    severity: str | None = Query(None, pattern="^(critical|high|medium|low)$"),
+    target_source: str | None = Query(None, max_length=64),
+    claims=Depends(require_roles("findings")),
+):
+    """Author a reviewable alert-rule proposal for a technique (AVP-2 AI residue).
+
+    Advisory only: the rule is NEVER automatically merged. The response contains
+    a git diff that a platform operator must review and approve before the rule
+    is added to ``alert_rules.yaml``.
+    """
+    return author_rules.author_rule_for_technique(
+        technique_id=technique_id,
+        technique_name=technique_name,
+        custom_severity=severity,
+        target_source=target_source,
+    )
+
+
+@router.post("/threat/attribute", tags=["intel", "ai-residue"])
+async def post_attribute_campaign(
+    report_text: str = Body(..., media_type="text/plain",
+                             description="Raw text of a threat report (OSINT, CTI feed, MITRE ATT&CK advisory)."),
+    session: AsyncSession = Depends(get_session),
+    claims=Depends(require_roles("findings")),
+):
+    """Attribute a threat report to this estate (AVP-3 AI residue).
+
+    Deterministically extracts ATT&CK techniques, CVEs, and adjacent-sector
+    keywords from the supplied report text, then cross-references them against
+    the estate's own exposure. Returns a structured attribution dossier for
+    analyst review. Advisory only — no alert rules are created.
+    """
+    # Fetch estate exposure for cross-reference
+    try:
+        coverage_data = await attack.coverage(session, claims)
+        exposed = [t["technique_id"] for t in coverage_data.get("exposed", [])]
+        covered = [t["technique_id"] for t in coverage_data.get("covered", [])]
+    except Exception:
+        exposed, covered = [], []
+
+    result = campaign.attribute_campaign(
+        report_text=report_text,
+        estate_exposed_techniques=exposed,
+        estate_covered_techniques=covered,
+    )
+    return result.__dict__
+
+
+@router.post("/popia/dossier", tags=["intel", "ai-residue"])
+async def post_popia_dossier(
+    alert_id: str | None = Query(None, max_length=64),
+    app_name: str | None = Query(None, max_length=255),
+    window_days: int = Query(30, ge=1, le=180),
+    session: AsyncSession = Depends(get_session),
+    claims=Depends(require_roles("compliance")),
+):
+    """Assemble a POPIA s.22 breach-notification evidence dossier (AVP-5 AI residue).
+
+    Gathers platform-held evidence (findings, alerts) and returns a structured
+    dossier anchored to a specific alert or application. The statutory threshold
+    judgement (s.22(1)) and the notification narrative are **deliberately withheld**
+    and flagged for human legal review.
+    """
+    return await popia.assemble_breach_dossier(
+        session=session,
+        claims=claims,
+        alert_id=alert_id,
+        app_name=app_name,
+        window_days=window_days,
+    )
+
+
+@router.post("/risk/causal", tags=["intel", "ai-residue"])
+async def post_risk_causal(
+    app_name: str = Query(..., min_length=1, max_length=255),
+    window_days: int = Query(14, ge=2, le=90),
+    threat_report: str | None = Body(None, media_type="text/plain",
+                                     description="Optional raw threat-report text to cross-reference against the delta."),
+    session: AsyncSession = Depends(get_session),
+    claims=Depends(require_roles("risks")),
+):
+    """Explain a risk-delta movement with external-cause context (AVP-8 AI residue).
+
+    Stage (a) decomposition is already available via ``GET /intel/risk/delta``.
+    This endpoint adds the external-cause hypothesis: maps the dominant signal
+    to an ATT&CK technique and, if a threat report is supplied, checks whether
+    that technique appears in the report. Advisory only — analyst review required.
+    """
+    delta_payload = await delta.app_delta(session, claims, app_name, window_days)
+    return causal.enrich_delta_with_context(
+        delta_payload=delta_payload,
+        threat_report_text=threat_report,
+    )
+
+
+@router.post("/audit/explain", tags=["intel", "ai-residue"])
+async def post_explain_behaviour(
+    window_days: int = Query(30, ge=1, le=365),
+    actor_id: str | None = Query(None, max_length=255,
+                                  description="Scope to a single actor. Omit to analyse all actors."),
+    min_confidence: int = Query(2, ge=1, le=10,
+                                description="Minimum corroborating-signal count to flag a cluster."),
+    session: AsyncSession = Depends(get_session),
+    claims=Depends(require_roles("compliance")),
+):
+    """Explain multi-step behavioural patterns in the signed audit trail (AVP-11 AI residue).
+
+    Groups audit events into temporal clusters and labels patterns that no
+    single per-row rule would flag (self-approve chains, escalating exports,
+    cross-scope pivots, rapid authority sweeps). Returns a structured report
+    for analyst review. Advisory only — no disciplinary actions are created.
+    """
+    result = await behaviour.explain_behaviour(
+        session=session,
+        window_days=window_days,
+        actor_id=actor_id,
+        min_confidence=min_confidence,
+    )
+    # Convert dataclasses to dicts for JSON serialisation
+    import dataclasses
+    return dataclasses.asdict(result)
