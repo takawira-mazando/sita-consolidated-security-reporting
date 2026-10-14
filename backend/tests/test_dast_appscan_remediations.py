@@ -159,6 +159,39 @@ async def test_cross_origin_and_security_headers():
         assert headers.get("x-frame-options") == "DENY"
         assert headers.get("x-content-type-options") == "nosniff"
         assert "server" not in headers
+        csp = headers.get("content-security-policy", "")
+        assert "'unsafe-eval'" not in csp
+        assert "require-trusted-types-for 'script'" in csp
+
+
+@pytest.mark.asyncio
+async def test_bfla_sre_agents_role_gating():
+    """Verify that /metrics/sre/agents strictly requires sre or admin_read roles."""
+    soc_token = jwt.encode(
+        {"sub": "soc1", "email": "soc@test.gov.za", "roles": ["soc"]},
+        settings.jwt_secret,
+        algorithm="HS256",
+    )
+    mock_session = AsyncMock()
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+    mock_session.execute.return_value = mock_result
+    app.dependency_overrides[get_session] = lambda: mock_session
+
+    try:
+        async with AsyncClient(
+            transport=ASGITransport(app=app),
+            base_url="http://test",
+        ) as ac:
+            res_forbidden = await ac.get(
+                "/api/v1/metrics/sre/agents",
+                headers={"Authorization": f"Bearer {soc_token}"},
+            )
+            assert res_forbidden.status_code == 403
+            res_unauth = await ac.get("/api/v1/metrics/sre/agents")
+            assert res_unauth.status_code == 401
+    finally:
+        app.dependency_overrides.pop(get_session, None)
 
 
 @pytest.mark.asyncio

@@ -206,7 +206,7 @@ services:
     logging: *logging
 
   nginx:
-    image: nginx:1.25.5-alpine
+    image: nginx:1.27.4-alpine
     volumes:
       - ./nginx/sita.conf:/etc/nginx/conf.d/sita.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro
