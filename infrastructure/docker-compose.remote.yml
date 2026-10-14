@@ -64,6 +64,7 @@ services:
 
   frontend:
     image: ghcr.io/takawira-mazando/sita-frontend:latest
+    build: ../frontend
     depends_on:
       - backend
     logging: *logging
