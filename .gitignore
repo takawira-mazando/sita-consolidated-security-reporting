@@ -68,4 +68,12 @@ scratch_*.txt
 ~$*.xlsx
 ~$*.docx
 
+# Dev-only: test fixtures, synthetic data generators, and SQL seed files
+# These are local development / QA artefacts — not for production main branch
+backend/tests/test_remediation_verification.py
+backend/tests/test_tenancy.py
+backend/app/synthetic/generator.py
+backend/scripts/seed_demo_findings.py
+infrastructure/scripts/seed-demo.sql
+
 
