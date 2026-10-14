@@ -29,7 +29,7 @@ jobs:
         env:
           POSTGRES_DB: sita_test
           POSTGRES_USER: sita
-          POSTGRES_PASSWORD: testpass
+          POSTGRES_PASSWORD: ${{ secrets.CI_POSTGRES_PASSWORD }}
         ports:
           - 5432:5432
         options: >-

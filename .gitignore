@@ -45,6 +45,7 @@ backend/_test_dispatch.py
 # Credentials / secrets
 admin_credentials.md
 backend/new_credentials.txt
+backend/configs/appscan.local.secret.yaml
 
 # ECDSA attestation signing keys. security_pki.py generates the pair on first
 # use and prefers AG_SIGNING_PRIVATE_KEY_PEM from the environment. The private

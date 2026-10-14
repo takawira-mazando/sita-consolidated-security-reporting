@@ -4,14 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>sita-platform — Architecture</title>
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' https:; script-src 'self' 'unsafe-inline' https:;">
   <script>
     (function () {
       try {
-        var t = localStorage.getItem('sita-tree-theme');
-        if (t !== 'light' && t !== 'dark') {
-          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-        }
-        document.documentElement.setAttribute('data-theme', t);
+        var raw = localStorage.getItem('sita-tree-theme');
+        var theme = (raw === 'light') ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', theme);
       } catch (e) {}
     })();
   </script>
@@ -1764,7 +1763,7 @@ const details = {
         <li><code>admin.py</code> &mdash; <code>GET /admin/connectors</code>, <code>GET /admin/dead-letter</code> &rarr; <code>warehouse.connector_health</code>, <code>staging.rejected_records</code></li>
       </ul>
       <h3>Auth &amp; RBAC</h3>
-      <p><code>C:\sita-platform\backend\app\api\auth.py</code> validates the JWT (dev mode: <code>verify_signature=False</code>) and enforces a role hierarchy. Example grants: <code>exec</code> &rarr; risks/compliance/alerts; <code>soc</code> &rarr; findings/alerts; <code>dbsec</code> &rarr; risks/findings/alerts-read; <code>sre</code> &rarr; admin_read/admin_write. Department-scoped roles are further constrained by <code>tenant_filter(claims, model)</code>, which scopes every read to the JWT&rsquo;s <code>department_ids</code>/<code>branch_ids</code> &mdash; see the <strong>Multi-Tenancy</strong> panel.</p>
+      <p><code>C:\sita-platform\backend\app\api\auth.py</code> validates the JWT (with cryptographic signature verification enforced) and enforces a role hierarchy. Example grants: <code>exec</code> &rarr; risks/compliance/alerts; <code>soc</code> &rarr; findings/alerts; <code>dbsec</code> &rarr; risks/findings/alerts-read; <code>sre</code> &rarr; admin_read/admin_write. Department-scoped roles are further constrained by <code>tenant_filter(claims, model)</code>, which scopes every read to the JWT&rsquo;s <code>department_ids</code>/<code>branch_ids</code> &mdash; see the <strong>Multi-Tenancy</strong> panel.</p>
       <p><em>Served by FastAPI on :8000; nginx proxies <code>/api/</code> and <code>/admin/</code> to it.</em></p>
     `
   },

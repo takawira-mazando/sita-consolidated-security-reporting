@@ -1,29 +1,34 @@
-# AppScan Cloud Connector Configuration - LOCAL DEVELOPMENT
-# This file contains real credentials for local testing
-# NEVER commit this file to version control
-# 
-# To use: set APPSCAN_CONFIG_PATH=configs/appscan.local.yaml
-# or copy to appscan.yaml and add to .gitignore
+# AppScan Cloud Connector Configuration - LOCAL DEVELOPMENT TEMPLATE
+# ============================================================
+# CWE-522: Real credentials MUST NOT appear in this file.
+# Copy this template to appscan.local.secret.yaml (gitignored)
+# and supply real values there, OR export them as environment variables:
+#
+#   export APPSCAN_API_KEY="<key_id>:<key_secret>"
+#   export APPSCAN_KEY_ID="<key_id>"
+#   export APPSCAN_KEY_SECRET="<key_secret>"
+#   export APPSCAN_APPLICATION_ID="<app_uuid>"
+#
+# To use this template:
+#   APPSCAN_CONFIG_PATH=configs/appscan.local.secret.yaml python fetch_appscan.py
+# ============================================================
 
 # AppScan Cloud base URL
 base_url: "https://cloud.appscan.com"
 
 # Authentication: Key ID and Key Secret (from AppScan Cloud Account > API Keys)
-# Using the credentials provided
-api_key: "006e8f6c-ee00-607a-9836-104089c85cf5:qmaJItqjM/91OHg+H64vE4kpvxf6JtRDtu20lwHTq2x5"
+# TEMPLATE ONLY — replace with real values in appscan.local.secret.yaml (gitignored)
+api_key: "${APPSCAN_API_KEY}"
 
 # Alternative: separate fields
-key_id: "006e8f6c-ee00-607a-9836-104089c85cf5"
-key_secret: "qmaJItqjM/91OHg+H64vE4kpvxf6JtRDtu20lwHTq2x5"
+key_id: "${APPSCAN_KEY_ID}"
+key_secret: "${APPSCAN_KEY_SECRET}"
 
-# Account/Organization ID 
+# Account/Organization ID
 account_id: ""
 
-# Application ID for XYZ Application (demo.testfire.net)
-application_id: "b816b09c-4240-4ea7-a4b5-f8ae89f62f57"
-# Human-readable app name written as app_name on every ingested finding.
-# Without this, the connector falls back to the UUID above, which the
-# department_for_app() lookup can resolve but renders poorly in the UI.
+# Application ID
+application_id: "${APPSCAN_APPLICATION_ID}"
 application_name: "demo.testfire.net"
 
 # Scope for issues query: 'application' (per-app) or 'org' (all apps in org)
