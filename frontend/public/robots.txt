@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /presentation.html
+Disallow: /handover_presentation.html
+Disallow: /architecture.html
+Disallow: /architecture-ai.html

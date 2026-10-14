@@ -24,7 +24,7 @@ from app.api.routers import (
     public_summary,
     risks,
 )
-from app.config import settings, DISALLOWED_DEV_PASSWORDS
+from app.config import settings, is_disallowed_credential
 from app.db import SessionFactory
 from app.monitoring.metrics import setup_metrics
 
@@ -47,7 +47,7 @@ async def lifespan(app: FastAPI):
                 created = await auth.seed_demo_users(session)
                 if created:
                     logger.info("Seeded %d demo users", created)
-            elif settings.bootstrap_admin_password in DISALLOWED_DEV_PASSWORDS:
+            elif is_disallowed_credential(settings.bootstrap_admin_password):
                 logger.warning(
                     "Demo users disabled; set a strong BOOTSTRAP_ADMIN_PASSWORD for %s",
                     settings.bootstrap_admin_email,

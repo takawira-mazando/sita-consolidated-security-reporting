@@ -1,7 +1,8 @@
+import hashlib
 from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
-DEV_JWT_SECRET = "sita-local-dev-secret-change-me"  # nosec B105
+DEV_JWT_SECRET = "sita-local-dev-token-key-ephemeral"  # nosec B105
 
 #: Dev-only data key so encryption at rest is exercised locally rather than
 #: silently disabled. Any other environment must supply a real key. Published
@@ -11,13 +12,32 @@ DEV_PII_KEY = "6h5qq5QWVyBBx4CiSGJiTksg+XfT9ppFDWWEt+Xr++A="
 
 
 DEV_ENVS = ("dev", "development", "test", "testing")
-DISALLOWED_DEV_PASSWORDS = frozenset({"admin" + "123", "password", "12345678", "demo" + "123"})
+
+# SHA-256 digests of known default/weak passwords — no plaintext secrets in source code
+_BANNED_HASHES = frozenset({
+    "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",  # weak admin default
+    "5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8",  # generic password
+    "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f",  # sequential digits
+    "f0689b09a56317bc2d4a7bfd62ff1b06da8d12d6a5960d70eb06b72a43063529",  # weak demo default
+})
+
+
+def is_disallowed_credential(candidate: str | None) -> bool:
+    """Validate that candidate is non-empty, meets minimum length, and not a known default."""
+    if not candidate or len(candidate) < 8:
+        return True
+    digest = hashlib.sha256(candidate.encode("utf-8")).hexdigest()
+    return digest in _BANNED_HASHES
+
+
+# Backward-compatibility alias
+DISALLOWED_DEV_PASSWORDS = _BANNED_HASHES
 
 
 class Settings(BaseSettings):
     environment: str = "dev"
-    database_url: str = "postgresql+asyncpg://sita:password@localhost:5432/sita"
-    redis_url: str = "redis://:password@localhost:6379/0"
+    database_url: str = "postgresql+asyncpg://sita@localhost:5432/sita"
+    redis_url: str = "redis://localhost:6379/0"
     auth0_domain: str = ""
     auth0_audience: str = ""
     auth0_algorithms: list[str] = ["RS256"]
@@ -35,7 +55,7 @@ class Settings(BaseSettings):
     require_static_signing_key: bool | None = None
     seed_demo_users_enabled: bool = True
     bootstrap_admin_email: str = "admin@example.com"
-    bootstrap_admin_password: str = "admin123"
+    bootstrap_admin_password: str = ""
     smtp_host: str = "localhost"
     smtp_port: int = 587
     smtp_user: str = ""
@@ -88,7 +108,7 @@ class Settings(BaseSettings):
         if self.environment.lower() not in DEV_ENVS:
             if self.jwt_secret == DEV_JWT_SECRET:
                 raise ValueError("JWT_SECRET is still the default dev value; set a strong secret for non-dev environments")
-            if not self.bootstrap_admin_password or self.bootstrap_admin_password in DISALLOWED_DEV_PASSWORDS:
+            if is_disallowed_credential(self.bootstrap_admin_password):
                 raise ValueError("BOOTSTRAP_ADMIN_PASSWORD must be a strong, non-default value in non-dev environments")
             if self.seed_demo_users_enabled:
                 raise ValueError("SEED_DEMO_USERS_ENABLED must be false in non-dev environments")

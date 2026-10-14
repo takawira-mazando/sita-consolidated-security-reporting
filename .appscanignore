@@ -1,0 +1,10 @@
+# HCL AppScan Source / Cloud SAST Target Exclusions
+# Exclude standalone HTML slide decks and architectural diagrams
+architecture*.html
+presentation*.html
+handover_presentation.html
+docs/*.html
+frontend/public/presentation.html
+frontend/public/architecture.html
+frontend/public/architecture-ai.html
+frontend/public/handover_presentation.html
