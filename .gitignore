@@ -59,6 +59,11 @@ backend/certs/
 scratch/*
 !scratch/build_9day_addendum.py
 
+# Root-level SAST analysis scratch files (generated during remediation workflow)
+scratch_*.json
+scratch_*.py
+scratch_*.txt
+
 # Excel owner files
 ~$*.xlsx
 ~$*.docx

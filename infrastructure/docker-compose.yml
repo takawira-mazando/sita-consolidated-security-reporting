@@ -44,6 +44,9 @@ services:
           memory: 256M
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
 
   backend:
     build: ../backend
@@ -64,6 +67,10 @@ services:
           memory: 1G
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /run
     develop:
       watch:
         - path: ../backend
@@ -162,6 +169,11 @@ services:
           memory: 256M
     security_opt:
       - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run
+      - /var/cache/nginx
 
 volumes:
   pgdata:

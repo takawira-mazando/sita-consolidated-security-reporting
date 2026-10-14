@@ -25,6 +25,7 @@ const ROLE_TABS: RoleTab[] = [
   { role: 'dbsec',      label: 'DB Security', color: 'var(--green)' },
   { role: 'compliance', label: 'Compliance',  color: 'var(--violet)' },
   { role: 'sre',        label: 'Service Ops', color: 'var(--text-muted)' },
+  { role: 'ai',         label: 'AI Intel',    color: '#8b5cf6' },
 ];
 
 const TIER_META: Record<TenancyTier, { label: string; icon: string; hint: string }> = {

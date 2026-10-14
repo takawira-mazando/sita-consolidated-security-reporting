@@ -14,6 +14,7 @@ import AppSecDashboard from './pages/AppSecDashboard';
 import DbSecDashboard from './pages/DbSecDashboard';
 import ComplianceDashboard from './pages/ComplianceDashboard';
 import SreDashboard from './pages/SreDashboard';
+import AiIntelPage from './pages/AiIntelPage';
 
 // Dashboard key → component factory (receives tier)
 const DASH_COMPONENTS: Record<string, (tier: TenancyTier) => JSX.Element> = {
@@ -23,6 +24,7 @@ const DASH_COMPONENTS: Record<string, (tier: TenancyTier) => JSX.Element> = {
   dbsec:      (tier) => <DbSecDashboard tier={tier} />,
   compliance: (tier) => <ComplianceDashboard tier={tier} />,
   sre:        (tier) => <SreDashboard tier={tier} />,
+  ai:         (tier) => <AiIntelPage tier={tier} />,
 };
 
 function DemoBanner({ demoMode, onDismiss }: { demoMode: boolean; onDismiss: () => void }) {
@@ -98,7 +100,7 @@ export default function App() {
         })}
 
         {/* Legacy flat routes → redirect to tiered equivalents */}
-        {(['exec','soc','appsec','dbsec','compliance','sre'] as const).map((key) => (
+        {(['exec','soc','appsec','dbsec','compliance','sre','ai'] as const).map((key) => (
           <Route key={`legacy-${key}`} path={`/${key}`} element={<Navigate to={`/${primaryTier}/${key}`} />} />
         ))}
         <Route path="/users" element={<Navigate to={`/${primaryTier}/admin`} />} />

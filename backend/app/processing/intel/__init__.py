@@ -27,6 +27,7 @@ from app.processing.intel import (
     peer,
     popia,
     privilege,
+    vapt,
     vendor,
 )
 from app.processing.intel.capability import (
@@ -66,6 +67,7 @@ __all__ = [
     "peer",
     "popia",
     "privilege",
+    "vapt",
     "vendor",
     # symbols
     "CATALOGUE",

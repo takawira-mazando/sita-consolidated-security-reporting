@@ -10,10 +10,8 @@
   <script>
     // Immediately apply saved theme before render to avoid flash
     (function() {
-      var savedTheme = localStorage.getItem('sita_theme');
-      if (savedTheme !== 'light' && savedTheme !== 'dark') {
-        savedTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-      }
+      var raw = localStorage.getItem('sita_theme');
+      var savedTheme = (raw === 'light') ? 'light' : 'dark';
       document.documentElement.setAttribute('data-theme', savedTheme);
       document.documentElement.className = 'theme-' + savedTheme;
     })();
@@ -1261,10 +1259,11 @@
 
       // --- Theme Toggling Logic (Synchronized with Homepage) ---
       function applyTheme(theme) {
-        document.documentElement.setAttribute('data-theme', theme);
-        document.body.setAttribute('data-theme', theme);
-        document.documentElement.className = 'theme-' + theme;
-        if (theme === 'light') {
+        var safe = (theme === 'light') ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', safe);
+        document.body.setAttribute('data-theme', safe);
+        document.documentElement.className = 'theme-' + safe;
+        if (safe === 'light') {
           themeIcon.textContent = '🌙';
           themeLabel.textContent = 'Dark mode';
         } else {

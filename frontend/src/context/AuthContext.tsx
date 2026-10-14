@@ -41,8 +41,8 @@ export const FALLBACK_DEMO_ACCOUNTS: DemoAccount[] = [
 ];
 
 export const ADMIN_EMAIL = 'admin@example.com';
-export const ALL_ROLES = ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre'];
-export const ALL_DASHBOARDS = ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre'];
+export const ALL_ROLES = ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre', 'ai'];
+export const ALL_DASHBOARDS = ['exec', 'soc', 'appsec', 'dbsec', 'compliance', 'sre', 'ai'];
 
 // ─── Tier-aware access resolution ─────────────────────────────────────────────
 // Returns which dashboard keys are accessible at each tenancy tier,
@@ -90,25 +90,25 @@ export function getTierAccess(roles: string[]): TierAccess {
 
     // ── National-tier roles ──────────────────────────────────────────────────
     if (r === 'exec') {
-      national.add('exec'); national.add('compliance');
+      national.add('exec'); national.add('compliance'); national.add('ai');
       // Exec can also read dept-level dashboards
-      dept.add('exec'); dept.add('compliance');
+      dept.add('exec'); dept.add('compliance'); dept.add('ai');
     }
-    if (r === 'compliance') { national.add('compliance'); }
+    if (r === 'compliance') { national.add('compliance'); national.add('ai'); }
     if (r === 'sre')        { national.add('sre'); }
 
     // ── Dept / Provincial tier roles ─────────────────────────────────────────
     if (r === 'soc' || r === 'soc-ha') {
-      dept.add('soc'); dept.add('appsec'); dept.add('dbsec');
+      dept.add('soc'); dept.add('appsec'); dept.add('dbsec'); dept.add('ai');
     }
     if (r === 'appsec' || r === 'appsec-ha') {
-      dept.add('appsec');
+      dept.add('appsec'); dept.add('ai');
     }
     if (r === 'dbsec' || r === 'dbsec-ha') {
       dept.add('dbsec');
     }
     if (r === 'province-soc-lead') {
-      dept.add('exec'); dept.add('soc');
+      dept.add('exec'); dept.add('soc'); dept.add('ai');
     }
 
     // ── Dept admin: all dept dashboards + branch access + admin ─────────────
@@ -120,7 +120,7 @@ export function getTierAccess(roles: string[]): TierAccess {
 
     // ── Branch tier roles ────────────────────────────────────────────────────
     if (r === 'local-appsec') {
-      branch.add('appsec');
+      branch.add('appsec'); branch.add('ai');
     }
 
     // ── Branch admin: all branch dashboards + admin ──────────────────────────
