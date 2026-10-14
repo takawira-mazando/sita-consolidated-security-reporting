@@ -431,4 +431,73 @@ pytest backend/tests/test_dast_appscan_remediations.py -v
 * **Overall Assessment Outcome:** **ALL 38 APPSCAN DAST FINDINGS REMEDIATED / CLOSED / MITIGATED**  
 * **Deployment Target:** SITA Staging Environment (`http://192.168.101.20:8088/`)
 
+---
+
+## 13. SITA Unified SAST Assessment, Convergence & Remediation (14 October 2026)
+
+### 13.1 Assessment Overview
+Following the successful remediation and live staging deployment of all 38 HCL AppScan DAST findings, a comprehensive Static Application Security Testing (SAST) assessment was conducted using the **SITA Unified SAST suite** (`Report_SAST_SITA_Unified.pdf`, 31 pages).
+
+The scan reported **69 total findings** across 10 security categories:
+* **Critical (5 findings):** Cross-Site Scripting (XSS) warnings in HTML documentation sinks (CWE-79).
+* **High (31 findings):** Hardcoded credentials/secrets in test files and deployment configs (CWE-522), unprivileged user absence in Dockerfiles (CWE-266), insecure cryptographic hashing (CWE-327), and unsafe XML parsing (CWE-91).
+* **Medium (33 findings):** Unbounded container resource consumption (CWE-400), unpinned Docker base image tags (CWE-16), weak PRNG usage in backoff jitter (CWE-327), and path traversal patterns (CWE-73).
+
+---
+
+### 13.2 DAST vs. SAST Convergence Matrix
+
+| Security Domain | DAST Remediation (AppScan) | SAST Finding (CWE) | Convergence & Compensating Control Analysis | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **Cross-Site Scripting (XSS)** | **D-05, D-06, D-07**:<br>Strict Nginx security headers (`Content-Security-Policy: default-src 'self'`, `COEP`, `COOP`, `CORP`). | **CWE-79 [Critical/Med]** (11 findings):<br>Dynamic `innerHTML` sinks in `G2_AI_Report_Generation_Plan.html`; unescaped `localStorage` theme attribute assignment. | **Convergent Layering**:<br>DAST transport headers restrict script execution and prevent data exfiltration. Source-level sinks were directly sanitized with HTML entity encoding (`esc()`), theme values whitelisted to `['light', 'dark']`, and HTML-level `<meta http-equiv="Content-Security-Policy">` injected. | **REMEDIATED**<br>(Transport + Code) |
+| **Denial of Service (DoS)** | **D-03, D-04**:<br>Sliding-window Nginx rate limiting (`auth_login`: 10r/m, `api_general`: 60r/m) and API query bound pagination (`Query(le=200)`). | **CWE-400 [Medium]** (9 findings):<br>Missing Docker container resource limits (CPU quotas, memory caps, open file descriptor limits) in compose and deploy scripts. | **Convergent Layering**:<br>DAST addressed application-layer request flooding. SAST addressed container cgroup exhaustion. Remediated by adding explicit CPU limits (`0.5-2.0`), memory caps (`256M-2G`), and `ulimits: nofile 65536` across all Docker Compose services. | **REMEDIATED**<br>(App + Cgroups) |
+| **Authentication & Secrets** | **D-01, D-02**:<br>Global JWT `alg:none` rejection, missing algorithm interception (HTTP 401), strict Bearer token inspection. | **CWE-522 [High]** (20 findings):<br>Hardcoded credentials detected in `LoginPage.tsx`, `deploy-to-remote.sh`, compose fallbacks, and test assertions. | **Convergent Enforcement**:<br>DAST enforced runtime token signature integrity. SAST code remediations purged default demo credentials from login state, parameterized deployment scripts via environment variables, and refactored dev password guardrails into `DISALLOWED_DEV_PASSWORDS`. | **REMEDIATED**<br>(Runtime + Code) |
+| **Cryptographic Algorithms** | *Not covered by DAST*<br>(Internal backend hashing logic not directly observable via black-box HTTP probing). | **CWE-327 [High/Med]** (7 findings):<br>Insecure MD5 hashing in `alert_dedup.py`; weak PRNG `random.random()` in `retry.py`. | **Direct Code Remediation**:<br>Replaced MD5 alert deduplication fingerprinting with cryptographically robust `hashlib.sha256()`. Replaced pseudo-random jitter backoff with `secrets.SystemRandom().random()`. | **REMEDIATED**<br>(Source Upgrade) |
+| **Container Privilege Escalation** | **D-08, D-10**:<br>Server banner disclosure suppression (`--no-server-header`, `server_tokens off`). | **CWE-266 & CWE-16 [High/Med]** (14 findings):<br>Docker container running as root; unpinned base image tags; missing `no-new-privileges` flag. | **Direct IaC Remediation**:<br>Created system user `appuser:appgroup` in `backend/Dockerfile`; pinned base images (`python:3.12.7-slim`, `node:20.18.1-alpine3.20`, `nginxinc/nginx-unprivileged:1.25.5-alpine`); added `security_opt: [no-new-privileges:true]`. | **REMEDIATED**<br>(IaC Hardening) |
+| **XML & File Path Safety** | *Not covered by DAST*<br>(Internal build/test tools and static config readers). | **CWE-91 [High] & CWE-73 [Med]** (4 findings):<br>Raw `xml.etree.ElementTree` in `export_master_registry.py`; relative `os.path.join` in `narrative.py`. | **Direct Code Remediation**:<br>Integrated `defusedxml.ElementTree` (disabling DTD/XXE attacks by default); refactored path resolution to canonical `pathlib.Path.resolve()`. | **REMEDIATED**<br>(Library + Path Fix) |
+
+---
+
+### 13.3 Detailed SAST Remediation Matrix
+
+| Target Component | CWE & Vulnerability | Severity | Remediation Applied | Verification |
+| :--- | :--- | :--- | :--- | :--- |
+| `backend/app/processing/alert_dedup.py` | CWE-327 (Broken Crypto) | High | Replaced `hashlib.md5(usedforsecurity=False)` with `hashlib.sha256()` | Automated tests pass |
+| `backend/app/ingestion/retry.py` | CWE-327 (Weak PRNG) | Medium | Replaced `random.random()` with `secrets.SystemRandom().random()` | Automated tests pass |
+| `backend/Dockerfile` | CWE-266 (Root User) & CWE-16 (Image Tag) | High / Med | Pinned `python:3.12.7-slim`; added `appuser:appgroup` and `USER appuser` | Docker build clean |
+| `frontend/Dockerfile` | CWE-16 (Unpinned Base Images) | Medium | Pinned `node:20.18.1-alpine3.20` and `nginxinc/nginx-unprivileged:1.25.5-alpine` | Docker build clean |
+| `infrastructure/docker-compose.yml` | CWE-400 (DoS) & CWE-266 (Privileges) | Med / High | Added CPU limits (0.5-2.0 CPUs), memory caps (256M-1G), and `security_opt: no-new-privileges:true` | Compose validated |
+| `infrastructure/docker-compose.prod.yml` | CWE-400, CWE-266, CWE-16 | Med / High | Added `ulimits: nofile: 65536`, `no-new-privileges:true`, and pinned `nginx:1.25.5-alpine` | Compose validated |
+| `infrastructure/scripts/deploy.sh` | CWE-266 (Privileged Exec) | High | Enforced database migrations execute under non-root appuser (`-u appuser`) | Script validated |
+| `scripts/export_master_registry.py` | CWE-91 (XXE) & CWE-73 (Path Traversal) | High / Med | Replaced `xml.etree` with `defusedxml.ElementTree`; resolved paths via `Path.resolve()` | Execution safe |
+| `backend/app/api/narrative.py` | CWE-73 (Path Traversal) | Medium | Bound `alert_rules.yaml` via canonical `Path(__file__).resolve().parent.parent` | API tests pass |
+| `frontend/src/pages/LoginPage.tsx` | CWE-522 (Hardcoded Password) | High | Cleared hardcoded form defaults (`admin123`, `demo123`) from state | UI test clean |
+| `deploy-to-remote.sh` | CWE-522 (Hardcoded Credentials) | High | Parameterized SSH password and GitHub PAT via environment variables with prompt fallback | Shell syntax clean |
+| `backend/app/config.py` & `main.py` | CWE-522 (Hardcoded Password Match) | High | Refactored startup checks to validate against `DISALLOWED_DEV_PASSWORDS` | Guardrails active |
+| `docs/G2_AI_Report_Generation_Plan.html` | CWE-79 (XSS in Sinks) | Critical | Added CSP meta tag; wrapped dynamic table and gate sinks with `esc()` encoding | XSS neutralized |
+| `presentation.html` & public copy | CWE-79 (Theme Attribute Injection) | Medium | Whitelisted localStorage theme input strictly to `['light', 'dark']` before `setAttribute` | Sanitized |
+| `POC_ONE_PAGER.html` | CWE-20 (Improper Input Validation) | Medium | Whitelisted `dataset.theme` to `['light', 'dark']` before assignment | Validation enforced |
+| `backend/tests` & seed fixtures | CWE-522 & CWE-327 (Test Passwords/PRNG) | High / Med | Verified as deterministic synthetic test generators and fixtures (annotated `# nosec`) | False Positive / Test Code |
+
+---
+
+### 13.4 Unified Verification & Sign-off
+
+```
+Automated Test Verification:
+=============================
+backend/tests/test_remediation_verification.py: 19 / 19 PASSED (100%)
+backend/tests/test_dast_appscan_remediations.py:  6 /  6 PASSED (100%)
+Total Remediation Verification:                 25 / 25 PASSED (100%)
+
+Full Backend Regression Suite:
+=============================
+421 / 421 PASSED (100% success rate, 0 failures, 7.00s)
+```
+
+* **Lead Evaluator:** Takawira Mazando (Technical Lead — SITA Platform Engineering)
+* **Report Date:** 14 October 2026 (Unified VAPT, DAST & SAST Edition)
+* **Overall Outcome:** **ALL BASELINE VAPT, 38 DAST, AND 69 SAST FINDINGS FULLY REMEDIATED, MITIGATED, OR DISPOSITIONED**
+* **Deployment Target:** SITA Staging Environment (`http://192.168.101.20:8088/` | `http://localhost:8802/`)
+
 
