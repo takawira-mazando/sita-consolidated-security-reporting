@@ -4,12 +4,24 @@
 
 set -euo pipefail
 
-REMOTE_HOST="192.168.101.20"
-REMOTE_USER="uni"
-REMOTE_PASS="H051@pivot"
+REMOTE_HOST="${REMOTE_HOST:-192.168.101.20}"
+REMOTE_USER="${REMOTE_USER:-uni}"
+REMOTE_PASS="${REMOTE_PASS:-}"
 DEPLOY_DIR="/opt/sita"
-REPO="https://Takawira-Mazando:Takawira%40Mazando%21654%23@github.com/takawira-mazando/sita-consolidated-security-reporting.git"
+GITHUB_TOKEN="${GITHUB_TOKEN:-}"
+REPO_URL="${REPO_URL:-https://github.com/takawira-mazando/sita-consolidated-security-reporting.git}"
+if [ -n "$GITHUB_TOKEN" ]; then
+    REPO="https://${GITHUB_TOKEN}@github.com/takawira-mazando/sita-consolidated-security-reporting.git"
+else
+    REPO="$REPO_URL"
+fi
 STACK_DIR="$DEPLOY_DIR/sita-platform/infrastructure"
+
+if [ -z "$REMOTE_PASS" ]; then
+    echo -n "Enter remote SSH password for $REMOTE_USER@$REMOTE_HOST: "
+    read -rs REMOTE_PASS
+    echo ""
+fi
 
 # Colors
 GREEN='\033[0;32m'
@@ -19,19 +31,19 @@ NC='\033[0m'
 
 echo -e "${GREEN}=== SITA Platform Remote Deployment ===${NC}"
 echo "Target: $REMOTE_USER@$REMOTE_HOST"
-echo "Repo: $REPO"
+echo "Repo: $REPO_URL"
 echo ""
 
 # Step 1: SSH and deploy
 echo -e "${YELLOW}Step 1: Deploying to remote server...${NC}"
 
-sshpass -p "$REMOTE_PASS" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$REMOTE_USER@$REMOTE_HOST" sudo -S bash -s << 'REMOTE_EOF'
-H051@pivot
+sshpass -p "$REMOTE_PASS" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$REMOTE_USER@$REMOTE_HOST" sudo -S bash -s << REMOTE_EOF
+$REMOTE_PASS
 set -euo pipefail
 
 DEPLOY_DIR="/opt/sita"
-REPO="https://Takawira-Mazando:Takawira%40Mazando%21654%23@github.com/takawira-mazando/sita-consolidated-security-reporting.git"
-STACK_DIR="$DEPLOY_DIR/sita-platform/infrastructure"
+REPO="$REPO"
+STACK_DIR="\$DEPLOY_DIR/sita-platform/infrastructure"
 
 echo "==> Installing Docker if needed..."
 if ! command -v docker >/dev/null 2>&1; then

@@ -11,8 +11,8 @@
     // Immediately apply saved theme before render to avoid flash
     (function() {
       var savedTheme = localStorage.getItem('sita_theme');
-      if (!savedTheme) {
-        savedTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+      if (savedTheme !== 'light' && savedTheme !== 'dark') {
+        savedTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
       }
       document.documentElement.setAttribute('data-theme', savedTheme);
       document.documentElement.className = 'theme-' + savedTheme;

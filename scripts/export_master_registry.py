@@ -6,12 +6,13 @@ and TEST_PLAN.md §5 manual test checklist.
 """
 import json
 import os
-import xml.etree.ElementTree as ET
+import defusedxml.ElementTree as ET  # CWE-91: safe XML parser — disables XXE/DTD by default
 from datetime import datetime, timezone
+from pathlib import Path
 
-DOCS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "docs"))
-TEST_REPORT_XML = os.path.join(DOCS_DIR, "test_report.xml")
-OUT_JSON = os.path.join(DOCS_DIR, "master_test_registry.json")
+DOCS_DIR = (Path(__file__).resolve().parent.parent / "docs").resolve()
+TEST_REPORT_XML = (DOCS_DIR / "test_report.xml").resolve()
+OUT_JSON = (DOCS_DIR / "master_test_registry.json").resolve()
 
 def parse_pytest_xml(xml_path):
     tests = []

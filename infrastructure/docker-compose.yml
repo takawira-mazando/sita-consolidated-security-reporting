@@ -16,6 +16,15 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    # CWE-400: resource limits prevent container DoS
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    # CWE-266: no privilege escalation allowed
+    security_opt:
+      - no-new-privileges:true
 
   redis:
     image: redis:7-alpine
@@ -27,6 +36,14 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+    # CWE-400: resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
 
   backend:
     build: ../backend
@@ -40,6 +57,13 @@ services:
         condition: service_healthy
     ports:
       - "8000:8000"
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+    security_opt:
+      - no-new-privileges:true
     develop:
       watch:
         - path: ../backend
@@ -53,6 +77,13 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
 
   processing:
     build: ../backend
@@ -68,6 +99,13 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+    security_opt:
+      - no-new-privileges:true
 
   dispatch:
     build: ../backend
@@ -84,6 +122,13 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
 
   analytics:
     build: ../backend
@@ -96,6 +141,13 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+    security_opt:
+      - no-new-privileges:true
 
   frontend:
     build: ../frontend
@@ -103,6 +155,13 @@ services:
       - "3000:80"
     depends_on:
       - backend
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   pgdata:

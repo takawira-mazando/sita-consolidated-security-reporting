@@ -153,7 +153,7 @@ document.getElementById('themeToggle').addEventListener('click', () => {
 });
 try {
   const saved = localStorage.getItem('poc_theme');
-  if (saved) document.documentElement.dataset.theme = saved;
+  if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
 } catch (e) {}
 </script>
 </body>

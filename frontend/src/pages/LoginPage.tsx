@@ -9,8 +9,8 @@ interface LoginPageProps {
 
 export default function LoginPage({ onClose }: LoginPageProps) {
   const { login, loginDemo, demoAccounts } = useAuth();
-  const [email, setEmail] = useState('admin@example.com');
-  const [password, setPassword] = useState('admin123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [tenancy, setTenancy] = useState<TenancyResponse | null>(null);
@@ -68,7 +68,7 @@ export default function LoginPage({ onClose }: LoginPageProps) {
   const selectPersona = (account: DemoAccount) => {
     setSelectedRole(account.role);
     setEmail(account.email);
-    setPassword('demo123');
+    setPassword(''); // demo login uses loginDemo() — no password needed client-side
     setBranch('');
     setError('');
   };

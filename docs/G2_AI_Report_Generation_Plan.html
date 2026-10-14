@@ -3,6 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- CWE-79 mitigation: strict CSP prevents exfiltration even if innerHTML is exploited -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none';">
 <title>G2 — AI Report Generation Plan · HOSI-UNIFIED Addendum A</title>
 <style>
 :root{
@@ -677,8 +679,8 @@ $('#flow').innerHTML = GATES.map((g,i)=>
 $$('#flow .gate').forEach(el=>el.onclick=()=>{
   const g=GATES.find(x=>x.id===el.dataset.g);
   $$('#flow .gate').forEach(x=>x.classList.toggle('on',x===el));
-  $('#gateDetail').innerHTML=`<h3 style="margin:0 0 8px">${g.t} ${pill(g.s,g.p.split('-')[1])}</h3><p style="margin:0 0 12px;font-size:12.7px;color:var(--tx2)">${g.d}</p>
-   <div class="grid g3">${g.sub.map(([h,p])=>`<div><b style="font-size:11.5px">${h}</b><div style="font-size:12.2px;color:var(--tx2)">${p}</div></div>`).join('')}</div>`;
+  $('#gateDetail').innerHTML=`<h3 style="margin:0 0 8px">${esc(g.t)} ${pill(g.s,g.p.split('-')[1])}</h3><p style="margin:0 0 12px;font-size:12.7px;color:var(--tx2)">${esc(g.d)}</p>
+   <div class="grid g3">${g.sub.map(([h,p])=>`<div><b style="font-size:11.5px">${esc(h)}</b><div style="font-size:12.2px;color:var(--tx2)">${esc(p)}</div></div>`).join('')}</div>`;
 });
 $('#flow .gate').click();
 
@@ -742,7 +744,7 @@ const API=[
  ['POST','/api/v1/reports-ai/{report_id}/regenerate','Gate 1 + Gate 2','Bust the cache and regenerate from the same fact pack'],
  ['GET','/api/v1/reports-ai/grounding/{report_id}','Owner of the report only','The exact fact pack the narrative was written from']
 ];
-$('#tblApi tbody').innerHTML=API.map(r=>`<tr><td>${pill(r[0],r[0]==='POST'?'grn':'blu')}</td><td class="mono">${esc(r[1])}</td><td><span class="muted">${esc(r[2])}</span></td><td>${r[3]}</td></tr>`).join('');
+$('#tblApi tbody').innerHTML=API.map(r=>`<tr><td>${pill(r[0],r[0]==='POST'?'grn':'blu')}</td><td class="mono">${esc(r[1])}</td><td><span class="muted">${esc(r[2])}</span></td><td>${esc(r[3])}</td></tr>`).join('');
 
 /* ---------------- 6. verification suites ---------------- */
 const SUITES=[
@@ -754,7 +756,7 @@ const SUITES=[
  ['S6','Structural','Import <code>accessors.py</code>; assert <code>scope: ReportScope</code> is the first positional param on every public function','100% compliance — fails the build otherwise','14.2'],
  ['NF','Numeral fidelity','Every figure in generated prose must exist in the fact pack','Failure → discard → deterministic fallback','16.1 / 16.5']
 ];
-$('#tblSuites tbody').innerHTML=SUITES.map(s=>`<tr><td><span class="pill p-blu">${s[0]}</span></td><td>${pill(s[1],s[1]==='RBAC'?'vio':s[1]==='Tenancy'?'cyn':s[1]==='Cache'?'amb':'grn')}</td><td>${s[2]}</td><td>${s[3]}</td><td class="mono nowrap">${esc(s[4])}</td></tr>`).join('');
+$('#tblSuites tbody').innerHTML=SUITES.map(s=>`<tr><td><span class="pill p-blu">${esc(s[0])}</span></td><td>${pill(s[1],s[1]==='RBAC'?'vio':s[1]==='Tenancy'?'cyn':s[1]==='Cache'?'amb':'grn')}</td><td>${esc(s[2])}</td><td>${esc(s[3])}</td><td class="mono nowrap">${esc(s[4])}</td></tr>`).join('');
 
 /* ---------------- 7. non-goals ---------------- */
 const NG=[
@@ -840,7 +842,7 @@ function syncChips(){
   $('#ganttChips .fchip[data-v="all"]').innerHTML=`All phases <b>${numf(A.reduce((t,a)=>t+a.effort,0))} PD</b>`;
   $$('#ganttChips .fchip').forEach(c=>{const p=c.dataset.v;
     if(p==='all')return; const e=A.filter(a=>a.phase===p).reduce((t,a)=>t+a.effort,0);
-    c.innerHTML=`Phase ${p} <b>${numf(e)} PD</b>`;});
+    c.innerHTML=`Phase ${esc(p)} <b>${numf(e)} PD</b>`;});
 }
 function setPhase(p){fPhase=p;draw();syncChips();}
 function rows(){

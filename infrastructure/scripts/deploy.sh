@@ -13,7 +13,8 @@ docker compose -f infrastructure/docker-compose.prod.yml build
 docker compose -f infrastructure/docker-compose.prod.yml up -d --wait
 
 echo "Running migrations..."
-docker compose -f infrastructure/docker-compose.prod.yml exec -T backend alembic upgrade head
+# Run migrations under the non-root appuser (CWE-266)
+docker compose -f infrastructure/docker-compose.prod.yml exec -T -u appuser backend alembic upgrade head
 
 echo "Health check..."
 sleep 5

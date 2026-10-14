@@ -22,7 +22,7 @@ there is nothing here to scope.
 """
 from __future__ import annotations
 
-import os
+from pathlib import Path
 from functools import lru_cache
 
 import yaml
@@ -34,15 +34,13 @@ from app.processing import owasp as owasp_taxonomy
 from app.processing import risk_engine
 from app.tenant import BRANCHES, CLUSTERS, DEPARTMENTS, MINISTRIES, PROVINCES
 
-ALERT_RULES_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "processing", "alert_rules.yaml"
-)
+ALERT_RULES_PATH = (Path(__file__).resolve().parent.parent / "processing" / "alert_rules.yaml").resolve()
 
 
 @lru_cache(maxsize=1)
 def _alert_rules() -> tuple[dict, ...]:
     try:
-        with open(os.path.join(ALERT_RULES_PATH)) as fh:
+        with open(ALERT_RULES_PATH, "r", encoding="utf-8") as fh:
             return tuple(yaml.safe_load(fh).get("rules", []))
     except (FileNotFoundError, yaml.YAMLError):
         return ()
