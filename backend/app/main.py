@@ -22,6 +22,7 @@ from app.api.routers import (
     meta,
     metrics,
     public_summary,
+    reports_ai,
     risks,
 )
 from app.config import settings, is_disallowed_credential
@@ -236,6 +237,7 @@ app.include_router(exports_ag.router, prefix="/api/v1")
 app.include_router(benchmark.router, prefix="/api/v1")
 app.include_router(intel.router, prefix="/api/v1")
 app.include_router(public_summary.router, prefix="/api/v1")
+app.include_router(reports_ai.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/admin")
 
 register_exception_handlers(app)

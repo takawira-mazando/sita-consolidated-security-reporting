@@ -4,6 +4,7 @@ import { getTierAccess } from '../context/AuthContext';
 import type { TenancyTier } from '../types';
 import DashHeader from '../components/dashboard/DashHeader';
 import Panel from '../components/dashboard/Panel';
+import AiReportStudio from '../components/ai/AiReportStudio';
 import {
   postAuthorRule,
   postAttributeCampaign,
@@ -1301,6 +1302,7 @@ const codeStyle: React.CSSProperties = {
 
 // ─── Capability Manifest strip ────────────────────────────────────────────────
 const AVP_META = [
+  { avp: 'G2-REPORT', title: 'AI Report Studio & Copilot', gate: 'two-gate-rbac', icon: '🧠', ai: true },
   { avp: 'AIMI-VAPT', title: 'VAPT Log Interpretation', gate: 'tenanted-rbac', icon: '🛡️', ai: true },
   { avp: 'AVP-2',     title: 'Author Alert Rule',       gate: 'findings',      icon: '🎯', ai: true },
   { avp: 'AVP-3',     title: 'Campaign Attribution',     gate: 'findings',      icon: '🔍', ai: true },
@@ -1311,10 +1313,10 @@ const AVP_META = [
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
-  sita:     { title: 'AI Intelligence — SITA Command Center', subtitle: 'Overarching · AIMI VAPT Log Interpretation & AI-residue capabilities across estate' },
-  national: { title: 'AI Intelligence — National Estate',     subtitle: 'Strategic · AIMI VAPT log intelligence, threat attribution, compliance dossiers and audit explanation' },
-  dept:     { title: 'AI Intelligence — Department',          subtitle: 'Tactical · VAPT telemetry analysis, detection authoring, campaign attribution and risk explanation' },
-  branch:   { title: 'AI Intelligence — Branch',              subtitle: 'Granular · Local VAPT log interpretation, audit behaviour analysis and risk attribution' },
+  sita:     { title: 'AI Intelligence — SITA Command Center', subtitle: 'Overarching · G2 Verified Report Generation, AIMI VAPT Log Interpretation & AI capabilities across estate' },
+  national: { title: 'AI Intelligence — National Estate',     subtitle: 'Strategic · G2 Verified Report Generation, AIMI VAPT log intelligence, threat attribution and compliance dossiers' },
+  dept:     { title: 'AI Intelligence — Department',          subtitle: 'Tactical · G2 Verified Report Generation, VAPT telemetry analysis, detection authoring and risk explanation' },
+  branch:   { title: 'AI Intelligence — Branch',              subtitle: 'Granular · G2 Local Intelligence, VAPT log interpretation and audit behaviour analysis' },
 };
 
 export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
@@ -1375,7 +1377,10 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
 
       {/* AVP & VAPT panels — shown per gate access */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {/* AIMI VAPT Log Interpretation Layer (Premier position atop logs) */}
+        {/* Premier G2 AI Report Studio & Grounded Copilot */}
+        <AiReportStudio roles={roles} />
+
+        {/* AIMI VAPT Log Interpretation Layer */}
         <AimiVaptLogInterpreterPanel roles={roles} tier={tier} />
 
         <Avp2Panel roles={roles} />
