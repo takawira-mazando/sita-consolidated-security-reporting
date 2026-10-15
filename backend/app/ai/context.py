@@ -15,6 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.ai.scope import ReportScope
 from app.models.alert import Alert as AlertModel
 from app.models.finding import Finding as FindingModel
+from app.models.metrics import WafBlock as WafBlockModel
 from app.models.risk_score import RiskScore as RiskScoreModel
 
 
@@ -32,6 +33,7 @@ async def build_fact_pack(session: AsyncSession, scope: ReportScope, report_type
     risk_buckets = {"safe": 0, "monitored": 0, "critical": 0}
     total_alerts = 0
     open_alerts = 0
+    total_waf_blocks = 0
 
     try:
         # 1. Query findings within scope
@@ -125,6 +127,16 @@ async def build_fact_pack(session: AsyncSession, scope: ReportScope, report_type
         raw_open = res.scalar() if hasattr(res, "scalar") and not callable(getattr(res.scalar, "__await__", None)) else 0
         if isinstance(raw_open, (int, float)):
             open_alerts = int(raw_open)
+
+        # 4. Query WAF Telemetry Logs within scope
+        waf_scope_filter = scope.get_filter(WafBlockModel)
+        waf_stmt = select(func.count(WafBlockModel.id))
+        if waf_scope_filter is not None:
+            waf_stmt = waf_stmt.where(waf_scope_filter)
+        res = await session.execute(waf_stmt)
+        raw_waf = res.scalar() if hasattr(res, "scalar") and not callable(getattr(res.scalar, "__await__", None)) else 0
+        if isinstance(raw_waf, (int, float)):
+            total_waf_blocks = int(raw_waf)
     except Exception:
         # Fallback to simulated facts when session is a test mock or DB is unreachable
         pass
@@ -139,6 +151,7 @@ async def build_fact_pack(session: AsyncSession, scope: ReportScope, report_type
         risk_buckets = {"safe": 5, "monitored": 3, "critical": 0}
         total_alerts = 14
         open_alerts = 2
+        total_waf_blocks = 1240
         top_categories = [
             {"category": "Improper Input Validation", "count": 28},
             {"category": "Security Misconfiguration", "count": 21},
@@ -175,6 +188,7 @@ async def build_fact_pack(session: AsyncSession, scope: ReportScope, report_type
         "risk_critical_count": int(risk_buckets["critical"]),
         "total_alerts": int(total_alerts),
         "open_alerts": int(open_alerts),
+        "total_waf_blocks": int(total_waf_blocks),
         "compliance_posture_index": compliance_score,
         "top_categories": top_categories,
         "top_cwes": top_cwes,

@@ -239,37 +239,9 @@ export default function RoleNav() {
                     AI INTELLIGENCE &amp; ALERTS SUITE
                   </div>
 
-                  <button
-                    onClick={() => {
-                      navigate(`/${activeTier}/ai?flash=true`);
-                      setAiMenuOpen(false);
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '8px 14px',
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#fbbf24',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      textAlign: 'left',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(245, 158, 11, 0.15)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <span>✨</span>
-                    <span>Role Guide &amp; Flash Intro</span>
-                  </button>
-
-                  <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.06)', margin: '4px 0' }} />
-
                   {[
-                    { key: 'g2-report', icon: '🧠', label: 'G2 Report Studio & Copilot' },
                     { key: 'aimi-vapt', icon: '🛡️', label: 'AIMI VAPT Alert & Log Interpreter' },
+                    { key: 'g2-report', icon: '🧠', label: 'G2 Report Studio & Copilot' },
                     { key: 'avp-2', icon: '🎯', label: 'Author Alert Rule (AVP-2)' },
                     { key: 'avp-3', icon: '🔍', label: 'Threat Campaign Attribution (AVP-3)' },
                     { key: 'avp-5', icon: '⚖️', label: 'POPIA s.22 Breach Dossier' },

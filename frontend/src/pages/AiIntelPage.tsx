@@ -6,7 +6,6 @@ import type { TenancyTier } from '../types';
 import DashHeader from '../components/dashboard/DashHeader';
 import Panel from '../components/dashboard/Panel';
 import AiReportStudio from '../components/ai/AiReportStudio';
-import AiFlashScreen from '../components/ai/AiFlashScreen';
 import {
   postAuthorRule,
   postAttributeCampaign,
@@ -1384,23 +1383,7 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
   const roles = user?.roles ?? [];
   const cfg = TIER_CONFIG[tier];
 
-  // Flash Screen State: Shown on first visit or when forced via ?flash=true
-  const [showFlash, setShowFlash] = useState<boolean>(() => {
-    if (searchParams.get('flash') === 'true') return true;
-    return sessionStorage.getItem('sita_ai_flash_seen') !== 'true';
-  });
-
-  const handleDismissFlash = useCallback(() => {
-    sessionStorage.setItem('sita_ai_flash_seen', 'true');
-    setShowFlash(false);
-    if (searchParams.get('flash') === 'true') {
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete('flash');
-      setSearchParams(nextParams, { replace: true });
-    }
-  }, [searchParams, setSearchParams]);
-
-  // Dropdown View Mode State
+  // Dropdown View Mode State: Default to 'all' or 'aimi-vapt'
   const [viewMode, setViewMode] = useState<string>(() => searchParams.get('view') || 'all');
 
   const handleSelectView = (key: string) => {
@@ -1419,27 +1402,22 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
 
   return (
     <div className="dash">
-      {/* ── High-Tech Animated Flash Screen ── */}
-      {showFlash && (
-        <AiFlashScreen onEnter={handleDismissFlash} autoDismissSeconds={8} />
-      )}
-
       <DashHeader
         title={cfg.title}
         subtitle={cfg.subtitle}
-        badge={{ label: 'AI · Advisory Only', color: '#6366f1', bg: 'rgba(99,102,241,0.15)' }}
-        consolidatedTag="AppScan · Imperva WAF · Imperva DAM · API Security"
-        onExplain={() => setShowFlash(true)}
-        onLayman={() => setShowFlash(true)}
+        badge={{ label: 'AI · Active Telemetry', color: '#10b981', bg: 'rgba(16,185,129,0.15)' }}
+        consolidatedTag="AppScan DAST/SAST · Imperva WAF · Imperva DAM · API Security"
+        onExplain={() => {}}
+        onLayman={() => {}}
       />
 
-      {/* ── Stylish Dropdown Page View Controller Bar ── */}
+      {/* ── Operational Dropdown View Controller Bar ── */}
       <div
         style={{
           background: 'rgba(15, 23, 42, 0.85)',
           border: '1px solid rgba(99, 102, 241, 0.3)',
           borderRadius: 14,
-          padding: '16px 20px',
+          padding: '14px 20px',
           marginBottom: 20,
           display: 'flex',
           flexWrap: 'wrap',
@@ -1462,7 +1440,7 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
               textTransform: 'uppercase',
             }}
           >
-            SELECT AI ENGINE / DROPDOWN PAGE VIEW
+            SELECT AI ENGINE / LOG REASONING WORKSPACE
           </label>
           <div style={{ position: 'relative' }}>
             <select
@@ -1492,18 +1470,23 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
           </div>
         </div>
 
-        {/* Quick View Filter Pills & Flash Screen Re-summon */}
+        {/* Quick View Filter Pills */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-          {['all', 'g2-report', 'aimi-vapt', 'avp-2', 'avp-5'].map((key) => {
-            const opt = CAPABILITY_DROPDOWN_OPTIONS.find((o) => o.key === key);
-            if (!opt) return null;
-            const isSelected = viewMode === key;
+          {[
+            { key: 'aimi-vapt', icon: '🛡️', label: 'Ingested Logs & Alerts' },
+            { key: 'g2-report', icon: '🧠', label: 'AI Report Studio' },
+            { key: 'avp-2', icon: '🎯', label: 'Alert Rule Author' },
+            { key: 'avp-3', icon: '🔍', label: 'Campaign Attribution' },
+            { key: 'avp-5', icon: '⚖️', label: 'POPIA Dossier' },
+            { key: 'all', icon: '🌟', label: 'All Engines' },
+          ].map((item) => {
+            const isSelected = viewMode === item.key;
             return (
               <button
-                key={key}
-                onClick={() => handleSelectView(key)}
+                key={item.key}
+                onClick={() => handleSelectView(item.key)}
                 style={{
-                  padding: '6px 12px',
+                  padding: '7px 14px',
                   borderRadius: 8,
                   fontSize: 12,
                   fontWeight: 700,
@@ -1516,33 +1499,16 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
                   color: isSelected ? '#fff' : '#94a3b8',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
                 }}
               >
-                {opt.icon} {opt.badge}
+                <span>{item.icon}</span>
+                <span>{item.label}</span>
               </button>
             );
           })}
-
-          <button
-            id="ai-open-flash-guide-btn"
-            onClick={() => setShowFlash(true)}
-            style={{
-              padding: '6px 14px',
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 700,
-              border: '1px solid rgba(245, 158, 11, 0.4)',
-              background: 'rgba(245, 158, 11, 0.12)',
-              color: '#fbbf24',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 6,
-              transition: 'all 0.2s ease',
-            }}
-          >
-            ✨ Role Guide (Flash Screen)
-          </button>
         </div>
       </div>
 
@@ -1570,7 +1536,7 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
                 <span style={{ fontSize: 11, fontWeight: 800, color: '#818cf8', letterSpacing: '0.08em' }}>
                   {activeOption.badge}
                 </span>
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>• Focused View Mode</span>
+                <span style={{ fontSize: 11, color: '#34d399', fontWeight: 600 }}>• Active Tenanted Log Ingestion</span>
               </div>
               <div style={{ fontSize: 16, fontWeight: 800, color: '#f8fafc' }}>
                 {activeOption.title}
@@ -1594,41 +1560,21 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
               cursor: 'pointer',
             }}
           >
-            ← Back to All Engines
+            ← View All Working Engines
           </button>
         </div>
       )}
 
-      {/* Important Advisory Strip */}
-      <div
-        style={{
-          padding: '12px 18px',
-          borderRadius: 10,
-          marginBottom: 20,
-          background: 'rgba(245, 158, 11, 0.08)',
-          border: '1px solid rgba(245, 158, 11, 0.25)',
-          display: 'flex',
-          gap: 12,
-          alignItems: 'center',
-        }}
-      >
-        <span style={{ fontSize: 20 }}>⚠️</span>
-        <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
-          <strong>ADVISORY ONLY:</strong> All AI narratives and rules require human verification before execution.
-          Role-based capability gates and provincial multi-tenancy are strictly enforced by the platform backend.
-        </div>
-      </div>
-
-      {/* ── Dynamically Rendered AI Panels ── */}
+      {/* ── Dynamically Rendered AI Panels (Operates directly on ingested logs) ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+        {/* AIMI VAPT Log Interpretation Layer atop Ingested Telemetry (Primary Log Engine) */}
+        {(viewMode === 'all' || viewMode === 'aimi-vapt') && (
+          <AimiVaptLogInterpreterPanel roles={roles} tier={tier} />
+        )}
+
         {/* Premier G2 AI Report Studio & Grounded Copilot */}
         {(viewMode === 'all' || viewMode === 'g2-report') && (
           <AiReportStudio roles={roles} />
-        )}
-
-        {/* AIMI VAPT Log Interpretation Layer */}
-        {(viewMode === 'all' || viewMode === 'aimi-vapt') && (
-          <AimiVaptLogInterpreterPanel roles={roles} tier={tier} />
         )}
 
         {/* AVP-2 Autonomous Alert Rule Authoring */}
