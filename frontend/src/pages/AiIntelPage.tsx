@@ -1,10 +1,12 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { getTierAccess } from '../context/AuthContext';
 import type { TenancyTier } from '../types';
 import DashHeader from '../components/dashboard/DashHeader';
 import Panel from '../components/dashboard/Panel';
 import AiReportStudio from '../components/ai/AiReportStudio';
+import AiFlashScreen from '../components/ai/AiFlashScreen';
 import {
   postAuthorRule,
   postAttributeCampaign,
@@ -1300,15 +1302,72 @@ const codeStyle: React.CSSProperties = {
   fontFamily: 'monospace', whiteSpace: 'pre',
 };
 
-// ─── Capability Manifest strip ────────────────────────────────────────────────
-const AVP_META = [
-  { avp: 'G2-REPORT', title: 'AI Report Studio & Copilot', gate: 'two-gate-rbac', icon: '🧠', ai: true },
-  { avp: 'AIMI-VAPT', title: 'VAPT Log Interpretation', gate: 'tenanted-rbac', icon: '🛡️', ai: true },
-  { avp: 'AVP-2',     title: 'Author Alert Rule',       gate: 'findings',      icon: '🎯', ai: true },
-  { avp: 'AVP-3',     title: 'Campaign Attribution',     gate: 'findings',      icon: '🔍', ai: true },
-  { avp: 'AVP-5',     title: 'POPIA s.22 Breach Dossier',gate: 'compliance',    icon: '⚖️', ai: true },
-  { avp: 'AVP-8',     title: 'Risk-Delta Causal',        gate: 'risks',         icon: '📈', ai: true },
-  { avp: 'AVP-11',    title: 'Behavioural Sequence',    gate: 'compliance',    icon: '🔎', ai: true },
+// ─── Capability Manifest & Dropdown Definitions ───────────────────────────────
+const CAPABILITY_DROPDOWN_OPTIONS = [
+  {
+    key: 'all',
+    label: '🌟 Unified View — All AI Engines & Alerts',
+    title: 'Full Unified AI & Alert Workspace',
+    desc: 'Consolidated security intelligence displaying all tenanted reasoning engines, real-time log interpreters, alert authors, and verified report studios.',
+    icon: '🌟',
+    badge: 'UNIFIED SUITE',
+  },
+  {
+    key: 'g2-report',
+    label: '🧠 G2 AI Report Studio & Grounded Copilot',
+    title: 'Stage 4 / G2 Verified Intelligence Briefs & Grounded Copilot',
+    desc: 'Generates ministerial and technical security briefs with 100% numeral fidelity verification (zero hallucinations) and interactive copilot Q&A.',
+    icon: '🧠',
+    badge: 'STAGE 4 / G2',
+  },
+  {
+    key: 'aimi-vapt',
+    label: '🛡️ AIMI-VAPT Real-Time Alert & Log Interpreter',
+    title: 'Real-Time VAPT Telemetry & Log Interpreter',
+    desc: 'Correlates AppScan dynamic findings, Imperva WAF blocks, and DAM database audit events into coherent attacker narratives.',
+    icon: '🛡️',
+    badge: 'TELEMETRY & ALERTS',
+  },
+  {
+    key: 'avp-2',
+    label: '🎯 AVP-2 Autonomous Alert Rule Authoring',
+    title: 'AVP-2 Alert Rule Authoring Engine',
+    desc: 'Synthesizes defensive Sigma and WAF inspection rules mapped to MITRE ATT&CK techniques with automatic rule diff validation.',
+    icon: '🎯',
+    badge: 'DETECTION ENG',
+  },
+  {
+    key: 'avp-3',
+    label: '🔍 AVP-3 Threat Campaign Attribution',
+    title: 'AVP-3 Multi-Target Threat Attribution',
+    desc: 'Connects fragmented telemetry across national departments to detect coordinated APT campaigns and threat clusters.',
+    icon: '🔍',
+    badge: 'THREAT INTEL',
+  },
+  {
+    key: 'avp-5',
+    label: '⚖️ AVP-5 POPIA s.22 Breach Notification Dossier',
+    title: 'AVP-5 Regulatory POPIA s.22 Breach Dossier',
+    desc: 'Compiles legally binding breach notification filings for the Information Regulator and assesses citizen identity exposure liability.',
+    icon: '⚖️',
+    badge: 'COMPLIANCE & LEGAL',
+  },
+  {
+    key: 'avp-8',
+    label: '📈 AVP-8 Risk-Delta Causal Attribution',
+    title: 'AVP-8 Risk-Delta Causal Analysis',
+    desc: 'Explains underlying systemic drivers behind security posture shifts and quantifies root causes.',
+    icon: '📈',
+    badge: 'RISK ANALYTICS',
+  },
+  {
+    key: 'avp-11',
+    label: '🔎 AVP-11 User & Entity Behavioral Sequence',
+    title: 'AVP-11 Behavioral Sequence & Exfiltration Analysis',
+    desc: 'Dissects database session timelines to differentiate benign administrative batch queries from malicious citizen record exfiltration.',
+    icon: '🔎',
+    badge: 'BEHAVIORAL AI',
+  },
 ];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -1321,75 +1380,284 @@ const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
 
 export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const roles = user?.roles ?? [];
   const cfg = TIER_CONFIG[tier];
 
+  // Flash Screen State: Shown on first visit or when forced via ?flash=true
+  const [showFlash, setShowFlash] = useState<boolean>(() => {
+    if (searchParams.get('flash') === 'true') return true;
+    return sessionStorage.getItem('sita_ai_flash_seen') !== 'true';
+  });
+
+  const handleDismissFlash = useCallback(() => {
+    sessionStorage.setItem('sita_ai_flash_seen', 'true');
+    setShowFlash(false);
+    if (searchParams.get('flash') === 'true') {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete('flash');
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Dropdown View Mode State
+  const [viewMode, setViewMode] = useState<string>(() => searchParams.get('view') || 'all');
+
+  const handleSelectView = (key: string) => {
+    setViewMode(key);
+    const nextParams = new URLSearchParams(searchParams);
+    if (key === 'all') {
+      nextParams.delete('view');
+    } else {
+      nextParams.set('view', key);
+    }
+    setSearchParams(nextParams, { replace: true });
+  };
+
+  const activeOption =
+    CAPABILITY_DROPDOWN_OPTIONS.find((o) => o.key === viewMode) || CAPABILITY_DROPDOWN_OPTIONS[0];
+
   return (
     <div className="dash">
+      {/* ── High-Tech Animated Flash Screen ── */}
+      {showFlash && (
+        <AiFlashScreen onEnter={handleDismissFlash} autoDismissSeconds={8} />
+      )}
+
       <DashHeader
         title={cfg.title}
         subtitle={cfg.subtitle}
         badge={{ label: 'AI · Advisory Only', color: '#6366f1', bg: 'rgba(99,102,241,0.15)' }}
         consolidatedTag="AppScan · Imperva WAF · Imperva DAM · API Security"
-        onExplain={() => {}}
-        onLayman={() => {}}
+        onExplain={() => setShowFlash(true)}
+        onLayman={() => setShowFlash(true)}
       />
 
-      {/* Capability strip */}
-      <div style={{
-        display: 'flex', flexWrap: 'wrap', gap: 10,
-        padding: '0 0 24px', marginBottom: 8,
-      }}>
-        {AVP_META.map(({ avp, title, gate, icon }) => (
-          <div key={avp} style={{
-            padding: '8px 14px', borderRadius: 10,
-            background: 'rgba(99,102,241,0.07)',
-            border: '1px solid rgba(99,102,241,0.2)',
-            display: 'flex', alignItems: 'center', gap: 8,
-          }}>
-            <span>{icon}</span>
-            <div>
-              <div style={{ fontSize: 10, color: '#6366f1', fontWeight: 700, letterSpacing: '0.08em' }}>{avp}</div>
-              <div style={{ fontSize: 12, fontWeight: 600 }}>{title}</div>
-              <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>scope: {gate}</div>
-            </div>
+      {/* ── Stylish Dropdown Page View Controller Bar ── */}
+      <div
+        style={{
+          background: 'rgba(15, 23, 42, 0.85)',
+          border: '1px solid rgba(99, 102, 241, 0.3)',
+          borderRadius: 14,
+          padding: '16px 20px',
+          marginBottom: 20,
+          display: 'flex',
+          flexWrap: 'wrap',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 16,
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+        }}
+      >
+        <div style={{ flex: '1 1 340px' }}>
+          <label
+            htmlFor="ai-capability-dropdown"
+            style={{
+              display: 'block',
+              fontSize: 11,
+              fontWeight: 800,
+              color: '#818cf8',
+              letterSpacing: '0.08em',
+              marginBottom: 6,
+              textTransform: 'uppercase',
+            }}
+          >
+            SELECT AI ENGINE / DROPDOWN PAGE VIEW
+          </label>
+          <div style={{ position: 'relative' }}>
+            <select
+              id="ai-capability-dropdown"
+              value={viewMode}
+              onChange={(e) => handleSelectView(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px 16px',
+                borderRadius: 10,
+                background: '#1e293b',
+                color: '#f8fafc',
+                border: '1px solid rgba(99, 102, 241, 0.45)',
+                fontSize: 14,
+                fontWeight: 700,
+                cursor: 'pointer',
+                outline: 'none',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+              }}
+            >
+              {CAPABILITY_DROPDOWN_OPTIONS.map((opt) => (
+                <option key={opt.key} value={opt.key}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* Important advisory notice */}
-      <div style={{
-        padding: '14px 18px', borderRadius: 12, marginBottom: 24,
-        background: 'rgba(245,158,11,0.08)',
-        border: '1px solid rgba(245,158,11,0.25)',
-        display: 'flex', gap: 12, alignItems: 'flex-start',
-      }}>
-        <span style={{ fontSize: 22 }}>⚠️</span>
-        <div>
-          <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>All outputs are advisory only</div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            No result from this page is committed, dispatched, or acted upon automatically.
-            Every response requires human review and approval before any operational action is taken.
-            Role-based access control and government multi-tenancy are enforced by both this UI and the backend API.
-          </div>
+        {/* Quick View Filter Pills & Flash Screen Re-summon */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {['all', 'g2-report', 'aimi-vapt', 'avp-2', 'avp-5'].map((key) => {
+            const opt = CAPABILITY_DROPDOWN_OPTIONS.find((o) => o.key === key);
+            if (!opt) return null;
+            const isSelected = viewMode === key;
+            return (
+              <button
+                key={key}
+                onClick={() => handleSelectView(key)}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  border: isSelected
+                    ? '1px solid #6366f1'
+                    : '1px solid rgba(255, 255, 255, 0.08)',
+                  background: isSelected
+                    ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
+                    : 'rgba(30, 41, 59, 0.6)',
+                  color: isSelected ? '#fff' : '#94a3b8',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {opt.icon} {opt.badge}
+              </button>
+            );
+          })}
+
+          <button
+            id="ai-open-flash-guide-btn"
+            onClick={() => setShowFlash(true)}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 700,
+              border: '1px solid rgba(245, 158, 11, 0.4)',
+              background: 'rgba(245, 158, 11, 0.12)',
+              color: '#fbbf24',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              transition: 'all 0.2s ease',
+            }}
+          >
+            ✨ Role Guide (Flash Screen)
+          </button>
         </div>
       </div>
 
-      {/* AVP & VAPT panels — shown per gate access */}
+      {/* ── Active Dropdown View Header Banner ── */}
+      {viewMode !== 'all' && (
+        <div
+          style={{
+            padding: '16px 20px',
+            borderRadius: 12,
+            marginBottom: 20,
+            background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.8), rgba(49, 46, 129, 0.4))',
+            border: '1px solid rgba(99, 102, 241, 0.4)',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: 12,
+            animation: 'aiFlashFadeIn 0.3s ease',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <span style={{ fontSize: 28 }}>{activeOption.icon}</span>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: '#818cf8', letterSpacing: '0.08em' }}>
+                  {activeOption.badge}
+                </span>
+                <span style={{ fontSize: 11, color: '#94a3b8' }}>• Focused View Mode</span>
+              </div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#f8fafc' }}>
+                {activeOption.title}
+              </div>
+              <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 2 }}>
+                {activeOption.desc}
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => handleSelectView('all')}
+            style={{
+              padding: '6px 14px',
+              borderRadius: 8,
+              background: 'rgba(255, 255, 255, 0.08)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
+              color: '#e2e8f0',
+              fontSize: 12,
+              fontWeight: 700,
+              cursor: 'pointer',
+            }}
+          >
+            ← Back to All Engines
+          </button>
+        </div>
+      )}
+
+      {/* Important Advisory Strip */}
+      <div
+        style={{
+          padding: '12px 18px',
+          borderRadius: 10,
+          marginBottom: 20,
+          background: 'rgba(245, 158, 11, 0.08)',
+          border: '1px solid rgba(245, 158, 11, 0.25)',
+          display: 'flex',
+          gap: 12,
+          alignItems: 'center',
+        }}
+      >
+        <span style={{ fontSize: 20 }}>⚠️</span>
+        <div style={{ fontSize: 12, color: '#cbd5e1', lineHeight: 1.5 }}>
+          <strong>ADVISORY ONLY:</strong> All AI narratives and rules require human verification before execution.
+          Role-based capability gates and provincial multi-tenancy are strictly enforced by the platform backend.
+        </div>
+      </div>
+
+      {/* ── Dynamically Rendered AI Panels ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
         {/* Premier G2 AI Report Studio & Grounded Copilot */}
-        <AiReportStudio roles={roles} />
+        {(viewMode === 'all' || viewMode === 'g2-report') && (
+          <AiReportStudio roles={roles} />
+        )}
 
         {/* AIMI VAPT Log Interpretation Layer */}
-        <AimiVaptLogInterpreterPanel roles={roles} tier={tier} />
+        {(viewMode === 'all' || viewMode === 'aimi-vapt') && (
+          <AimiVaptLogInterpreterPanel roles={roles} tier={tier} />
+        )}
 
-        <Avp2Panel roles={roles} />
-        <Avp3Panel roles={roles} />
-        <Avp5Panel roles={roles} />
-        <Avp8Panel roles={roles} />
-        <Avp11Panel roles={roles} />
+        {/* AVP-2 Autonomous Alert Rule Authoring */}
+        {(viewMode === 'all' || viewMode === 'avp-2') && (
+          <Avp2Panel roles={roles} />
+        )}
+
+        {/* AVP-3 Threat Campaign Attribution */}
+        {(viewMode === 'all' || viewMode === 'avp-3') && (
+          <Avp3Panel roles={roles} />
+        )}
+
+        {/* AVP-5 POPIA s.22 Breach Notification Dossier */}
+        {(viewMode === 'all' || viewMode === 'avp-5') && (
+          <Avp5Panel roles={roles} />
+        )}
+
+        {/* AVP-8 Risk-Delta Causal Analysis */}
+        {(viewMode === 'all' || viewMode === 'avp-8') && (
+          <Avp8Panel roles={roles} />
+        )}
+
+        {/* AVP-11 User & Entity Behavioral Sequence */}
+        {(viewMode === 'all' || viewMode === 'avp-11') && (
+          <Avp11Panel roles={roles} />
+        )}
       </div>
     </div>
   );
 }
+
 

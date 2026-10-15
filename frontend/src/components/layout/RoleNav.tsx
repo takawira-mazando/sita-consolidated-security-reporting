@@ -25,7 +25,7 @@ const ROLE_TABS: RoleTab[] = [
   { role: 'dbsec',      label: 'DB Security', color: 'var(--green)' },
   { role: 'compliance', label: 'Compliance',  color: 'var(--violet)' },
   { role: 'sre',        label: 'Service Ops', color: 'var(--text-muted)' },
-  { role: 'ai',         label: 'AI Intel',    color: '#8b5cf6' },
+  { role: 'ai',         label: 'AI Intel & Alerts', color: '#8b5cf6' },
 ];
 
 const TIER_META: Record<TenancyTier, { label: string; icon: string; hint: string }> = {
@@ -44,6 +44,7 @@ export default function RoleNav() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const [aiMenuOpen, setAiMenuOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
   const [switchError, setSwitchError] = useState('');
   const [tenancy, setTenancy] = useState<TenancyResponse | null>(null);
@@ -183,17 +184,141 @@ export default function RoleNav() {
       <div className="nav-div" />
 
       {/* ── Role Dashboard Tabs (scoped to active tier) ── */}
-      {ROLE_TABS.filter((t) => activeDashboards.includes(t.role)).map((t) => (
-        <button
-          key={t.role}
-          id={`dash-tab-${activeTier}-${t.role}`}
-          className={`role-tab ${activeRole === t.role ? 'active' : ''}`}
-          onClick={() => navigate(`/${activeTier}/${t.role}`)}
-        >
-          <span className={`tab-orb ${t.pulse ? 'pulse' : ''}`} style={{ background: t.color }} />
-          {t.label}
-        </button>
-      ))}
+      {ROLE_TABS.filter((t) => activeDashboards.includes(t.role)).map((t) => {
+        if (t.role === 'ai') {
+          return (
+            <div
+              key={t.role}
+              style={{ position: 'relative', display: 'inline-flex' }}
+              onMouseEnter={() => setAiMenuOpen(true)}
+              onMouseLeave={() => setAiMenuOpen(false)}
+            >
+              <button
+                id={`dash-tab-${activeTier}-${t.role}`}
+                className={`role-tab ${activeRole === t.role ? 'active' : ''}`}
+                onClick={() => {
+                  navigate(`/${activeTier}/${t.role}`);
+                  setAiMenuOpen(false);
+                }}
+                style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+              >
+                <span className={`tab-orb ${t.pulse ? 'pulse' : ''}`} style={{ background: t.color }} />
+                {t.label}
+                <span style={{ fontSize: 9, opacity: 0.75 }}>▾</span>
+              </button>
+
+              {aiMenuOpen && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    zIndex: 1000,
+                    marginTop: 4,
+                    minWidth: 260,
+                    background: 'rgba(15, 23, 42, 0.96)',
+                    border: '1px solid rgba(99, 102, 241, 0.45)',
+                    borderRadius: 12,
+                    padding: '8px 0',
+                    boxShadow: '0 12px 36px rgba(0, 0, 0, 0.7), 0 0 20px rgba(99, 102, 241, 0.25)',
+                    backdropFilter: 'blur(16px)',
+                    animation: 'aiFlashFadeIn 0.2s ease',
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: '6px 14px 8px',
+                      fontSize: 10,
+                      fontWeight: 800,
+                      color: '#818cf8',
+                      letterSpacing: '0.08em',
+                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                      marginBottom: 4,
+                    }}
+                  >
+                    AI INTELLIGENCE &amp; ALERTS SUITE
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      navigate(`/${activeTier}/ai?flash=true`);
+                      setAiMenuOpen(false);
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '8px 14px',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#fbbf24',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      textAlign: 'left',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(245, 158, 11, 0.15)')}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <span>✨</span>
+                    <span>Role Guide &amp; Flash Intro</span>
+                  </button>
+
+                  <div style={{ height: 1, background: 'rgba(255, 255, 255, 0.06)', margin: '4px 0' }} />
+
+                  {[
+                    { key: 'g2-report', icon: '🧠', label: 'G2 Report Studio & Copilot' },
+                    { key: 'aimi-vapt', icon: '🛡️', label: 'AIMI VAPT Alert & Log Interpreter' },
+                    { key: 'avp-2', icon: '🎯', label: 'Author Alert Rule (AVP-2)' },
+                    { key: 'avp-3', icon: '🔍', label: 'Threat Campaign Attribution (AVP-3)' },
+                    { key: 'avp-5', icon: '⚖️', label: 'POPIA s.22 Breach Dossier' },
+                    { key: 'all', icon: '🌟', label: 'Unified View (All Engines)' },
+                  ].map((item) => (
+                    <button
+                      key={item.key}
+                      onClick={() => {
+                        navigate(`/${activeTier}/ai?view=${item.key}`);
+                        setAiMenuOpen(false);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '7px 14px',
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#f8fafc',
+                        fontSize: 12,
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(99, 102, 241, 0.15)')}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <span>{item.icon}</span>
+                      <span>{item.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        }
+
+        return (
+          <button
+            key={t.role}
+            id={`dash-tab-${activeTier}-${t.role}`}
+            className={`role-tab ${activeRole === t.role ? 'active' : ''}`}
+            onClick={() => navigate(`/${activeTier}/${t.role}`)}
+          >
+            <span className={`tab-orb ${t.pulse ? 'pulse' : ''}`} style={{ background: t.color }} />
+            {t.label}
+          </button>
+        );
+      })}
 
       {/* ── Admin Tab (tier-scoped) ── */}
       {canAdminThisTier && (
