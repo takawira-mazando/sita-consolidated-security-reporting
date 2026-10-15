@@ -1,3 +1,4 @@
+import logging
 from datetime import date
 from math import ceil
 
@@ -6,13 +7,15 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import require_roles, tenant_filter
+from app.api.auth import check_tenancy_access, require_roles, tenant_filter
 from app.api.schemas.common import PaginatedResponse
 from app.api.schemas.risk import RiskScore, RiskTrend
 from app.db import get_session
 from app.models.risk_score import RiskBucket
 from app.models.risk_score import RiskScore as RiskScoreModel
 from app.tenant import CLUSTERS, MINISTRIES, MINISTRY_TO_CLUSTER
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["risks"])
 
@@ -29,6 +32,8 @@ async def get_risks(
     bucket: str | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
+    department_id: str | None = Query(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$", description="Filter by department within assigned scope"),
+    branch_id: str | None = Query(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$", description="Filter by branch within assigned scope"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
@@ -39,6 +44,12 @@ async def get_risks(
         scope = tenant_filter(claims, RiskScoreModel)
         if scope is not None:
             filters.append(scope)
+        if department_id or branch_id:
+            check_tenancy_access(claims, department_id, branch_id)
+            if department_id:
+                filters.append(RiskScoreModel.department_id == department_id)
+            if branch_id:
+                filters.append(RiskScoreModel.branch_id == branch_id)
         if app:
             filters.append(RiskScoreModel.app_name == app)
         if bucket:
@@ -76,10 +87,14 @@ async def get_risks(
             "size": size,
             "pages": ceil(total / size) if size else 0,
         }
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        logger.exception("Database error in get_risks: %s", e)
+        raise HTTPException(status_code=500, detail="Database query failed")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.exception("Unexpected error in get_risks: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/risks/by-cluster")
@@ -132,10 +147,14 @@ async def get_risks_by_cluster(
                 for r in rows
             ]
         }
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        logger.exception("Database error in get_risks_by_cluster: %s", e)
+        raise HTTPException(status_code=500, detail="Database query failed")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.exception("Unexpected error in get_risks_by_cluster: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/risks/by-ministry")
@@ -187,10 +206,14 @@ async def get_risks_by_ministry(
                 for r in rows
             ]
         }
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        logger.exception("Database error in get_risks_by_ministry: %s", e)
+        raise HTTPException(status_code=500, detail="Database query failed")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.exception("Unexpected error in get_risks_by_ministry: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/risks/{app_name}/trend", response_model=RiskTrend)
@@ -227,7 +250,11 @@ async def get_risk_trend(
             for r in rows
         ]
         return {"app_name": app_name, "trend": trend}
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        logger.exception("Database error in get_risk_trend: %s", e)
+        raise HTTPException(status_code=500, detail="Database query failed")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.exception("Unexpected error in get_risk_trend: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")

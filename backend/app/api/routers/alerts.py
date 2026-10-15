@@ -1,10 +1,10 @@
 from math import ceil
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import require_roles, tenant_filter
+from app.api.auth import check_tenancy_access, require_roles, tenant_filter
 from app.api.schemas.alert import Alert
 from app.api.schemas.common import PaginatedResponse
 from app.db import get_session
@@ -67,6 +67,8 @@ async def get_alerts(
     status: str | None = Query(None),
     source: str | None = Query(None),
     since: str | None = Query(None),
+    department_id: str | None = Query(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$", description="Filter by department within assigned scope"),
+    branch_id: str | None = Query(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$", description="Filter by branch within assigned scope"),
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
@@ -76,6 +78,12 @@ async def get_alerts(
     scope = tenant_filter(claims, AlertModel)
     if scope is not None:
         filters.append(scope)
+    if department_id or branch_id:
+        check_tenancy_access(claims, department_id, branch_id)
+        if department_id:
+            filters.append(AlertModel.department_id == department_id)
+        if branch_id:
+            filters.append(AlertModel.branch_id == branch_id)
     if severity:
         filters.append(AlertModel.severity == severity)
     if status:

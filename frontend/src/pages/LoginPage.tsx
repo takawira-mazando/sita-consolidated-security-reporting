@@ -1,11 +1,25 @@
-import { useEffect, useState } from 'react';
+﻿import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { fetchTenancy, TenancyResponse, LoginScope } from '../api/auth';
+import { LoginScope } from '../api/auth';
 import type { DemoAccount } from '../types';
 
 interface LoginPageProps {
   onClose?: () => void;
 }
+
+// DHA branches — static list matching backend BRANCHES for the pre-login
+// persona selector. The /auth/tenancy endpoint requires authentication so it
+// cannot be called here; these names are public government information.
+const DHA_BRANCHES: { id: string; name: string }[] = [
+  { id: 'dha-civic',       name: 'Civic Services' },
+  { id: 'dha-digital',     name: 'Information Services (CIO)' },
+  { id: 'dha-immigration', name: 'Immigration Services' },
+  { id: 'dha-operations',  name: 'Operations' },
+  { id: 'dha-hrmd',        name: 'Human Resource Management and Development' },
+  { id: 'dha-ccss',        name: 'Counter Corruption and Security Services' },
+  { id: 'dha-finance',     name: 'Finance and Supply Chain Management' },
+  { id: 'dha-planning',    name: 'Institutional Planning and Support' },
+];
 
 export default function LoginPage({ onClose }: LoginPageProps) {
   const { login, loginDemo, demoAccounts } = useAuth();
@@ -13,21 +27,8 @@ export default function LoginPage({ onClose }: LoginPageProps) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [tenancy, setTenancy] = useState<TenancyResponse | null>(null);
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [branch, setBranch] = useState<string>('');
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchTenancy()
-      .then((t) => {
-        if (!cancelled) setTenancy(t);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const selectedAccount: DemoAccount | null =
     demoAccounts.find((a) => a.role === selectedRole) ?? null;
@@ -149,8 +150,7 @@ export default function LoginPage({ onClose }: LoginPageProps) {
                     (Live Demo Tenant)
                   </em>
                 </label>
-                {tenancy ? (
-                  <span className="login-scope-row">
+                <span className="login-scope-row">
                     <select
                       id="loginScopeBranch"
                       className="form-input"
@@ -158,18 +158,13 @@ export default function LoginPage({ onClose }: LoginPageProps) {
                       onChange={(e) => setBranch(e.target.value)}
                     >
                       <option value="">Whole department (All 8 DHA branches)</option>
-                      {tenancy.departments.find((d) => d.id === 'home-affairs-digital')?.branches.map((b) => (
+                      {DHA_BRANCHES.map((b) => (
                         <option key={b.id} value={b.id}>
                           Branch: {b.name}
                         </option>
                       ))}
                     </select>
                   </span>
-                ) : (
-                  <span className="login-scope-summary">
-                    Home Affairs scope active (seeded AppScan & Imperva feeds).
-                  </span>
-                )}
                 <span className="login-scope-summary">
                   Department of Home Affairs · 8 active branches (Civic, Digital, Immigration, Operations, HRMD, CCSS, Finance, Planning)
                 </span>

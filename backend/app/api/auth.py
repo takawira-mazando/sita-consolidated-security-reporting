@@ -176,6 +176,60 @@ def scope_covers(claims: JWTClaims, department_ids: list[str], branch_ids: list[
     return True
 
 
+def check_tenancy_access(
+    claims: JWTClaims,
+    department_id: str | None = None,
+    branch_id: str | None = None,
+) -> None:
+    """Validate that requested department/branch filter is within caller's assigned scope.
+
+    - Nationwide roles with no narrowing may query any department or branch.
+    - Department-scoped callers may only query departments within their assigned scope.
+    - Branch-scoped callers may only query branches within their assigned scope.
+    """
+    if not department_id and not branch_id:
+        return
+
+    caller_depts = set(getattr(claims, "department_ids", None) or [])
+    for province in getattr(claims, "province_ids", None) or []:
+        caller_depts.update(provincial_departments_for_province(province))
+    caller_branches = set(getattr(claims, "branch_ids", None) or [])
+    nationwide = is_nationwide(claims) and not caller_depts and not caller_branches
+
+    if nationwide:
+        return
+
+    if department_id:
+        if caller_depts and department_id not in caller_depts:
+            raise HTTPException(
+                status_code=403,
+                detail="Requested tenancy scope is outside your assigned scope",
+            )
+
+    if branch_id:
+        if branch_id not in BRANCHES:
+            raise HTTPException(
+                status_code=400,
+                detail="Unknown branch specified",
+            )
+        parent_dept = BRANCHES[branch_id][1]
+        if caller_depts and parent_dept not in caller_depts:
+            raise HTTPException(
+                status_code=403,
+                detail="Requested tenancy scope is outside your assigned scope",
+            )
+        if caller_branches and branch_id not in caller_branches:
+            raise HTTPException(
+                status_code=403,
+                detail="Requested tenancy scope is outside your assigned scope",
+            )
+        if department_id and department_id != parent_dept:
+            raise HTTPException(
+                status_code=400,
+                detail="Branch does not belong to specified department",
+            )
+
+
 def person_within_scope(claims: JWTClaims, person) -> bool:
     """True when an HR-provisioned employee sits inside the caller's tenancy.
 

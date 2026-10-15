@@ -262,7 +262,7 @@ def _validate_departments(department_ids: list[str]) -> None:
     if invalid:
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown department(s): {sorted(invalid)}. Valid: {sorted(DEPARTMENTS)}",
+            detail="One or more specified departments are invalid",
         )
 
 
@@ -271,7 +271,7 @@ def _validate_provinces(province_ids: list[str]) -> None:
     if invalid:
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown province(s): {sorted(invalid)}. Valid: {sorted(PROVINCES)}",
+            detail="One or more specified provinces are invalid",
         )
 
 
@@ -280,16 +280,13 @@ def _validate_branches(branch_ids: list[str], department_ids: list[str]) -> None
         if branch not in BRANCHES:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unknown branch '{branch}'. Valid: {sorted(BRANCHES)}",
+                detail="One or more specified branches are invalid",
             )
         parent = BRANCHES[branch][1]
         if parent not in department_ids:
             raise HTTPException(
                 status_code=400,
-                detail=(
-                    f"Branch '{branch}' belongs to department '{parent}', "
-                    f"which is not in the user's assigned departments: {sorted(department_ids)}"
-                ),
+                detail="Branch does not belong to the user's assigned departments",
             )
 
 

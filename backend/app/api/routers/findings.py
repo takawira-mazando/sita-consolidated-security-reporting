@@ -1,3 +1,4 @@
+import logging
 from math import ceil
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -5,13 +6,15 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import require_roles, tenant_filter
+from app.api.auth import check_tenancy_access, require_roles, tenant_filter
 from app.api.schemas.common import PaginatedResponse
 from app.api.schemas.finding import Finding
 from app.db import get_session
 from app.models.finding import Finding as FindingModel
 from app.models.finding import Severity
 from app.processing import owasp
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["findings"])
 
@@ -48,6 +51,8 @@ async def get_findings(
     source: str | None = Query(None),
     status: str | None = Query(None),
     since: str | None = Query(None),
+    department_id: str | None = Query(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$", description="Filter by department within assigned scope"),
+    branch_id: str | None = Query(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$", description="Filter by branch within assigned scope"),
     page: int = Query(1, ge=1),
     size: int = Query(50, ge=1, le=200),
     session: AsyncSession = Depends(get_session),
@@ -58,6 +63,12 @@ async def get_findings(
         scope = tenant_filter(claims, FindingModel)
         if scope is not None:
             filters.append(scope)
+        if department_id or branch_id:
+            check_tenancy_access(claims, department_id, branch_id)
+            if department_id:
+                filters.append(FindingModel.department_id == department_id)
+            if branch_id:
+                filters.append(FindingModel.branch_id == branch_id)
         if app:
             filters.append(FindingModel.app_name == app)
         if severity:
@@ -93,10 +104,14 @@ async def get_findings(
             "size": size,
             "pages": ceil(total / size) if size else 0,
         }
+    except HTTPException:
+        raise
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        logger.exception("Database error in get_findings: %s", e)
+        raise HTTPException(status_code=500, detail="Database query failed")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.exception("Unexpected error in get_findings: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @router.get("/findings/{finding_id}", response_model=Finding)
@@ -123,6 +138,8 @@ async def get_finding(
     except HTTPException:
         raise
     except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+        logger.exception("Database error in get_finding: %s", e)
+        raise HTTPException(status_code=500, detail="Database query failed")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")
+        logger.exception("Unexpected error in get_finding: %s", e)
+        raise HTTPException(status_code=500, detail="Internal server error")

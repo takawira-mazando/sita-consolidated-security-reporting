@@ -295,10 +295,21 @@ async def get_slo_metrics(
 # --------------------------------------------------------------------- SRE
 @router.get("/metrics/sre/system")
 async def get_system_metrics(
+    limit: int = Query(default=100, ge=1, le=500, description="Maximum metrics rows to return"),
     session: AsyncSession = Depends(get_session),
-    claims = Depends(require_roles("sre", "admin_read")),
+    claims = Depends(require_roles("admin_read")),
 ):
-    rows = (await session.execute(select(SystemMetric).order_by(SystemMetric.recorded_at.desc()))).scalars().all()
+    """System-level platform metrics. Requires admin_read capability.
+
+    Distinct from /sre/agents which is a discovery endpoint — this returns
+    internal platform health metrics and is therefore gated on admin_read
+    rather than the sre convenience alias (AppScan BFLA path-manipulation fix).
+    """
+    rows = (await session.execute(
+        select(SystemMetric)
+        .order_by(SystemMetric.recorded_at.desc())
+        .limit(limit)
+    )).scalars().all()
     items = [
         {
             "metric": r.metric,

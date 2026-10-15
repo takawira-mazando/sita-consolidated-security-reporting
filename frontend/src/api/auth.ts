@@ -132,8 +132,10 @@ export async function fetchTenancy(): Promise<TenancyResponse> {
   return data;
 }
 
-export async function fetchDemoAccounts(): Promise<DemoAccount[]> {
-  const { data } = await api.get<DemoAccount[]>('/auth/demo-accounts');
+export async function fetchDemoAccounts(departmentId?: string): Promise<DemoAccount[]> {
+  const { data } = await api.get<DemoAccount[]>('/auth/demo-accounts', {
+    params: departmentId ? { department_id: departmentId } : {},
+  });
   return data;
 }
 

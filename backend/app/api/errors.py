@@ -21,6 +21,25 @@ class PermissionError(AppException):
         super().__init__(detail=detail, code="forbidden", status_code=403)
 
 def register_exception_handlers(app):
+    from fastapi.exceptions import RequestValidationError
+
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        # Sanitize validation error details to eliminate parameter reflection (CWE-79)
+        sanitized = []
+        for err in exc.errors():
+            clean = {
+                "type": err.get("type"),
+                "loc": err.get("loc"),
+                "msg": err.get("msg"),
+            }
+            sanitized.append(clean)
+        return JSONResponse(
+            status_code=422,
+            content={"detail": sanitized, "code": "validation_error"},
+            headers={"X-Content-Type-Options": "nosniff"},
+        )
+
     @app.exception_handler(AppException)
     async def app_exception_handler(request: Request, exc: AppException):
         return JSONResponse(

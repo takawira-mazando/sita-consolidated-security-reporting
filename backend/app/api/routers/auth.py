@@ -1,8 +1,8 @@
 from collections import defaultdict, deque
 from time import monotonic
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -93,31 +93,28 @@ async def login_rate_limit(request: Request) -> None:
 DEMO_ROLE_MAP = {account["role"]: account for account in DEMO_ACCOUNTS}
 
 
-from pydantic import BaseModel, ConfigDict
-
-
 class LoginRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    email: str
-    password: str
-    department_id: str | None = None
-    branch_id: str | None = None
-    province_id: str | None = None
+    email: str = Field(..., max_length=254)
+    password: str = Field(..., max_length=128)
+    department_id: str | None = Field(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$")
+    branch_id: str | None = Field(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$")
+    province_id: str | None = Field(None, max_length=16, pattern=r"^[a-zA-Z0-9_\-]+$")
 
 
 class SwitchTenantRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    department_id: str | None = None
-    branch_id: str | None = None
-    province_id: str | None = None
+    department_id: str | None = Field(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$")
+    branch_id: str | None = Field(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$")
+    province_id: str | None = Field(None, max_length=16, pattern=r"^[a-zA-Z0-9_\-]+$")
 
 
 class DemoLoginRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    role: str
-    department_id: str | None = None
-    branch_id: str | None = None
-    province_id: str | None = None
+    role: str = Field(..., max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$")
+    department_id: str | None = Field(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$")
+    branch_id: str | None = Field(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$")
+    province_id: str | None = Field(None, max_length=16, pattern=r"^[a-zA-Z0-9_\-]+$")
 
 
 class TenancyBranch(BaseModel):
@@ -286,7 +283,7 @@ def _resolve_scope(
         if province_id not in PROVINCES:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unknown province '{province_id}'",
+                detail="Unknown province specified",
             )
         return [], [], [province_id]
     if department_id is None:
@@ -294,20 +291,20 @@ def _resolve_scope(
     if department_id not in DEPARTMENTS:
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown department '{department_id}'",
+            detail="Unknown department specified",
         )
     if branch_id is None:
         return [department_id], [], []
     if branch_id not in BRANCHES:
         raise HTTPException(
             status_code=400,
-            detail=f"Unknown branch '{branch_id}'",
+            detail="Unknown branch specified",
         )
     parent = BRANCHES[branch_id][1]
     if parent != department_id:
         raise HTTPException(
             status_code=400,
-            detail=f"Branch '{branch_id}' belongs to '{parent}', not '{department_id}'",
+            detail="Branch does not belong to specified department",
         )
     return [department_id], [branch_id], []
 
@@ -486,15 +483,24 @@ async def demo_login(
 
 @router.get("/demo-accounts", response_model=list[DemoAccount])
 async def demo_accounts(
+    department_id: str | None = Query(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$"),
     session: AsyncSession = Depends(get_session),
 ):
     if not settings.seed_demo_users_enabled:
         return []
-    emails = [a["email"] for a in DEMO_ACCOUNTS]
+    filtered_accounts = DEMO_ACCOUNTS
+    if department_id == "home-affairs-digital":
+        # Designated DHA PoC demonstration personas
+        filtered_accounts = [a for a in DEMO_ACCOUNTS if a["role"].endswith("-ha")]
+    elif department_id:
+        filtered_accounts = [
+            a for a in DEMO_ACCOUNTS if department_id in a.get("department_ids", [])
+        ]
+    emails = [a["email"] for a in filtered_accounts]
     rows = (await session.execute(select(User).where(User.email.in_(emails)))).scalars().all()
     by_email = {u.email: u for u in rows}
     accounts = []
-    for account in DEMO_ACCOUNTS:
+    for account in filtered_accounts:
         user = by_email.get(account["email"])
         if user is None or not user.is_active:
             continue
@@ -517,26 +523,48 @@ async def demo_accounts(
 
 
 @router.get("/tenancy", response_model=TenancyResponse)
-async def tenancy_hierarchy():
+async def tenancy_hierarchy(
+    claims: JWTClaims = Depends(verify_token),
+):
     """National + provincial hierarchy for the login page.
 
     Department/branch/province names are public government information; this
     endpoint exists so authenticated users can pick the tenancy context to
     sign into. Access control still happens on the data itself via tenant_filter.
+
+    Authentication is required: the org-chart is filtered to the caller's
+    assigned scope so a department-scoped caller sees only their department's
+    branches. This prevents unauthenticated/weak-signature tokens from
+    harvesting the full estate org-chart (AppScan Weak JWT / BFLA findings).
     """
+    from app.api.auth import is_nationwide
+
+    caller_dept_ids = set(claims.department_ids or [])
+    caller_branch_ids = set(claims.branch_ids or [])
+    nationwide = is_nationwide(claims)
+
     departments = []
     for dept_id, dept_name in DEPARTMENTS.items():
-        branches = [
+        # Scope: nationwide users see everything; department-scoped users see
+        # only their assigned departments (and branches within them).
+        if not nationwide and caller_dept_ids and dept_id not in caller_dept_ids:
+            continue
+        all_branches = [
             TenancyBranch(id=branch_id, name=name)
             for branch_id, (name, parent) in BRANCHES.items()
             if parent == dept_id
         ]
+        # Further narrow branches for branch-scoped callers.
+        if caller_branch_ids:
+            visible_branches = [b for b in all_branches if b.id in caller_branch_ids]
+        else:
+            visible_branches = all_branches
         departments.append(
             TenancyDepartment(
                 id=dept_id,
                 name=dept_name,
-                branch_count=len(branches),
-                branches=branches,
+                branch_count=len(visible_branches),
+                branches=visible_branches,
                 province_id=province_for_department(dept_id),
             )
         )
@@ -551,8 +579,8 @@ async def tenancy_hierarchy():
         )
     return TenancyResponse(
         counts={
-            "departments": len(DEPARTMENTS),
-            "branches": len(BRANCHES),
+            "departments": len(departments),
+            "branches": sum(len(d.branches) for d in departments),
             "provinces": len(PROVINCES),
             "provincial_departments": len(PROVINCIAL_DEPARTMENTS),
         },
@@ -657,5 +685,3 @@ async def switch_tenant(
         issued,
     )
     return issued
-    depts, branches, provinces = _account_default_scope(user)
-    return _issue(user, depts, branches, provinces)

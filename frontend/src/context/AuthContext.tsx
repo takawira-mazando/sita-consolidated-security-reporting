@@ -189,7 +189,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetchDemoAccounts()
+    fetchDemoAccounts('home-affairs-digital')
       .then((accounts) => {
         if (!cancelled && accounts.length) setDemoAccounts(accounts);
       })

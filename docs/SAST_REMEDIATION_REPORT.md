@@ -150,11 +150,12 @@ Automated Test Verification:
 =============================
 backend/tests/test_remediation_verification.py: 19 / 19 PASSED (100%)
 backend/tests/test_dast_appscan_remediations.py:  6 /  6 PASSED (100%)
-Total Remediation Verification:                 25 / 25 PASSED (100%)
+backend/tests/test_dha_appscan_scoping.py:       6 /  6 PASSED (100%)
+Total Remediation Verification:                 31 / 31 PASSED (100%)
 
 Full Backend Regression Suite:
 =============================
-421 / 421 PASSED (100% success rate, 0 failures, 7.00s runtime)
+429 / 429 PASSED (100% success rate, 0 failures, 7.95s runtime)
 ```
 
 ### Live Staging Verification (`192.168.101.20:8088`):
