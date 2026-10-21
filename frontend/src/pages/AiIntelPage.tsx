@@ -752,14 +752,22 @@ function Avp11Panel({ roles }: { roles: string[] }) {
   );
 }
 
-// ─── AIMI VAPT Log Interpretation Layer atop Telemetry ────────────────────────
-function AimiVaptLogInterpreterPanel({ roles, tier }: { roles: string[]; tier: TenancyTier }) {
+// ─── AIMI Blue-Team & VAPT Log Intelligence Layer atop Telemetry ──────────────
+function AimiVaptLogInterpreterPanel({
+  roles,
+  tier,
+  onSelectCapability,
+}: {
+  roles: string[];
+  tier: TenancyTier;
+  onSelectCapability?: (key: string) => void;
+}) {
   const [lookbackHours, setLookbackHours] = useState<number>(24);
   const [appName, setAppName] = useState<string>('');
   const [data, setData] = useState<VaptLogInterpretationResult | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [activeTab, setActiveTab] = useState<'soc' | 'compliance' | 'exec' | 'stream' | 'baseline'>('soc');
+  const [activeTab, setActiveTab] = useState<'soc' | 'compliance' | 'exec' | 'stream' | 'baseline' | 'matrix'>('soc');
   const [filterSearch, setFilterSearch] = useState<string>('');
 
   const runAnalysis = useCallback(async () => {
@@ -808,11 +816,11 @@ function AimiVaptLogInterpreterPanel({ roles, tier }: { roles: string[]; tier: T
   });
 
   return (
-    <Panel title={<SectionHeader avp="AIMI-VAPT" title="AIMI VAPT Log Interpretation Layer atop Telemetry" gate="tenanted-rbac" icon="🛡️" />}>
+    <Panel title={<SectionHeader avp="AIMI-BLUE-TEAM" title="AIMI Blue-Team & VAPT Log Intelligence Layer" gate="tenanted-rbac" icon="🛡️" />}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: '#6366f1', letterSpacing: '0.1em' }}>AIMI-VAPT-LOGS</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: '#6366f1', letterSpacing: '0.1em' }}>AIMI-BLUE-TEAM-VAPT</span>
             <AdvisoryBadge />
             <span style={{
               fontSize: 11, padding: '2px 8px', borderRadius: 12,
@@ -823,7 +831,7 @@ function AimiVaptLogInterpreterPanel({ roles, tier }: { roles: string[]; tier: T
             </span>
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Cognitive interpretation over multi-tenant WAF blocks, AppScan DAST/SAST findings, and database audit logs.
+            Cognitive blue-team defense layer: real-time correlation of WAF blocks, AppScan DAST/SAST findings, and database audit logs against VAPT exploit baselines.
           </div>
         </div>
 
@@ -1040,6 +1048,7 @@ function AimiVaptLogInterpreterPanel({ roles, tier }: { roles: string[]; tier: T
               { id: 'exec', label: '📈 Executive Risk Posture', gate: 'risks' },
               { id: 'stream', label: `📜 Interpreted Log Telemetry (${data.interpreted_events.length})`, gate: 'all' },
               { id: 'baseline', label: '✅ VAPT Baseline Remediation Verifier', gate: 'all' },
+              { id: 'matrix', label: '🛡️ AIMI Blue-Team Capability Matrix & Governance', gate: 'all' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1257,7 +1266,208 @@ function AimiVaptLogInterpreterPanel({ roles, tier }: { roles: string[]; tier: T
             </div>
           )}
 
-          <GovernanceNote note="AIMI VAPT Log Interpretation Layer is non-destructive, strictly read-only, and bounded by cryptographic action auditing and SITA government multi-tenancy." />
+          {/* TAB 6: AIMI Blue-Team Capability Matrix & Governance */}
+          {activeTab === 'matrix' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{
+                padding: '14px 18px', borderRadius: 10,
+                background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.7), rgba(49, 46, 129, 0.4))',
+                border: '1px solid rgba(99, 102, 241, 0.35)',
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
+              }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#818cf8', letterSpacing: '0.08em' }}>
+                      AIMI BLUE-TEAM ARCHITECTURAL EVALUATION
+                    </span>
+                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: 'rgba(16,185,129,0.2)', color: '#34d399', fontWeight: 700 }}>
+                      VERIFIED OPERATIONAL
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#f8fafc', marginTop: 4 }}>
+                    Multi-Tenant Defensive Matrix (7 Evaluated Areas)
+                  </div>
+                  <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 2, maxWidth: 720 }}>
+                    Reconciles AIMI's cognitive tools with SITA's four-tier delegated tenancy. Preserves deterministic normalisation and auditing while harnessing external threat intelligence and automated rule authoring.
+                  </div>
+                </div>
+              </div>
+
+              {/* Scorecard Table */}
+              <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+                <table style={tableStyle}>
+                  <thead>
+                    <tr>
+                      <th style={thStyle}>#</th>
+                      <th style={thStyle}>Blue-Team Capability</th>
+                      <th style={thStyle}>SITA Engine State</th>
+                      <th style={thStyle}>AIMI Fit & Verdict</th>
+                      <th style={thStyle}>Active Platform Implementation</th>
+                      <th style={thStyle}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[
+                      {
+                        num: '1',
+                        area: 'Security Log Analysis',
+                        state: 'Deterministic Normalisation',
+                        stateColor: '#34d399',
+                        verdict: 'AIMI-VAPT Integration',
+                        verdictType: 'good',
+                        impl: 'Ingests AppScan, DAM, and WAF blocks into canonical OWASP/CWE schema with real-time exploit interpretation.',
+                        navKey: 'aimi-vapt',
+                        navLabel: 'View Telemetry',
+                      },
+                      {
+                        num: '2',
+                        area: 'Threat Detection / Anomaly (AVP-2)',
+                        state: 'Statistical 3-Sigma Rules',
+                        stateColor: '#60a5fa',
+                        verdict: 'AIMI + Platform Win',
+                        verdictType: 'good',
+                        impl: 'Synthesizes defensive Sigma and WAF inspection rules mapped to MITRE ATT&CK with reviewable git diffs.',
+                        navKey: 'avp-2',
+                        navLabel: 'Author Rule',
+                      },
+                      {
+                        num: '3',
+                        area: 'Security Event Correlation (AVP-6)',
+                        state: 'In-Cluster Entity Graph',
+                        stateColor: '#34d399',
+                        verdict: 'Tenancy-Safe Self-Join',
+                        verdictType: 'good',
+                        impl: 'Multi-table join (findings × alerts × endpoints × risks) strictly bounded by tenant_filter with zero cross-tenant leakage.',
+                        navKey: 'all',
+                        navLabel: 'Inspect Graph',
+                      },
+                      {
+                        num: '4',
+                        area: 'Alert Prioritisation & Ranking',
+                        state: 'Multi-Factor Ranking',
+                        stateColor: '#60a5fa',
+                        verdict: 'Contextual Scoring',
+                        verdictType: 'good',
+                        impl: 'Replaces raw severity reordering with asset criticality tier, threat context, peer deviation, and confidence weighting.',
+                        navKey: 'avp-8',
+                        navLabel: 'Causal Delta',
+                      },
+                      {
+                        num: '5',
+                        area: 'Incident Investigation & Dossiers (AVP-5)',
+                        state: 'Breach Notification Assembly',
+                        stateColor: '#f59e0b',
+                        verdict: 'Human Legal Gate',
+                        verdictType: 'warn',
+                        impl: 'Assembles POPIA s.22 evidence dossiers with indicator timelines, withholding legal threshold for named human sign-off.',
+                        navKey: 'avp-5',
+                        navLabel: 'Build Dossier',
+                      },
+                      {
+                        num: '6',
+                        area: 'Security Reporting & Analytics',
+                        state: 'Deterministic Attestation',
+                        stateColor: '#34d399',
+                        verdict: 'SITA Mastered / G2 Studio',
+                        verdictType: 'good',
+                        impl: 'G2 Verified Report Studio with two-gate verification (100% numeral fidelity) and ECDSA P-256 cryptographic attestation.',
+                        navKey: 'g2-report',
+                        navLabel: 'Report Studio',
+                      },
+                      {
+                        num: '7',
+                        area: 'Threat Intelligence Support (AVP-3)',
+                        state: 'Zero Prior Feeds',
+                        stateColor: '#a78bfa',
+                        verdict: 'Strongest Win / Token Egress',
+                        verdictType: 'good',
+                        impl: 'Correlates observed techniques against public threat feeds, CVEs, and OTX pulses using token-only egress.',
+                        navKey: 'avp-3',
+                        navLabel: 'Attribute Threat',
+                      },
+                    ].map((row) => (
+                      <tr key={row.num}>
+                        <td style={{ ...tdStyle, fontWeight: 700, color: '#818cf8', textAlign: 'center' }}>{row.num}</td>
+                        <td style={{ ...tdStyle, fontWeight: 700, color: '#f8fafc' }}>{row.area}</td>
+                        <td style={{ ...tdStyle, fontSize: 11 }}>
+                          <span style={{ color: row.stateColor, fontWeight: 600 }}>• {row.state}</span>
+                        </td>
+                        <td style={{ ...tdStyle, fontSize: 11 }}>
+                          <span style={{
+                            padding: '2px 8px', borderRadius: 6, fontSize: 10, fontWeight: 700,
+                            background: row.verdictType === 'good' ? 'rgba(16,185,129,0.15)' : 'rgba(245,158,11,0.15)',
+                            color: row.verdictType === 'good' ? '#34d399' : '#fbbf24',
+                            border: `1px solid ${row.verdictType === 'good' ? 'rgba(16,185,129,0.3)' : 'rgba(245,158,11,0.3)'}`,
+                          }}>
+                            {row.verdict}
+                          </span>
+                        </td>
+                        <td style={{ ...tdStyle, fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5, maxWidth: 320 }}>
+                          {row.impl}
+                        </td>
+                        <td style={tdStyle}>
+                          {onSelectCapability && (
+                            <button
+                              onClick={() => onSelectCapability(row.navKey)}
+                              style={{
+                                padding: '4px 10px', borderRadius: 6,
+                                background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
+                                color: '#818cf8', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}
+                            >
+                              {row.navLabel} &rarr;
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Architectural Guardrails Callouts */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
+                <div style={{
+                  padding: '12px 16px', borderRadius: 8,
+                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#34d399', marginBottom: 4 }}>
+                    🔒 Multi-Tenant Warehouse Boundary
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    Zero tenant rows cross to third parties. AIMI tool surface calls operate strictly on public constants (ATT&amp;CK IDs, CVEs, domain names). Internal joins remain 100% in-cluster.
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '12px 16px', borderRadius: 8,
+                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>
+                    ⚖️ Autonomous Blocking Refusal
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    Autonomous host iptables mutations (<code>iron_dome_block_ip</code>) are explicitly refused as a governance regression. All perimeter actions require human operator sign-off.
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '12px 16px', borderRadius: 8,
+                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+                }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', marginBottom: 4 }}>
+                    🛡️ Hermes Review Gate Envelope
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                    Adopts 3-layer QA verification (deterministic validation, cross-source verification, human review gate). Validation events are recorded against named deciders and ECDSA-signed.
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <GovernanceNote note="AIMI Blue-Team & VAPT Log Intelligence Layer is non-destructive, strictly read-only, and bounded by cryptographic action auditing and SITA government multi-tenancy." />
         </div>
       )}
     </Panel>
@@ -1321,11 +1531,11 @@ const CAPABILITY_DROPDOWN_OPTIONS = [
   },
   {
     key: 'aimi-vapt',
-    label: '🛡️ AIMI-VAPT Real-Time Alert & Log Interpreter',
-    title: 'Real-Time VAPT Telemetry & Log Interpreter',
-    desc: 'Correlates AppScan dynamic findings, Imperva WAF blocks, and DAM database audit events into coherent attacker narratives.',
+    label: '🛡️ AIMI Blue-Team Telemetry & VAPT Interpreter',
+    title: 'AIMI Blue-Team Telemetry & VAPT Log Interpreter',
+    desc: 'Cognitive blue-team defense layer: correlates live WAF blocks, DAM database events, and AppScan findings against VAPT baseline vectors with role-based forensics.',
     icon: '🛡️',
-    badge: 'TELEMETRY & ALERTS',
+    badge: 'BLUE-TEAM DEFENSE',
   },
   {
     key: 'avp-2',
@@ -1473,7 +1683,7 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
         {/* Quick View Filter Pills */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           {[
-            { key: 'aimi-vapt', icon: '🛡️', label: 'Ingested Logs & Alerts' },
+            { key: 'aimi-vapt', icon: '🛡️', label: 'AIMI Blue-Team Suite' },
             { key: 'g2-report', icon: '🧠', label: 'AI Report Studio' },
             { key: 'avp-2', icon: '🎯', label: 'Alert Rule Author' },
             { key: 'avp-3', icon: '🔍', label: 'Campaign Attribution' },
@@ -1567,9 +1777,9 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
 
       {/* ── Dynamically Rendered AI Panels (Operates directly on ingested logs) ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-        {/* AIMI VAPT Log Interpretation Layer atop Ingested Telemetry (Primary Log Engine) */}
+        {/* AIMI Blue-Team Log Interpretation Layer atop Ingested Telemetry (Primary Defense Engine) */}
         {(viewMode === 'all' || viewMode === 'aimi-vapt') && (
-          <AimiVaptLogInterpreterPanel roles={roles} tier={tier} />
+          <AimiVaptLogInterpreterPanel roles={roles} tier={tier} onSelectCapability={handleSelectView} />
         )}
 
         {/* Premier G2 AI Report Studio & Grounded Copilot */}

@@ -5,10 +5,11 @@ Pulls latest origin/main, rebuilds containers, verifies live headers.
 import paramiko
 import time
 import sys
+import os
 
-REMOTE_HOST = "192.168.101.20"
-REMOTE_USER = "uni"
-REMOTE_PASS = "H051@pivot"
+REMOTE_HOST = os.environ.get("REMOTE_HOST", "127.0.0.1")
+REMOTE_USER = os.environ.get("REMOTE_USER", "sita")
+REMOTE_PASS = os.environ.get("REMOTE_PASS", "")
 DEPLOY_DIR = "/opt/sita/sita-platform"
 STACK_FILE = "/opt/sita/sita-platform/infrastructure/docker-compose.remote.yml"
 

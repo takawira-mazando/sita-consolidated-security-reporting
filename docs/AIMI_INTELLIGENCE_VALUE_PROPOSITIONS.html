@@ -86,8 +86,10 @@ a { color: var(--blue); }
            background: rgba(139,148,158,0.12); }
 ul.toc { list-style: none; margin-left: 0; columns: 2; column-gap: 2rem; }
 ul.toc li { margin: 0.15rem 0; break-inside: avoid; }
-ul.toc .toc-l3 { padding-left: 0.9rem; font-size: 0.9rem; }
-ul.toc .toc-l4 { padding-left: 1.6rem; font-size: 0.85rem; color: var(--muted); }
+ul.toc .toc-l1 { font-weight: 800; color: var(--accent); margin-top: 0.8rem; font-size: 0.95rem; border-bottom: 1px solid var(--border); padding-bottom: 0.2rem; }
+ul.toc .toc-l2 { font-weight: 600; color: var(--text); font-size: 0.9rem; }
+ul.toc .toc-l3 { padding-left: 0.9rem; font-size: 0.86rem; }
+ul.toc .toc-l4 { padding-left: 1.6rem; font-size: 0.82rem; color: var(--muted); }
 
 /* --- Plain English trigger on each AVP heading --- */
 .plain-btn {
@@ -184,6 +186,22 @@ footer { border-top: 1px solid var(--border); margin-top: 2.5rem; padding-top: 1
 <li class="toc-l3"><a href="#demoted-avp-10-oem-coverage-and-agreement-attestation-engineering-built">DEMOTED · AVP-10 · OEM coverage and agreement attestation — engineering, built</a></li>
 <li class="toc-l3"><a href="#avp-11-reading-a-behavioural-sequence-the-only-part-that-needs-ai">AVP-11 · Reading a behavioural sequence — the only part that needs AI</a></li>
 <li class="toc-l3"><a href="#demoted-avp-12-dispute-ready-evidence-packets-engineering-built">DEMOTED · AVP-12 · Dispute-ready evidence packets — engineering, built</a></li>
+<li class="toc-l1"><a href="#part-ii-assessment-of-the-proposed-blue-team-ai-capability-set">PART II — Assessment of the Proposed Blue-Team AI Capability Set</a></li>
+<li class="toc-l2"><a href="#11-architectural-verdict-on-aimis-blue-team-tool-surface">11. Architectural verdict on AIMI's blue-team tool surface</a></li>
+<li class="toc-l3"><a href="#111-three-consequences">11.1 Three consequences</a></li>
+<li class="toc-l3"><a href="#112-availability-signal-must-be-verified-before-commitment">11.2 Availability signal — must be verified before commitment</a></li>
+<li class="toc-l2"><a href="#12-the-human-validation-clause-critique">12. The human-validation clause — critique</a></li>
+<li class="toc-l2"><a href="#13-area-by-area-critique">13. Area-by-area critique</a></li>
+<li class="toc-l3"><a href="#area-1-security-log-analysis-weak-do-not-integrate">Area 1 — Security Log Analysis · <strong>Weak. Do not integrate.</strong></a></li>
+<li class="toc-l3"><a href="#area-2-threat-detection-and-anomaly-identification-real-gap-but-it-is-a-data-science-gap-wearing-an-ai-label">Area 2 — Threat Detection and Anomaly Identification · <strong>Real gap. But it is a data-science gap wearing an AI label.</strong></a></li>
+<li class="toc-l3"><a href="#area-3-security-event-correlation-strong-need-aimi-is-the-wrong-tool-for-the-core-job-and-the-right-tool-for-the-outer-edge">Area 3 — Security Event Correlation · <strong>Strong need. AIMI is the wrong tool for the core job — and the right tool for the outer edge.</strong></a></li>
+<li class="toc-l3"><a href="#area-4-intelligent-alert-analysis-and-prioritisation-real-gap-cheap-fix-mostly-not-an-aimi-job">Area 4 — Intelligent Alert Analysis and Prioritisation · <strong>Real gap, cheap fix, mostly not an AIMI job.</strong></a></li>
+<li class="toc-l3"><a href="#area-5-incident-investigation-support-real-gap-currently-blocked-on-a-substrate-that-does-not-exist">Area 5 — Incident Investigation Support · <strong>Real gap, currently blocked on a substrate that does not exist.</strong></a></li>
+<li class="toc-l3"><a href="#area-6-security-reporting-and-analytics-negative-value-add-exclude">Area 6 — Security Reporting and Analytics · <strong>Negative value add. Exclude.</strong></a></li>
+<li class="toc-l3"><a href="#area-7-threat-intelligence-support-strongest-win-in-the-set-build-this-first">Area 7 — Threat Intelligence Support · <strong>Strongest win in the set. Build this first.</strong></a></li>
+<li class="toc-l2"><a href="#14-scorecard">14. Scorecard</a></li>
+<li class="toc-l2"><a href="#15-revised-capability-set">15. Revised capability set</a></li>
+<li class="toc-l2"><a href="#16-what-to-add-to-the-proposal-text">16. What to add to the proposal text</a></li>
 </ul>
 <h1 id="sita-x-aimi---the-twelve-value-propositions">SITA x AIMI - The Twelve Value Propositions</h1>
 
@@ -1319,6 +1337,578 @@ claim, and prove none of it was altered."*</blockquote>
 <tr><td><strong>Effort</strong></td><td>~8 PD. <code>jinja2</code> is already a dependency.</td></tr>
 </tbody>
 </table>
+
+<hr/>
+
+<h1 id="part-ii-assessment-of-the-proposed-blue-team-ai-capability-set">PART II — Assessment of the Proposed Blue-Team AI Capability Set</h1>
+
+<p><strong>Added 12 October 2026.</strong> Assesses the seven proposed areas — log analysis, threat detection</p>
+
+<p>and anomaly identification, event correlation, intelligent alert analysis and prioritisation,</p>
+
+<p>incident investigation support, security reporting and analytics, and threat intelligence</p>
+
+<p>support — against SITA's verified gap register, and critiques the AI value add of each.</p>
+
+<p>**Headline verdict: of the seven, two are genuine AIMI wins, three are real gaps that AIMI is</p>
+
+<p>the wrong tool for, and two are weak or negative.** The list reads as a generic blue-team</p>
+
+<p>capability matrix rather than a response to anything SITA cannot already do.</p>
+
+<hr/>
+
+<h2 id="11-architectural-verdict-on-aimis-blue-team-tool-surface">11. Architectural verdict on AIMI's blue-team tool surface</h2>
+
+<p>This had to be established before any area could be assessed, because the tool signatures</p>
+
+<p>determine what is portable.</p>
+
+<p><strong>AIMI's blue-team suite is written for a single host defending itself.</strong> Seven of twelve tools</p>
+
+<p>take a filesystem path or no parameters at all:</p>
+
+<table>
+<thead><tr><th>Tool</th><th>Signature</th><th>Ports to a multi-tenant warehouse?</th></tr></thead>
+<tbody>
+<tr><td><code>blue_malware_scan</code></td><td><code>path="/home"</code>, <code>recursive=true</code></td><td><strong>No</strong> — SITA's data plane has no file ingress; it consumes OEM API JSON</td></tr>
+<tr><td><code>blue_analyze_logs</code></td><td><code>log_path="/var/log"</code>, <code>lookback_hours=24</code></td><td><strong>No</strong> — SITA ingests no syslog or journald stream</td></tr>
+<tr><td><code>blue_check_ftp</code></td><td>none</td><td><strong>No</strong> — SITA has no host layer to check</td></tr>
+<tr><td><code>blue_hardening_check</code></td><td>none</td><td><strong>No</strong> — SITA has no host layer</td></tr>
+<tr><td><code>ids_suricata_alerts</code></td><td><code>eve_json_path="/var/log/suricata/eve.json"</code></td><td>Only via a file export</td></tr>
+<tr><td><code>ids_snort_alerts</code></td><td><code>alert_path="/var/log/snort/alert"</code></td><td>Only via a file export</td></tr>
+<tr><td><code>ids_status</code></td><td>none</td><td><strong>No</strong> — reports the local engine</td></tr>
+<tr><td><code>ids_rule_synthesize</code></td><td><strong><code>findings_json</code></strong></td><td><strong>Yes — the one portable contract</strong></td></tr>
+<tr><td><code>iron_dome_health</code> / <code>status</code> / <code>report</code> / <code>threat_hunt</code> / <code>alerts</code></td><td>none or hours+severity</td><td><strong>No</strong> — local daemon and local database</td></tr>
+<tr><td><code>iron_dome_block_ip</code> / <code>unblock_ip</code></td><td><code>ip</code>, <code>duration_minutes</code>, <code>reason</code></td><td><strong>No</strong> — autonomous iptables mutation on AIMI's host</td></tr>
+<tr><td><code>blue_update_clamav</code></td><td>none</td><td><strong>No</strong> — signature refresh, irrelevant without file ingress</td></tr>
+</tbody>
+</table>
+
+<p><strong>Zero of the twelve accept a database connection, a tenant identifier, or a stream name.</strong></p>
+
+<p>There is no <code>tenant_id</code> parameter anywhere in the blue-team surface. There is no</p>
+
+<p><code>scope_hash</code>. The suite has no concept of multi-tenancy because it does not need one — it</p>
+
+<p>defends one container.</p>
+
+<h3 id="111-three-consequences">11.1 Three consequences</h3>
+
+<p><strong>a) The only portable contract is <code>ids_rule_synthesize(findings_json)</code>.</strong> It takes findings as</p>
+
+<p>JSON and returns detection content. That is structurally identical to AVP-2's rule-diff</p>
+
+<p>proposition, and it is the single piece of AIMI's blue-team surface worth calling as a service.</p>
+
+<p><strong>b) A file-export bridge is technically possible and strategically wrong.</strong> SITA could export a</p>
+
+<p>tenant-scoped, redacted snapshot to a file; AIMI would analyse it; SITA would re-attribute. It</p>
+
+<p>works. It also creates a written artefact on AIMI's disk that is no longer protected by</p>
+
+<p><code>tenant_filter()</code>, no longer covered by the AVP Data Boundary (§5), and no longer auditable</p>
+
+<p>per-request. It also forces row-level data across a boundary that was specifically designed to</p>
+
+<p>carry only public identifiers. <strong>If this route is ever taken, restrict it to aggregates only.</strong></p>
+
+<p>It is strictly worse than the token model and should be a last resort.</p>
+
+<p><strong>c) <code>iron_dome_block_ip</code> is a governance regression.</strong> It performs an autonomous iptables</p>
+
+<p>mutation with no human in the loop. SITA's entire alert lifecycle routes through</p>
+
+<p><code>acknowledge</code> → <code>resolve</code>, <code>alert_rules.yaml</code> declares channels and throttles for every rule,</p>
+
+<p>and <code>access_audit.py</code> signs every privileged action. Wiring autonomous blocking into that</p>
+
+<p>would be a <strong>downgrade</strong> in control posture, not an upgrade in capability. **Explicitly excluded</p>
+
+<p>from every wave.**</p>
+
+<h3 id="112-availability-signal-must-be-verified-before-commitment">11.2 Availability signal — must be verified before commitment</h3>
+
+<p>The blue-team surface could not be probed on 12 October 2026:</p>
+
+<ul>
+<li>Two <code>tool_iron_dome_*</code> calls returned <em>"unavailable tool"</em> from the server on first attempt</li>
+</ul>
+
+<p>  (operator error on my part — wrong tool name).</p>
+
+<ul>
+<li>The MCP session then dropped — <em>"Could not find session"</em>, a documented and normally</li>
+</ul>
+
+<p>  recoverable failure mode.</p>
+
+<ul>
+<li><strong>Six subsequent attempts over roughly two minutes all timed out</strong>, including</li>
+</ul>
+
+<p>  <code>tool_aimi_get_started</code>, which had succeeded twice earlier in the same session, and including</p>
+
+<p>  zero-argument calls such as <code>ids_status</code> and <code>iron_dome_health</code>.</p>
+
+<p>I cannot distinguish "the AIMI blue-team service is down" from "my session is wedged and did not</p>
+
+<p>recover". Either way: **the exact surface being proposed for integration demonstrated no</p>
+
+<p>responsiveness during a two-minute window, while the fraud, graph and purple-team tools</p>
+
+<p>responded normally earlier in the same session.** Before Wave 3 commitments are made, run a</p>
+
+<p>documented availability check against the blue-team endpoints. This is a procurement question,</p>
+
+<p>not an engineering one.</p>
+
+<hr/>
+
+<h2 id="12-the-human-validation-clause-critique">12. The human-validation clause — critique</h2>
+
+<blockquote>*"AI-generated findings and recommendations will need to be validated by the relevant security
+personnel."*</blockquote>
+
+<p>This clause is correct and load-bearing, and <strong>currently has nothing to attach to.</strong></p>
+
+<table>
+<thead><tr><th>Requirement</th><th>State in SITA</th></tr></thead>
+<tbody>
+<tr><td>A system of record for who validated what</td><td><strong>Does not exist.</strong> No case entity, no analyst note field, no review table</td></tr>
+<tr><td>When they validated it</td><td><strong>Does not exist.</strong> No triage table — that is Phase D, not built</td></tr>
+<tr><td>On what evidence</td><td><strong>Does not exist.</strong> No evidence attachment mechanism</td></tr>
+<tr><td>A durable audit trail linking AI output to a named decider</td><td><strong>Partially.</strong> <code>audit.action_audit</code> and <code>access_audit.py</code> exist and are ECDSA-signed, but nothing writes an AI-decision row, because no AI ships</td></tr>
+</tbody>
+</table>
+
+<p>Phase D's <code>warehouse.finding_triage</code> with accept/reject logging is the intended home for this, and</p>
+
+<p>it is 15 weeks out. **Until it lands, the validation clause is a policy statement with no</p>
+
+<p>mechanism**, and policy statements with no mechanism are what an Auditor-General finding is</p>
+
+<p>written about.</p>
+
+<p>AIMI models the right shape. The <code>typology_match</code> probe returned:</p>
+
+<pre><span class="lang">json</span><code>"qa": {
+  "layer_1": {"type": "deterministic_validation", "confidence": 1.0, "null_fields": []},
+  "layer_2": {"type": "cross_source_verification", "verified": false,
+              "notes": ["No cross-source verification available"]},
+  "layer_3": {"type": "hermes_review_gate", "triggered": true,
+              "recommendation": "Human review recommended before acting on these findings."},
+  "overall_confidence": 0.6,
+  "hallucination_risk": "medium"
+}</code></pre>
+
+<p><strong>Adopt this envelope as the platform standard for all AI output</strong>, including SITA's own Phase B</p>
+
+<p>narratives, rather than inventing a second QA convention. The <code>hermes_review_gate.triggered</code></p>
+
+<p>flag is the natural trigger for the validation workflow — it becomes the work item.</p>
+
+<p>Two requirements the clause must add to be defensible:</p>
+
+<ol>
+<li><strong>A named decider, not a role.</strong> "Validated by the SOC" is not evidence. "Validated by</li>
+</ol>
+
+<p>   A. Mbeki, appsec, 2026-10-14, against evidence E-4471" is.</p>
+
+<ol>
+<li><strong>The validation event must be signed.</strong> <code>sign_canonical_payload()</code> already exists in</li>
+</ol>
+
+<p>   <code>app/security_pki.py</code>. The validation row joins the <code>action_audit</code> chain, so the audit trail</p>
+
+<p>   is non-repudiable.</p>
+
+<hr/>
+
+<h2 id="13-area-by-area-critique">13. Area-by-area critique</h2>
+
+<h3 id="area-1-security-log-analysis-weak-do-not-integrate">Area 1 — Security Log Analysis · <strong>Weak. Do not integrate.</strong></h3>
+
+<p>SITA ingests OEM telemetry and normalises it deterministically: <code>normaliser.py</code> flattens</p>
+
+<p>vendor field paths via <code>field_mapper.yaml</code>, normalises severity per source, maps six vendor</p>
+
+<p>vocabularies to OWASP Top 10 2021, coerces timestamps, dedups. That is a stronger log-analysis</p>
+
+<p>capability than heuristic pattern-matching on raw syslog, because it is deterministic and</p>
+
+<p>auditable.</p>
+
+<p>AIMI's <code>blue_analyze_logs(log_path, lookback_hours)</code> reads files from a path on its own host.</p>
+
+<p>SITA has <strong>no syslog or journald stream</strong> — it consumes AppScan, Imperva DAM, Imperva WAF, API</p>
+
+<p>Security and a compliance feed, all via API.</p>
+
+<p><strong>Critique.</strong> This is not "AIMI beats SITA". It is "AIMI analyses a data class SITA does not</p>
+
+<p>have, using a method SITA does not need, over a data class SITA already handles better". The</p>
+
+<p>proposal conflates <em>log analysis</em> with <em>syslog analysis</em>. Either drop the area, or restate it</p>
+
+<p>honestly as "on-host file and process integrity monitoring", which is a **host-security product</p>
+
+<p>decision, not a telemetry-platform decision** — and one SITA has no host layer to apply it to.</p>
+
+<hr/>
+
+<h3 id="area-2-threat-detection-and-anomaly-identification-real-gap-but-it-is-a-data-science-gap-wearing-an-ai-label">Area 2 — Threat Detection and Anomaly Identification · <strong>Real gap. But it is a data-science gap wearing an AI label.</strong></h3>
+
+<p>SITA's anomaly detection is genuinely thin. Verified inventory:</p>
+
+<ul>
+<li><strong>One</strong> statistical rule exists in the entire platform: a 3-sigma z-score on Imperva volume</li>
+</ul>
+
+<p>  against a 7-day baseline (<code>alert_rules.yaml:103-113</code>).</p>
+
+<ul>
+<li><strong>One</strong> more quasi-statistical rule: a 5-point day-over-day compliance delta (<code>:90-101</code>).</li>
+<li>The other seven rules are signature matches — severity equality, source equality.</li>
+<li><strong>No</strong> clustering, <strong>no</strong> forecasting, <strong>no</strong> time-series modelling, <strong>no</strong> changepoint</li>
+</ul>
+
+<p>  detection, <strong>no</strong> per-entity baseline, <strong>no</strong> correlation, <strong>no</strong> regression.</p>
+
+<ul>
+<li><code>scipy</code>, <code>statsmodels</code> and <code>sklearn</code> are not installed.</li>
+</ul>
+
+<p><strong>Critique.</strong> The genuine opportunity here is that SITA has <strong>15,283 <code>risk_scores</code> rows</strong> with</p>
+
+<p>four signal columns each, plus 2,244 findings and 3,569 WAF blocks — enough history for</p>
+
+<p>per-application baselines, seasonal decomposition, changepoint detection and peer-group anomaly</p>
+
+<p>scoring. <strong>None of that needs an LLM.</strong> It needs a data scientist and numpy.</p>
+
+<p>AIMI's answer to this area is <code>blue_malware_scan</code> (ClamAV on files) and <code>iron_dome_threat_hunt</code> —</p>
+
+<p>host-based and local. That is a <strong>different capability class</strong> from statistical anomaly detection</p>
+
+<p>over tenant telemetry.</p>
+
+<p><strong>Recommendation.</strong> Take this area, but re-label it. Scope it as a platform capability with AIMI</p>
+
+<p>as, at most, a source of detection <em>ideas</em>. Do not present it as an AI integration.</p>
+
+<hr/>
+
+<h3 id="area-3-security-event-correlation-strong-need-aimi-is-the-wrong-tool-for-the-core-job-and-the-right-tool-for-the-outer-edge">Area 3 — Security Event Correlation · <strong>Strong need. AIMI is the wrong tool for the core job — and the right tool for the outer edge.</strong></h3>
+
+<p>SITA has <strong>zero</strong> correlation capability. Verified: no graph model, no entity resolution, no</p>
+
+<p>cross-source join beyond <code>dedup_key</code> (which is suppression, not correlation). Every fact is an</p>
+
+<p>isolated row. The questions SITA cannot answer at all:</p>
+
+<ul>
+<li>Which WAF blocks relate to which findings on which asset?</li>
+<li>Which assets share an owner, a dependency, a technology, or an attacker?</li>
+<li>What is the shortest path from a compromised application to a database holding PII?</li>
+<li>Which departments are exposed to the same technique?</li>
+</ul>
+
+<p>AIMI's graph tooling is real. The <code>link_analyze</code> probe on four ATT&amp;CK IDs returned typed nodes</p>
+
+<p>with tactic assignment and a <code>SHARES_TACTIC</code> edge between T1190 and T1199 — correct, structured,</p>
+
+<p>usable output.</p>
+
+<p><strong>Critique.</strong> But AIMI's graph is <strong>external and global</strong>. The correlation SITA needs first is</p>
+
+<p><strong>internal and tenant-scoped</strong>: joining SITA's own warehouse to itself. That is a self-join over</p>
+
+<p><code>findings</code> × <code>alerts</code> × <code>api_endpoints</code> × <code>risk_scores</code>, all of which are already</p>
+
+<p>tenant-denormalised. <strong>It requires no AI at all</strong>, and it must be built in-cluster regardless —</p>
+
+<p>because it is the join that makes <code>tenant_filter()</code> meaningful across tables.</p>
+
+<p>Only the <strong>outer edge</strong> is AIMI's: resolve a shadow API's upstream host, enrich a CVE, attribute</p>
+
+<p>a technique to a campaign. That is AVP-2 and AVP-6.</p>
+
+<p><strong>Recommendation.</strong> Split the area. Internal correlation graph — build it, SITA's own work, no</p>
+
+<p>AI, highest value per hour in this entire assessment. External enrichment — AVP-2, AVP-6.</p>
+
+<hr/>
+
+<h3 id="area-4-intelligent-alert-analysis-and-prioritisation-real-gap-cheap-fix-mostly-not-an-aimi-job">Area 4 — Intelligent Alert Analysis and Prioritisation · <strong>Real gap, cheap fix, mostly not an AIMI job.</strong></h3>
+
+<p>SITA's prioritisation is this (<code>alert_enricher.py:17</code>):</p>
+
+<pre><span class="lang">python</span><code>SEVERITY_PRIORITY = {"critical": 1, "high": 2, "medium": 3, "low": 4, "info": 5}</code></pre>
+
+<p><strong><code>priority</code> is severity, reordered.</strong> There is no context: no asset criticality, no threat</p>
+
+<p>intelligence, no peer comparison, no history, no confidence, no business impact. Meanwhile</p>
+
+<p><code>app_catalog.yaml</code> already carries a <code>tier</code> field that is not used for prioritisation at all.</p>
+
+<p>A SOC with 551 alerts and a rank column that is a relabelled severity column has no triage tool.</p>
+
+<p><strong>Critique.</strong> This is the weakest justification on the list for calling it AI, and the strongest</p>
+
+<p>case for just fixing it. A defensible ranking needs, in order of value per hour:</p>
+
+<ol>
+<li><strong>Asset tier</strong> — already in <code>app_catalog.yaml</code>, currently unused for this.</li>
+<li><strong>Threat context</strong> — AVP-3's signal. This is where AIMI genuinely contributes.</li>
+<li><strong>Peer deviation</strong> — is this department worse than the other 172? AVP-7's data.</li>
+<li><strong>Confidence</strong> — AIMI's QA envelope, applied to SITA's own detections.</li>
+<li><strong>Recency and churn</strong> — deterministic, from data already stored.</li>
+</ol>
+
+<p>AIMI's <code>risk_score</code> and <code>fraud_classify</code> are built for customers, entities and transactions — not</p>
+
+<p>security alerts. Using them here is a <strong>category mismatch</strong> dressed as integration.</p>
+
+<p><strong>Recommendation.</strong> Take the area, drop the AI framing. Build the deterministic ranking first.</p>
+
+<p>Wire AVP-3 in second, as one input among five.</p>
+
+<hr/>
+
+<h3 id="area-5-incident-investigation-support-real-gap-currently-blocked-on-a-substrate-that-does-not-exist">Area 5 — Incident Investigation Support · <strong>Real gap, currently blocked on a substrate that does not exist.</strong></h3>
+
+<p>SITA's investigation capability is:</p>
+
+<ul>
+<li><code>AlertStatus</code> declares five states. <strong>Two of them are unreachable.</strong> <code>INVESTIGATING</code> and</li>
+</ul>
+
+<p>  <code>DISMISSED</code> are defined in <code>models/alert.py:8-13</code> and never written by any code path. The API</p>
+
+<p>  exposes only <code>acknowledge</code> and <code>resolve</code>.</p>
+
+<ul>
+<li><strong>No case entity.</strong> No investigation workspace, no evidence attachment, no analyst notes, no</li>
+</ul>
+
+<p>  assignment, no SLA, no escalation chain beyond severity→channel, no timeline of analyst actions.</p>
+
+<ul>
+<li><code>Alert.enriched_data</code> (JSONB) is the only free-form slot, and it holds enrichment, not notes.</li>
+<li>The audit trail is genuinely good — ECDSA-signed, records who knew and when — and it is the only</li>
+</ul>
+
+<p>  investigation-grade artefact that exists.</p>
+
+<p><strong>Critique.</strong> The blocker is not AI. **The blocker is that there is nothing for an AI to</p>
+
+<p>support.** You cannot give an AI an investigation workspace that has not been built. This area</p>
+
+<p>requires, in strict order: a case entity → evidence attachment → analyst notes → timeline →</p>
+
+<p><em>then</em> AI triage support on top.</p>
+
+<p>AIMI can supply the orchestration shape. <code>investigate</code> with <code>poll_progress</code> returning typed phase</p>
+
+<p>events (<code>{"phase": 1, "status": "complete", "name": "Domain Intelligence"}</code>) is a sound model</p>
+
+<p>for an investigation state machine, and <code>case_package</code> handles compilation. But it cannot supply</p>
+
+<p>the workspace, and it cannot see tenant-scoped evidence under the Data Boundary.</p>
+
+<p><strong>Recommendation.</strong> Take the area. Sequence it <strong>last among the blue-team items</strong>, behind a case</p>
+
+<p>management build that is SITA's own work and is not currently scheduled in any phase.</p>
+
+<hr/>
+
+<h3 id="area-6-security-reporting-and-analytics-negative-value-add-exclude">Area 6 — Security Reporting and Analytics · <strong>Negative value add. Exclude.</strong></h3>
+
+<p>SITA is <strong>ahead of AIMI</strong> here, and adding AIMI would be a regression.</p>
+
+<table>
+<thead><tr><th></th><th>SITA</th><th>AIMI</th></tr></thead>
+<tbody>
+<tr><td>Tenant-scoped role dashboards</td><td>6, across 14 roles</td><td>0</td></tr>
+<tr><td>Scoping primitive</td><td><code>tenant_filter()</code>, province expansion, fail-closed</td><td><strong>None in the blue-team surface</strong></td></tr>
+<tr><td>Cryptographic attestation</td><td>ECDSA P-256, reproducible body, offline verification</td><td>None</td></tr>
+<tr><td>Compliance framework registry</td><td>6 instruments with stored applicability determinations</td><td><code>grc_posture</code> on 4 framework ids, no ISO</td></tr>
+<tr><td>Peer benchmarking</td><td>Tenant-safe with peer blinding</td><td>None</td></tr>
+<tr><td>Narrative</td><td>Deterministic, anti-drift-tested against literal re-statement</td><td>None relevant</td></tr>
+</tbody>
+</table>
+
+<p>AIMI's report tools — <code>report_pentest</code>, <code>report_executive_brief</code>, <code>report_fraud</code>,</p>
+
+<p><code>purple_report</code> — generate reports from <strong>AIMI's own engagement and investigation data</strong>. That</p>
+
+<p>is a different job entirely. They have no tenant concept and cannot produce a department-scoped</p>
+
+<p>artefact.</p>
+
+<p><strong>Critique.</strong> This is the clearest signal that the seven-area list was not written from SITA's gap</p>
+
+<p>register. Area 6 describes the platform's single strongest capability. Including it in an</p>
+
+<p>AI-integration scope signals that the scope was assembled from a generic capability matrix rather</p>
+
+<p>than from what the platform cannot do.</p>
+
+<p>Phase B of <code>AI_INTEGRATION_PLAN_MASTER.md</code> already owns reporting and analytics, deterministically</p>
+
+<p>and with a verifier. <strong>Keep it there. Exclude AIMI from this area entirely.</strong></p>
+
+<hr/>
+
+<h3 id="area-7-threat-intelligence-support-strongest-win-in-the-set-build-this-first">Area 7 — Threat Intelligence Support · <strong>Strongest win in the set. Build this first.</strong></h3>
+
+<p>SITA has <strong>nothing</strong>. Verified: no VT, no OTX, no HIBP, no reputation feed, no IOC store, no</p>
+
+<p>domain intelligence. Every finding is judged in isolation.</p>
+
+<p>AIMI brings four feeds and automatic OTX enrichment:</p>
+
+<ul>
+<li><code>domain_investigate</code> — VT, AA419, HIBP, OTX, plus TLS, headers, WHOIS, DNS, fraud heuristics</li>
+<li><code>ioc_correlate</code> — with per-indicator <code>enrichment_status.otx</code> of <code>fired</code> / <code>no_key</code> / <code>error</code></li>
+<li><code>breach_exposure</code> — HIBP domain and email exposure</li>
+<li><code>username_search</code> — Sherlock-style handle discovery</li>
+</ul>
+
+<p><strong>Critique.</strong> The OTX result separation is the detail that makes this integration trustworthy and</p>
+
+<p>that should be built into the UI from day one: <code>pulse_count: 0</code> means <strong>"no OTX record"</strong>, never</p>
+
+<p>"safe". The guide is explicit about this. A pulse count of 0 rendered as a clean bill of health</p>
+
+<p>would be a serious and entirely silent error.</p>
+
+<p>This is the one area where every condition is simultaneously favourable:</p>
+
+<ul>
+<li><strong>Genuine zero</strong> in SITA — nothing is displaced</li>
+<li><strong>Token-only egress</strong> — CVE, domain, hash. No row, no name, no count</li>
+<li><strong>Tenancy risk near zero</strong> — the output describes a public indicator, not an estate</li>
+<li><strong>Directly feeds AVP-3</strong>, which in turn feeds Area 4's prioritisation</li>
+<li><strong>AO-agnostic</strong> — public threat intelligence is not personal information</li>
+</ul>
+
+<p><strong>Recommendation.</strong> This is Area 7 alone, promoted to Wave 2 alongside AVP-2 and AVP-6, and it</p>
+
+<p>should be the headline of any AIMI proposal.</p>
+
+<hr/>
+
+<h2 id="14-scorecard">14. Scorecard</h2>
+
+<table>
+<thead><tr><th>#</th><th>Proposed area</th><th>SITA's verified state</th><th>AIMI fit</th><th>Verdict</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Security Log Analysis</td><td>Strong deterministic normalisation; no syslog</td><td>Wrong data class</td><td><span class="badge b-dim"><strong>Weak — drop or restate</strong></span></td></tr>
+<tr><td>2</td><td>Threat Detection / Anomaly</td><td><strong>1</strong> statistical rule in the whole platform</td><td>Right class, wrong implementation</td><td><span class="badge b-warn"><strong>Real gap — data science, not AI</strong></span></td></tr>
+<tr><td>3</td><td>Security Event Correlation</td><td><strong>Zero</strong></td><td>Right class, external not internal</td><td><span class="badge b-good"><strong>Strong need — build internal, AIMI for edge</strong></span></td></tr>
+<tr><td>4</td><td>Alert Analysis / Prioritisation</td><td><code>priority</code> = severity reordered</td><td>Category mismatch</td><td><span class="badge b-warn"><strong>Real gap — cheap deterministic fix</strong></span></td></tr>
+<tr><td>5</td><td>Incident Investigation</td><td><strong>Zero</strong>; 2 of 5 alert states unreachable</td><td>Blocked on missing substrate</td><td><span class="badge b-warn"><strong>Real gap — blocked, build case entity</strong></span></td></tr>
+<tr><td>6</td><td>Security Reporting / Analytics</td><td><strong>Ahead of AIMI</strong></td><td>Regression risk</td><td><span class="badge b-bad"><strong>Negative — exclude</strong></span></td></tr>
+<tr><td>7</td><td>Threat Intelligence</td><td><strong>Zero</strong></td><td>Direct, token-only fit</td><td><span class="badge b-good"><strong>Strong win — do first</strong></span></td></tr>
+</tbody>
+</table>
+
+<p>**Net: 2 of 7 are genuine AIMI wins. 3 are real gaps AIMI is the wrong tool for. 2 are weak or</p>
+
+<p>negative.**</p>
+
+<hr/>
+
+<h2 id="15-revised-capability-set">15. Revised capability set</h2>
+
+<p>What should actually go into the proposal, rewritten against SITA's gap register rather than</p>
+
+<p>against a generic blue-team matrix:</p>
+
+<table>
+<thead><tr><th>#</th><th>Capability</th><th>Why it survives</th><th>Owner</th></tr></thead>
+<tbody>
+<tr><td><strong>1</strong></td><td><strong>Threat intelligence enrichment</strong> — CVE, domain, IOC and OTX context on ingested findings (Area 7, AVP-3)</td><td>SOTA zero. Token-only egress. Near-zero tenancy risk</td><td>AIMI + platform</td></tr>
+<tr><td><strong>2</strong></td><td><strong>Internal entity-correlation graph</strong> — in-cluster self-join of findings × alerts × endpoints × risks, tenant-scoped, with external enrichment at the edge (Area 3, AVP-6)</td><td>SOTA zero. No AI required for the internal graph. Tenancy-safe by construction</td><td>Platform</td></tr>
+<tr><td><strong>3</strong></td><td><strong>Context-aware alert ranking</strong> — asset tier, threat context, peer deviation, confidence, churn (Area 4)</td><td><code>priority</code> is currently severity reordered. Deterministic first</td><td>Platform</td></tr>
+<tr><td><strong>4</strong></td><td><strong>Detection content generation</strong> — validated Sigma/Suricata/Wazuh/YARA as a reviewable diff against <code>alert_rules.yaml</code> (Area 2 partly, AVP-2)</td><td>SITA zero on MITRE. Only portable AIMI blue-team contract</td><td>AIMI + platform</td></tr>
+<tr><td><strong>5</strong></td><td><strong>Per-application anomaly baselines</strong> — changepoint, seasonal, peer-group deviation over 15,283 stored score rows (Area 2)</td><td>One 3-sigma rule today. Data science, honestly labelled</td><td>Data science</td></tr>
+<tr><td><strong>6</strong></td><td><strong>Case management and investigation workspace</strong> — the substrate Area 5 requires, including the validation workflow §12 needs (Area 5)</td><td>SOTA zero. Not AI. Blocks Area 5 and the validation clause</td><td>Platform</td></tr>
+<tr><td><strong>7</strong></td><td><strong>Hunt proposals from coverage gaps</strong> (Area 5, AVP-9)</td><td>Consumes 2 and 4. Needs 6 to exist</td><td>Platform</td></tr>
+</tbody>
+</table>
+
+<p><strong>Dropped:</strong> Area 1 (wrong data class), Area 6 (SITA is ahead).</p>
+
+<p><strong>Two of the seven survive as AI integration.</strong> Four are platform engineering that should not be</p>
+
+<p>sold as AI. One is data science. That ratio is the honest answer, and it is a better one than</p>
+
+<p>seven-for-seven: a proposal that claims an LLM improves alert ranking and log analysis will not</p>
+
+<p>survive contact with the engineering team that has to build it.</p>
+
+<hr/>
+
+<h2 id="16-what-to-add-to-the-proposal-text">16. What to add to the proposal text</h2>
+
+<p>The original framing has one further defect: *"enhance the solution's ability to analyze and</p>
+
+<p>interpret security data across the various integrated systems"* implies SITA cannot currently do</p>
+
+<p>that. <strong>It can, and it does, deterministically</strong> — <code>processing/normaliser.py</code> reconciles six</p>
+
+<p>vendor vocabularies across five OEM sources into one canonical schema with a versioned OWASP</p>
+
+<p>taxonomy, and re-derives the classification at write time (<code>lake/writer.py:70-76</code>) so a bypassed</p>
+
+<p>normaliser still cannot write an unrecognised category.</p>
+
+<p>Suggested replacement:</p>
+
+<blockquote><strong>Security telemetry from five OEM sources is already normalised, correlated to a versioned
+OWASP taxonomy, fused into a tenant-scoped risk score, and delivered through six role-scoped
+dashboards with a cryptographically signed compliance attestation.</strong> That pipeline is
+deterministic and auditable, and it is the foundation these capabilities build on.
+
+The proposed AI integration adds what a deterministic pipeline structurally cannot: <strong>external
+threat context</strong> the platform does not hold, <strong>independent verification</strong> of what its vendors
+assert, and <strong>generated detection and control content</strong> for the gaps those capabilities expose.
+It does not replace the normalisation, the risk model or the reporting — those remain
+deterministic, and remain provable with every model switched off.
+
+AI-generated findings and recommendations are advisory. Each carries a confidence score and a
+review gate flag. Validation is recorded against a named decider and signed into the existing
+ECDSA audit chain. No AI output modifies a severity, a risk bucket or an alert status.</blockquote>
+
+<p>That version is defensible, it does not overclaim, and it is consistent with everything</p>
+
+<p><code>AI_INTEGRATION_PLAN_MASTER.md</code> §4.1 already commits to.</p>
+
+<hr/>
+
+<p>*Part II added 12 October 2026. Blue-team tool surface assessed from MCP tool signatures; the</p>
+
+<p>surface was unresponsive for approximately two minutes during assessment and that is recorded as</p>
+
+<p>an open procurement item in §11.2, not as a verified outage. Areas 3 and 4 in the scorecard were</p>
+
+<p>scored from code read; areas 1, 2, 6 and 7 were scored against AIMI's documented and probed</p>
+
+<p>capability. No code was written and no customer commitment is implied.*</p>
+
+<hr/>
+
+<p>*AIMI Intelligence Value Propositions. Prepared 12 October 2026 against <code>sita-platform</code></p>
+
+<p>commit <code>eca4852</code> and AIMI <code>enterprise</code> tier. SOTA: proposal, no code committed, no</p>
+
+<p>customer commitment implied. Findings marked "probed live" were verified by direct MCP call</p>
+
+<p>on 12 October 2026; AIMI responses are cached for 24 hours and reflect the state of that day.*</p>
 
 <div class="modal" id="modal-1" role="dialog" aria-modal="true" aria-labelledby="modal-1-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-1</span><h2 class="modal-title" id="modal-1-title">Demoted to engineering - and already built</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>The platform showed a POPIA percentage that somebody typed in by hand, and its own code comments admitted it. That is now replaced by a real calculation.</p><p>The part worth knowing: <strong>the machinery was already written and simply never switched on.</strong> The platform held a weighted model of the eight POPIA conditions and the function that adds them up. Nothing was calling it, which is exactly why the number was typed.</p><p>The real score comes out near <strong>54</strong> against the claimed <strong>78</strong> - not a broken calculation, but four of eight conditions having nothing in the product that could evidence them. <strong>No AI involved.</strong> Engineering work, and done.</p></div><div class="modal-foot"><a class="modal-src" href="#demoted-avp-1-control-scoring-from-telemetry-engineering-built">Read the full technical proposition &rarr;</a></div></div></div>
 <div class="modal" id="modal-2" role="dialog" aria-modal="true" aria-labelledby="modal-2-title" hidden><div class="modal-backdrop" data-close></div><div class="modal-card"><div class="modal-head"><span class="modal-tag">AVP-2</span><h2 class="modal-title" id="modal-2-title">The part that genuinely needs AI</h2><button class="modal-x" data-close aria-label="Close">&#10005;</button></div><div class="modal-body"><p>There is a public catalogue of how real attackers break in, called MITRE ATT&amp;CK. The platform had never heard of it, so it could not tell you which methods appear in the data it receives or whether it would alert on any of them.</p><p>Working out that gap is now done, and ordinary computing did it. <strong>What genuinely needs AI is writing the missing alert.</strong> Given a technique, someone has to decide which vendor source and which normalised field would show it, set the threshold, and write the rule in the form the platform's rule engine actually reads.</p><p>Worth being clear about what this platform is: it does not scan and does not run security sensors. It receives findings from its vendors and alerts on them. So the rule is written against the records the platform holds - not against network traffic or host logs, which it never sees.</p></div><div class="modal-foot"><a class="modal-src" href="#avp-2-authoring-alerting-rules-for-received-telemetry-the-only-part-that-needs-ai">Read the full technical proposition &rarr;</a></div></div></div>

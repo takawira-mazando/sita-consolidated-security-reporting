@@ -77,13 +77,34 @@ def can_access_report(user_roles: list[str], report_type: str) -> bool:
 
 def get_available_reports(user_roles: list[str]) -> list[dict[str, Any]]:
     """Return catalogue metadata for reports accessible to the given role set."""
+    classifications = {
+        "executive_summary": "RESTRICTED // SITA INTERNAL",
+        "threat_intel_brief": "CONFIDENTIAL // SOC OPERATIONS",
+        "vulnerability_posture": "INTERNAL // DEVSECOPS USE ONLY",
+        "compliance_status": "OFFICIAL // COMPLIANCE DIVISION",
+        "incident_summary": "CONFIDENTIAL // INCIDENT RESPONSE",
+        "popia_impact_assessment": "OFFICIAL // PRIVACY REGULATOR",
+        "ag_audit_readiness": "RESTRICTED // AUDIT ATTESTATION",
+    }
+    audiences = {
+        "executive_summary": "Ministers, DGs, Board Members, CISOs",
+        "threat_intel_brief": "SOC Analysts, Incident Responders, Threat Hunters",
+        "vulnerability_posture": "AppSec Engineers, DevSecOps, System Architects",
+        "compliance_status": "Compliance Officers, Information Regulators, Legal Counsel",
+        "incident_summary": "Incident Commanders, SOC Leads, Forensic Analysts",
+        "popia_impact_assessment": "Information Regulators, Legal Counsel, DPOs",
+        "ag_audit_readiness": "Auditor-General, Audit Committees, IT Risk Leads",
+    }
     available = []
     for report_id, meta in REPORT_CATALOGUE.items():
         if can_access_report(user_roles, report_id):
             available.append({
                 "report_type": report_id,
+                "name": meta["title"],
                 "title": meta["title"],
                 "description": meta["description"],
+                "target_audience": audiences.get(report_id, meta["description"]),
+                "classification": classifications.get(report_id, "RESTRICTED // SITA INTERNAL"),
                 "claim_class": meta["claim_class"],
                 "cadence": meta["cadence"],
                 "icon": meta["icon"],

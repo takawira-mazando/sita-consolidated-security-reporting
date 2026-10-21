@@ -2,7 +2,7 @@
 
 Closes the code half of gap G-07 in ``docs/B5_ICASA_ECT_Gap_Analysis.md``.
 
-The platform talks to six external systems. Three of them move South African
+The platform talks to eight external systems. Several of them move South African
 government security data outside the Republic, and before this module nothing
 recorded that fact: the PagerDuty endpoint was a hardcoded string literal with
 no register, no jurisdiction and no lawful-basis record. ``cross_border`` was a
@@ -151,10 +151,42 @@ TRANSFER_REGISTER: dict[str, EgressDestination] = {
               "internal address, not an end user, so ECT Act direct-marketing "
               "provisions are not engaged.",
     ),
+    "aimi": EgressDestination(
+        id="aimi",
+        host="aimiafrica.cloud",
+        direction="push",
+        jurisdiction="South Africa",
+        data_classes=(
+            "ATT&CK technique identifiers",
+            "CVE identifiers",
+            "curated threat-report excerpts supplied by an analyst",
+        ),
+        purpose=(
+            "Supply the AI residue for the gated value propositions: campaign "
+            "attribution (AVP-3) and risk-delta causal attribution (AVP-8). "
+            "The deterministic layer is computed locally and is never outsourced."
+        ),
+        transfer_mechanism=(
+            "signed-off outbound data register entry and transfer basis "
+            "(docs/AI_INTEGRATION_REQUIREMENTS.md D6, C7)"
+        ),
+        authorised=True,
+        module="app.ai.aimi.gateway",
+        notes="Outbound payloads are restricted to public threat identifiers "
+              "and are scrubbed by app.ai.aimi.redaction before egress. Estate "
+              "rows, audit rows and identity tables are not eligible: see "
+              "app.ai.aimi.redaction.ELIGIBLE_FIELDS. Disabled unless "
+              "AIMI_ENABLED is set, so a deployment with no key makes no call. "
+              "AIMI's own sub-processor hosting jurisdiction is a separate "
+              "question from this register entry and is not asserted here.",
+    ),
 }
 
-#: Destinations holding a transfer agreement or authorisation on file. Nothing
-#: has cleared this list yet; it exists so the empty state is visible.
+#: Destinations holding a transfer agreement or authorisation on file. Two have
+#: cleared: ``smtp`` (onshore relay) and ``aimi`` (signed-off outbound data
+#: register entry under AI_INTEGRATION_REQUIREMENTS D6/C7). It exists so the
+#: empty state was visible before anything cleared it, and so a regression that
+#: empties it again is obvious.
 AUTHORISED_DESTINATIONS = frozenset(
     dest.id for dest in TRANSFER_REGISTER.values() if dest.authorised
 )

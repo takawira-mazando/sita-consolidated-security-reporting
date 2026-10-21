@@ -1,4 +1,4 @@
-﻿"""Generate the styled HTML version of the AIMI value-propositions document.
+"""Generate the styled HTML version of the AIMI value-propositions document.
 
 Reads docs/AIMI_INTELLIGENCE_VALUE_PROPOSITIONS.md and renders a standalone
 HTML page: dark/light theme toggle, embedded CSS, no external assets.
@@ -12,6 +12,7 @@ lists and fenced code with a language label.
 import re
 
 SRC = r"C:\sita-platform\docs\AIMI_INTELLIGENCE_VALUE_PROPOSITIONS.md"
+BLUE_SRC = r"C:\sita-platform\docs\BLUE_TEAM_CAPABILITY_ASSESSMENT.md"
 OUT = r"C:\sita-platform\docs\AIMI_INTELLIGENCE_VALUE_PROPOSITIONS.html"
 
 #: Verdict keywords rendered as a colour-coded badge inside a table cell.
@@ -293,7 +294,7 @@ def render(md: str) -> tuple[str, str, dict[int, str]]:
     headings: list[tuple[int, str, str]] = []
     seen: dict[int, str] = {}
     triggered: set[int] = set()
-    triggered: set[int] = set()
+    first_h1_done = False
     slug_ids: dict[str, int] = {}
     i = 0
     while i < len(lines):
@@ -350,7 +351,13 @@ def render(md: str) -> tuple[str, str, dict[int, str]]:
                 )
             out.append(f'<h{level} id="{sid}">{text}</h{level}>\n')
             # The first h1 is the document title and is rendered in the header.
-            if level > 1:
+            # Subsequent h1s (e.g. PART II) are section divisions and go into the TOC.
+            if level == 1:
+                if first_h1_done:
+                    headings.append((level, m.group(2), sid))
+                else:
+                    first_h1_done = True
+            elif level > 1:
                 headings.append((level, m.group(2), sid))
             i += 1
             continue
@@ -491,8 +498,10 @@ a { color: var(--blue); }
            background: rgba(139,148,158,0.12); }
 ul.toc { list-style: none; margin-left: 0; columns: 2; column-gap: 2rem; }
 ul.toc li { margin: 0.15rem 0; break-inside: avoid; }
-ul.toc .toc-l3 { padding-left: 0.9rem; font-size: 0.9rem; }
-ul.toc .toc-l4 { padding-left: 1.6rem; font-size: 0.85rem; color: var(--muted); }
+ul.toc .toc-l1 { font-weight: 800; color: var(--accent); margin-top: 0.8rem; font-size: 0.95rem; border-bottom: 1px solid var(--border); padding-bottom: 0.2rem; }
+ul.toc .toc-l2 { font-weight: 600; color: var(--text); font-size: 0.9rem; }
+ul.toc .toc-l3 { padding-left: 0.9rem; font-size: 0.86rem; }
+ul.toc .toc-l4 { padding-left: 1.6rem; font-size: 0.82rem; color: var(--muted); }
 
 /* --- Plain English trigger on each AVP heading --- */
 .plain-btn {
@@ -611,6 +620,20 @@ JS = """
 def main() -> None:
     with open(SRC, encoding="utf-8") as f:
         md = f.read()
+
+    try:
+        with open(BLUE_SRC, encoding="utf-8") as bf:
+            blue_content = bf.read()
+            # Extract from PART II onwards if present, or entire content
+            part_ii_match = re.search(r"(# PART II\b[\s\S]*)", blue_content)
+            if part_ii_match:
+                blue_md = part_ii_match.group(1)
+            else:
+                blue_md = blue_content.strip()
+            md = md.rstrip() + "\n\n---\n\n" + blue_md
+    except FileNotFoundError:
+        pass
+
     body, toc, avp_slugs = render(md)
 
     # The markdown and LAYMAN must describe the same set of propositions.

@@ -63,27 +63,45 @@ def print_banner():
 async def pull_appscan_logs(count: int = 15, verbose: bool = False) -> list[dict]:
     """Pull real vulnerability findings from HCL AppScan Cloud API or verified cache."""
     print(f"\n{BOLD}[1/4] Connecting to HCL AppScan Cloud REST API...{RESET}")
-    token = os.getenv("APPSCAN_API_KEY", "i_Hrfjn7ihujuyDUqniWJl32JnL-IUi-")
-    app_id = os.getenv("APPSCAN_APPLICATION_ID", "b816b09c-4240-4ea7-a4b5-f8ae89f62f57")
-    url = f"https://cloud.appscan.com/api/v4/Issues?AppId={app_id}"
+    base_url = (os.getenv("APPSCAN_BASE_URL") or settings.appscan_base_url or "https://cloud.appscan.com").rstrip("/")
+    key_id = os.getenv("APPSCAN_KEY_ID") or settings.appscan_key_id or ""
+    key_secret = os.getenv("APPSCAN_KEY_SECRET") or settings.appscan_key_secret or ""
+    app_id = os.getenv("APPSCAN_APPLICATION_ID") or settings.appscan_application_id or "b816b09c-4240-4ea7-a4b5-f8ae89f62f57"
 
-    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
     raw_issues = []
     source_type = "LIVE API"
 
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=4)) as session:
-            async with session.get(url, headers=headers) as resp:
-                if resp.status == 200:
-                    data = await resp.json()
-                    raw_issues = data.get("Items", [])
-                    print(f"  {GREEN}[OK] Connected to cloud.appscan.com (HTTP 200 OK){RESET}")
-                    print(f"  {GREEN}[OK] Streamed {len(raw_issues)} live issues from AppScan Cloud{RESET}")
-                else:
-                    raise RuntimeError(f"HTTP {resp.status}")
+        if not key_id or not key_secret:
+            raise ValueError("AppScan credentials (KEY_ID / KEY_SECRET) not set")
+
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
+            # Step 1: Authenticate via ApiKeyLogin
+            login_url = f"{base_url}/api/v4/Account/ApiKeyLogin"
+            async with session.post(login_url, json={"KeyId": key_id, "KeySecret": key_secret}) as login_resp:
+                if login_resp.status != 200:
+                    raise RuntimeError(f"Auth failed with HTTP {login_resp.status}")
+                auth_data = await login_resp.json()
+                token = auth_data.get("Token") or auth_data.get("token")
+                if not token:
+                    raise RuntimeError("No token returned in auth response")
+                print(f"  {GREEN}[OK] Authenticated with HCL AppScan Cloud API (KeyId: {key_id[:8]}...){RESET}")
+
+            # Step 2: Fetch issues for application
+            issues_url = f"{base_url}/api/v4/Issues/Application/{app_id}"
+            headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+            params = {"offset": 0, "limit": max(count, 50)}
+            async with session.get(issues_url, headers=headers, params=params) as issues_resp:
+                if issues_resp.status != 200:
+                    raise RuntimeError(f"Issues endpoint returned HTTP {issues_resp.status}")
+                issues_data = await issues_resp.json()
+                raw_issues = issues_data.get("Items", issues_data if isinstance(issues_data, list) else [])
+                print(f"  {GREEN}[OK] Connected to cloud.appscan.com (HTTP 200 OK){RESET}")
+                print(f"  {GREEN}[OK] Streamed {len(raw_issues)} live issues from AppScan Cloud API{RESET}")
+                source_type = "LIVE API (cloud.appscan.com)"
     except Exception as e:
         source_type = "VERIFIED TELEMETRY CACHE"
-        print(f"  {YELLOW}[!] Live AppScan endpoint status ({e}). Loading verified OEM telemetry cache...{RESET}")
+        print(f"  {YELLOW}[!] Live AppScan endpoint fallback ({e}). Loading verified OEM telemetry cache...{RESET}")
         cache_paths = [
             "C:/sita-platform/appscan_issues.json",
             "C:/sita-platform/backend/appscan_real_issues.json",
@@ -197,9 +215,13 @@ async def pull_thales_logs(count: int = 15, verbose: bool = False) -> list[dict]
 
 
 def _clean_for_json(obj):
+    if obj is None or obj is pd.NaT:
+        return None
+    if isinstance(obj, float) and (pd.isna(obj) or obj != obj):
+        return None
     if isinstance(obj, dict):
         return {k: _clean_for_json(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
+    elif isinstance(obj, (list, tuple)):
         return [_clean_for_json(v) for v in obj]
     elif hasattr(obj, "isoformat"):
         return obj.isoformat()

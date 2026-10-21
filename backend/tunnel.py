@@ -2,10 +2,11 @@ import socket
 import threading
 import time
 import paramiko
+import os
 
-REMOTE_HOST = "192.168.101.20"
-REMOTE_USER = "uni"
-REMOTE_PASS = "H051@pivot"
+REMOTE_HOST = os.environ.get("REMOTE_HOST", "127.0.0.1")
+REMOTE_USER = os.environ.get("REMOTE_USER", "sita")
+REMOTE_PASS = os.environ.get("REMOTE_PASS", "")
 
 def pipe(source, dest):
     try:

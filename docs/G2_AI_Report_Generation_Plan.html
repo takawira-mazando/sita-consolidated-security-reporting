@@ -3,8 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<!-- CWE-79 mitigation: strict CSP prevents exfiltration even if innerHTML is exploited -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; object-src 'none'; frame-ancestors 'none';">
 <title>G2 — AI Report Generation Plan · HOSI-UNIFIED Addendum A</title>
 <style>
 :root{
@@ -596,6 +594,7 @@ const DATA = {"meta":{"title":"HOSI-UNIFIED MANAGED SERVICES","subtitle":"Addend
 const $  = (s,r)=> (r||document).querySelector(s);
 const $$ = (s,r)=> Array.from((r||document).querySelectorAll(s));
 const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const setHTML = (el, str) => { if (!el) return; const t = document.createElement('template'); t.innerHTML = str; el.replaceChildren(t.content); };
 const pill = (t,c)=> `<span class="pill p-${c}">${esc(t)}</span>`;
 const numf = n => (Math.round(n*10)/10).toLocaleString('en-ZA');
 const ratingPill = r => pill(r, r==='Critical'?'red':r==='High'?'amb':r==='Medium'?'cyn':'gry');
@@ -679,8 +678,8 @@ $('#flow').innerHTML = GATES.map((g,i)=>
 $$('#flow .gate').forEach(el=>el.onclick=()=>{
   const g=GATES.find(x=>x.id===el.dataset.g);
   $$('#flow .gate').forEach(x=>x.classList.toggle('on',x===el));
-  $('#gateDetail').innerHTML=`<h3 style="margin:0 0 8px">${esc(g.t)} ${pill(g.s,g.p.split('-')[1])}</h3><p style="margin:0 0 12px;font-size:12.7px;color:var(--tx2)">${esc(g.d)}</p>
-   <div class="grid g3">${g.sub.map(([h,p])=>`<div><b style="font-size:11.5px">${esc(h)}</b><div style="font-size:12.2px;color:var(--tx2)">${esc(p)}</div></div>`).join('')}</div>`;
+  setHTML($('#gateDetail'), `<h3 style="margin:0 0 8px">${esc(g.t)} ${pill(g.s,g.p.split('-')[1])}</h3><p style="margin:0 0 12px;font-size:12.7px;color:var(--tx2)">${esc(g.d)}</p>
+   <div class="grid g3">${g.sub.map(([h,p])=>`<div><b style="font-size:11.5px">${esc(h)}</b><div style="font-size:12.2px;color:var(--tx2)">${esc(p)}</div></div>`).join('')}</div>`);
 });
 $('#flow .gate').click();
 
@@ -744,7 +743,7 @@ const API=[
  ['POST','/api/v1/reports-ai/{report_id}/regenerate','Gate 1 + Gate 2','Bust the cache and regenerate from the same fact pack'],
  ['GET','/api/v1/reports-ai/grounding/{report_id}','Owner of the report only','The exact fact pack the narrative was written from']
 ];
-$('#tblApi tbody').innerHTML=API.map(r=>`<tr><td>${pill(r[0],r[0]==='POST'?'grn':'blu')}</td><td class="mono">${esc(r[1])}</td><td><span class="muted">${esc(r[2])}</span></td><td>${esc(r[3])}</td></tr>`).join('');
+setHTML($('#tblApi tbody'), API.map(r=>`<tr><td>${pill(r[0],r[0]==='POST'?'grn':'blu')}</td><td class="mono">${esc(r[1])}</td><td><span class="muted">${esc(r[2])}</span></td><td>${esc(r[3])}</td></tr>`).join(''));
 
 /* ---------------- 6. verification suites ---------------- */
 const SUITES=[
@@ -839,10 +838,10 @@ function syncChips(){
     $$(s+' .fchip').forEach(c=>c.classList.toggle('on',c.dataset.v===v));});
   $$('#ganttChips .fchip').forEach(c=>c.classList.toggle('on',c.dataset.v===fPhase));
   const eff=fPhase==='all'?0:A.filter(a=>a.phase===fPhase).reduce((t,a)=>t+a.effort,0);
-  $('#ganttChips .fchip[data-v="all"]').innerHTML=`All phases <b>${numf(A.reduce((t,a)=>t+a.effort,0))} PD</b>`;
+  setHTML($('#ganttChips .fchip[data-v="all"]'), `All phases <b>${numf(A.reduce((t,a)=>t+a.effort,0))} PD</b>`);
   $$('#ganttChips .fchip').forEach(c=>{const p=c.dataset.v;
     if(p==='all')return; const e=A.filter(a=>a.phase===p).reduce((t,a)=>t+a.effort,0);
-    c.innerHTML=`Phase ${esc(p)} <b>${numf(e)} PD</b>`;});
+    setHTML(c, `Phase ${esc(p)} <b>${numf(e)} PD</b>`);});
 }
 function setPhase(p){fPhase=p;draw();syncChips();}
 function rows(){
@@ -1007,12 +1006,12 @@ $$('#msGrid .msc').forEach(el=>el.onclick=()=>{
 });
 
 /* ---------------- assumptions ---------------- */
-$('#tblAssum tbody').innerHTML=DATA.assumptions.map(a=>{
+setHTML($('#tblAssum tbody'), DATA.assumptions.map(a=>{
   const aw=/assumption|confirm/i.test(a.label);
   const hol=/holiday|freeze/i.test(a.label);
   return `<tr><td>${aw?pill('assumption','amb'):hol?pill('calendar','cyn'):''} ${esc(a.label)}</td>
-   <td>${/^\d{4}-\d{2}-\d{2}$/.test(a.value)?`<span class="mono">${esc(a.value)}</span>`:esc(a.value)}</td></tr>`}).join('');
-$('#notesCard').innerHTML=DATA.notes.map(n=>`<p style="margin:0 0 9px;font-size:12.6px;color:var(--tx2)">— ${esc(n)}</p>`).join('');
+   <td>${/^\d{4}-\d{2}-\d{2}$/.test(a.value)?`<span class="mono">${esc(a.value)}</span>`:esc(a.value)}</td></tr>`}).join(''));
+setHTML($('#notesCard'), DATA.notes.map(n=>`<p style="margin:0 0 9px;font-size:12.6px;color:var(--tx2)">— ${esc(n)}</p>`).join(''));
 
 /* ---------------- modal ---------------- */
 function openModal(html){$('#ovBody').innerHTML=html;$('#ov').classList.add('open')}

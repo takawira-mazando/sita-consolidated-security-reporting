@@ -120,6 +120,7 @@ footer {
 <tr><td><strong>Auditor-General ready</strong></td><td>Aggregation-only compliance export bound to a SHA-256 integrity hash, written to an immutable audit trail and independently verifiable</td></tr>
 <tr><td><strong>Continuous compliance</strong></td><td>228 tracked gaps, with 228 daily posture snapshots each for POPIA and ISO 27001</td></tr>
 <tr><td><strong>Operational alerting</strong></td><td>551 severity-gated alerts routed to email, Teams and PagerDuty with app ownership attached</td></tr>
+<tr><td><strong>AIMI Blue-Team intelligence</strong></td><td>Real-time cognitive log interpretation across WAF blocks, DAM events and AppScan findings; VAPT baseline correlation, ATT&amp;CK alert rule synthesis, and POPIA s.22 breach dossiers with advisory review gates</td></tr>
 <tr><td><strong>Pipeline resilience</strong></td><td>Circuit breakers, rate limiting, retry-with-backoff and a dead-letter queue — 8/8 connectors healthy, queue empty</td></tr>
 <tr><td><strong>Assurance</strong></td><td>166 automated tests green, including 84 dedicated tenancy-isolation tests</td></tr>
 </tbody>
@@ -132,11 +133,12 @@ footer {
 <li><strong>The scoring is explainable, not a black box.</strong> Four published weights — AppScan 35%, Imperva 25%, API exposure 20%, compliance 20%. Anyone can answer *"why did this score move?"*</li>
 <li><strong>Least privilege by default.</strong> Broad access is requested and logged, never assumed — down to department, branch or province.</li>
 <li><strong>The scope boundary is provable, not asserted.</strong> Tenant isolation is enforced at query time and covered by 84 dedicated tests.</li>
+<li><strong>AIMI Blue-Team AI operates under strict governance.</strong> All cognitive outputs are advisory only, token-only public identifier egress, and require named human sign-off via ECDSA-signed audit records.</li>
 </ul>
 
 <h2>Why it wins</h2>
 
-<p>Consolidating vendor consoles is not the differentiator — every tool claims it. The differentiators here are <strong>fused scoring</strong>, <strong>four-tier delegated tenancy across the public estate</strong>, and <strong>cryptographically verifiable reporting</strong>. Together they let a national authority see the whole posture, a department see only its own, and an auditor verify what was reported.</p>
+<p>Consolidating vendor consoles is not the differentiator — every tool claims it. The differentiators here are <strong>fused scoring</strong>, <strong>four-tier delegated tenancy across the public estate</strong>, <strong>cryptographically verifiable reporting</strong>, and the <strong>AIMI Blue-Team cognitive defense layer</strong> that bridges raw telemetry with active detection engineering and statutory compliance.</p>
 
 <hr/>
 
@@ -148,12 +150,14 @@ generated from <code>docs/POC_ONE_PAGER.md</code> &middot;
 <script>
 document.getElementById('themeToggle').addEventListener('click', () => {
   const root = document.documentElement;
-  root.dataset.theme = root.dataset.theme === 'light' ? 'dark' : 'light';
-  try { localStorage.setItem('poc_theme', root.dataset.theme); } catch (e) {}
+  const nextTheme = root.dataset.theme === 'light' ? 'dark' : 'light';
+  root.dataset.theme = nextTheme;
+  try { localStorage.setItem('poc_theme', nextTheme); } catch (e) {}
 });
 try {
-  const saved = localStorage.getItem('poc_theme');
-  if (saved === 'light' || saved === 'dark') document.documentElement.dataset.theme = saved;
+  const raw = localStorage.getItem('poc_theme');
+  const saved = (raw === 'light') ? 'light' : 'dark';
+  document.documentElement.dataset.theme = saved;
 } catch (e) {}
 </script>
 </body>

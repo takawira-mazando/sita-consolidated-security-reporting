@@ -78,21 +78,20 @@ def load_config(config_path: str) -> dict:
 def build_connector_config(args) -> dict:
     """Build connector config from CLI args or config file."""
     api_key = args.api_key or os.getenv("APPSCAN_API_KEY", "")
-    # Support both "key_id:key_secret" format and separate fields
-    key_id = args.key_id or os.getenv("APPSCAN_KEY_ID", "")
-    key_secret = args.key_secret or os.getenv("APPSCAN_KEY_SECRET", "")
+    key_id = args.key_id or os.getenv("APPSCAN_KEY_ID") or settings.appscan_key_id or ""
+    key_secret = args.key_secret or os.getenv("APPSCAN_KEY_SECRET") or settings.appscan_key_secret or ""
     if ":" in api_key and not key_id and not key_secret:
         key_id, key_secret = api_key.split(":", 1)
 
     config = {
-        "base_url": args.base_url or os.getenv("APPSCAN_BASE_URL", "https://cloud.appscan.com"),
+        "base_url": args.base_url or os.getenv("APPSCAN_BASE_URL") or settings.appscan_base_url or "https://cloud.appscan.com",
         "api_key": api_key,
         "key_id": key_id,
         "key_secret": key_secret,
-        "account_id": args.account_id or os.getenv("APPSCAN_ACCOUNT_ID", ""),
-        "application_id": args.application_id or os.getenv("APPSCAN_APPLICATION_ID", ""),
-        "page_size": args.page_size or int(os.getenv("APPSCAN_PAGE_SIZE", "200")),
-        "scope": args.scope or os.getenv("APPSCAN_SCOPE", "application"),
+        "account_id": args.account_id or os.getenv("APPSCAN_ACCOUNT_ID") or settings.appscan_account_id or "",
+        "application_id": args.application_id or os.getenv("APPSCAN_APPLICATION_ID") or settings.appscan_application_id or "",
+        "page_size": args.page_size or int(os.getenv("APPSCAN_PAGE_SIZE", str(settings.appscan_page_size or 200))),
+        "scope": args.scope or os.getenv("APPSCAN_SCOPE") or settings.appscan_scope or "application",
     }
     return config
 

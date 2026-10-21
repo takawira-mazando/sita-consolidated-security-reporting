@@ -30,10 +30,12 @@ would be an OTX/MISP call, out of scope for this consuming platform).
 
 Gating note
 -----------
-The ``model_narration_requested`` field signals to a downstream AI layer that it
-may produce a prose explanation from the structured output. The platform layer
-is complete without that prose; the prose is a presentation convenience, not the
-measurement.
+The ``model_narration_requested`` field signals that a downstream layer may
+produce a prose explanation from the structured output. ``model_enrichment``
+carries that explanation when the provider was reachable. This module never
+imports the gateway: the deterministic hypothesis is complete without it, the
+module stays importable with no AI dependency present, and the router is what
+crosses the boundary.
 """
 from __future__ import annotations
 
@@ -45,6 +47,7 @@ from app.processing.intel.campaign import _extract_techniques
 def enrich_delta_with_context(
     delta_payload: dict[str, Any],
     threat_report_text: str | None = None,
+    model_enrichment: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Add external-cause context to a risk-delta payload (AVP-8 residue layer).
 
@@ -57,6 +60,11 @@ def enrich_delta_with_context(
         Optional raw text of an external threat report (CTI feed entry, blog
         post, MITRE ATT&CK advisory). If supplied, any techniques mentioned
         are cross-referenced against the signals in the delta.
+    model_enrichment:
+        Optional third-party explanation from ``app.ai.aimi.enrichment``, already
+        computed by the caller. Recorded verbatim. It describes what the mapped
+        technique means; it is not evidence that the technique caused the delta,
+        and ``requires_analyst_review`` stays true either way.
     """
     app_name = delta_payload.get("app_name", "")
     largest_signal = delta_payload.get("largest_mover_signal", "")
@@ -89,6 +97,9 @@ def enrich_delta_with_context(
         else None
     )
 
+    enriched = bool(
+        model_enrichment and model_enrichment.get("enriched_by_model")
+    )
     causal_hypothesis: dict[str, Any] = {
         "app_name": app_name,
         "total_risk_delta": total_delta,
@@ -97,6 +108,7 @@ def enrich_delta_with_context(
         "technique_found_in_threat_report": technique_in_report,
         "techniques_in_supplied_report": report_techniques,
         "requires_analyst_review": True,
+        "model_enrichment": model_enrichment or {},
         "analyst_review_note": (
             "The arithmetic movement is measured. The external cause is a hypothesis: "
             "confirm whether the threat report supplied describes activity targeting "
@@ -124,11 +136,15 @@ def enrich_delta_with_context(
     return {
         "avp": "AVP-8",
         "advisory_only": True,
+        "enriched_by_model": enriched,
         "delta_summary": delta_payload,
         "causal_hypothesis": causal_hypothesis,
         "governance_note": (
             "Risk-delta causal attribution is a structured hypothesis, not a finding. "
-            "Analyst confirmation is required before this explanation is included in "
+            "The measured delta is computed locally from this estate's telemetry and "
+            "is authoritative. Any third-party narrative describes what the mapped "
+            "technique means in general and is not evidence that it caused this "
+            "movement. Analyst confirmation is required before either is included in "
             "executive or regulatory reporting."
         ),
     }

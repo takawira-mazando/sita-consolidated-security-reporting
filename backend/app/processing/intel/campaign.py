@@ -24,11 +24,13 @@ a human analyst to approve. Nothing is written anywhere automatically.
 
 Gating note
 -----------
-A downstream model call is optional: if ``OPENAI_API_KEY`` / ``GEMINI_API_KEY``
-is absent the function returns its deterministic extraction and sets
-``enriched_by_model: false``. The deterministic output alone already delivers
-what the document says the platform cannot compute: which external campaign
-maps onto this estate's live technique exposure.
+The deterministic extraction above is complete and authoritative on its own.
+``model_enrichment`` is an optional third-party judgement about whether the
+campaign names this sector, produced by ``app.ai.aimi.enrichment`` at the router
+layer and passed in. This module never imports the gateway: the deterministic
+layer is kept importable with no AI dependency present at all, which is what
+lets ``TestNoModelImports`` guard it and what lets the platform run with AIMI
+disabled.
 """
 from __future__ import annotations
 
@@ -87,6 +89,11 @@ class CampaignReport:
         "created automatically. Operator approval is mandatory."
     )
 
+    #: Third-party sector-attribution judgement, when AIMI was reachable. Holds
+    #: the provider, the tool invoked and either a narrative or a reason for its
+    #: absence. Never a replacement for the fields above.
+    model_enrichment: dict[str, Any] = field(default_factory=dict)
+
 
 def _extract_techniques(text: str) -> list[str]:
     """Return deduplicated ATT&CK technique IDs found in ``text``."""
@@ -115,6 +122,7 @@ def attribute_campaign(
     report_text: str,
     estate_exposed_techniques: list[str] | None = None,
     estate_covered_techniques: list[str] | None = None,
+    model_enrichment: dict[str, Any] | None = None,
 ) -> CampaignReport:
     """Attribute an external threat report to this estate (AVP-3 deterministic layer).
 
@@ -128,6 +136,10 @@ def attribute_campaign(
     estate_covered_techniques:
         Techniques the platform's alert rules can evidence. If omitted, the
         coverage status is marked ``unknown``.
+    model_enrichment:
+        Optional third-party judgement from ``app.ai.aimi.enrichment``, already
+        computed by the caller. Recorded verbatim; never trusted over the
+        deterministic fields, and absent by default.
     """
     result = CampaignReport()
 
@@ -167,5 +179,13 @@ def attribute_campaign(
 
     result.exposure_overlap = overlap
     result.coverage_gaps = gaps
+
+    # Reflect the provider state on the report itself so a client reading
+    # ``enriched_by_model`` gets one consistent answer rather than a flag on one
+    # field and its inverse on another.
+    result.enriched_by_model = bool(
+        model_enrichment and model_enrichment.get("enriched_by_model")
+    )
+    result.model_enrichment = model_enrichment or {}
 
     return result

@@ -32,6 +32,7 @@ That manual step is the single point of failure in the current process. It is sl
 | **Auditor-General ready** | Aggregation-only compliance export bound to a SHA-256 integrity hash, written to an immutable audit trail and independently verifiable |
 | **Continuous compliance** | 228 tracked gaps, with 228 daily posture snapshots each for POPIA and ISO 27001 |
 | **Operational alerting** | 551 severity-gated alerts routed to email, Teams and PagerDuty with app ownership attached |
+| **AIMI Blue-Team intelligence** | Real-time cognitive log interpretation across WAF blocks, DAM events and AppScan findings; VAPT baseline correlation, ATT&CK alert rule synthesis, and POPIA s.22 breach dossiers with advisory review gates |
 | **Pipeline resilience** | Circuit breakers, rate limiting, retry-with-backoff and a dead-letter queue — 8/8 connectors healthy, queue empty |
 | **Assurance** | 166 automated tests green, including 84 dedicated tenancy-isolation tests |
 
@@ -41,10 +42,11 @@ That manual step is the single point of failure in the current process. It is sl
 - **The scoring is explainable, not a black box.** Four published weights — AppScan 35%, Imperva 25%, API exposure 20%, compliance 20%. Anyone can answer *"why did this score move?"*
 - **Least privilege by default.** Broad access is requested and logged, never assumed — down to department, branch or province.
 - **The scope boundary is provable, not asserted.** Tenant isolation is enforced at query time and covered by 84 dedicated tests.
+- **AIMI Blue-Team AI operates under strict governance.** All cognitive outputs are advisory only, token-only public identifier egress, and require named human sign-off via ECDSA-signed audit records.
 
 ## Why it wins
 
-Consolidating vendor consoles is not the differentiator — every tool claims it. The differentiators here are **fused scoring**, **four-tier delegated tenancy across the public estate**, and **cryptographically verifiable reporting**. Together they let a national authority see the whole posture, a department see only its own, and an auditor verify what was reported.
+Consolidating vendor consoles is not the differentiator — every tool claims it. The differentiators here are **fused scoring**, **four-tier delegated tenancy across the public estate**, **cryptographically verifiable reporting**, and the **AIMI Blue-Team cognitive defense layer** that bridges raw telemetry with active detection engineering and statutory compliance.
 
 ---
 

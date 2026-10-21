@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { LoginScope } from '../api/auth';
 import type { DemoAccount } from '../types';
@@ -126,8 +126,8 @@ export default function LoginPage({ onClose }: LoginPageProps) {
           </div>
 
           <div className="login-hint">
-            <strong style={{ color: 'var(--text-secondary)' }}>🏛️ Department of Home Affairs Demo Personas:</strong>
-            <div className="login-demo-chips" style={{ justifyContent: 'center', marginTop: '6px' }}>
+            <strong style={{ color: 'var(--text-secondary)' }}>🔑 Demo Personas &amp; Roles (Click to auto-fill):</strong>
+            <div className="login-demo-chips" style={{ justifyContent: 'center', marginTop: '6px', flexWrap: 'wrap', gap: '6px' }}>
               {demoAccounts.map((account) => (
                 <button
                   key={account.role}
@@ -142,7 +142,7 @@ export default function LoginPage({ onClose }: LoginPageProps) {
               ))}
             </div>
 
-            {selectedAccount && (
+            {selectedAccount && selectedAccount.department_ids?.includes('home-affairs-digital') && (
               <span className="login-scope">
                 <label className="login-scope-label" htmlFor="loginScopeBranch">
                   🏛️ Tenancy Scope: Department of Home Affairs
@@ -170,6 +170,11 @@ export default function LoginPage({ onClose }: LoginPageProps) {
                 </span>
               </span>
             )}
+            {selectedAccount && (!selectedAccount.department_ids || selectedAccount.department_ids.length === 0) && (
+              <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--accent)', textAlign: 'center' }}>
+                🌐 <strong>Nationwide &amp; Transversal Scope</strong> — Access across all departments, commands &amp; branches
+              </div>
+            )}
           </div>
 
           {error && <div className="login-error" id="loginError">{error}</div>}
@@ -183,7 +188,7 @@ export default function LoginPage({ onClose }: LoginPageProps) {
           </button>
 
           <span className="login-demo-line" style={{ textAlign: 'center', display: 'block', marginTop: '10px' }}>
-            <code>admin@example.com / admin123</code> unlocks all dashboards · pick a persona above to switch
+            Admin credentials are managed via environment variables · use demo personas above
           </span>
         </form>
       </div>

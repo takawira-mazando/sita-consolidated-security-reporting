@@ -284,15 +284,21 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 outline: 'none',
               }}
             >
-              {availableReports.map((r) => (
-                <option key={r.report_type} value={r.report_type}>
-                  {r.name} [{r.classification.split('//')[0].trim()}]
-                </option>
-              ))}
+              {availableReports.map((r) => {
+                const displayName = r.name || r.title || r.report_type;
+                const classLabel = r.classification
+                  ? r.classification.split('//')[0].trim()
+                  : (r.claim_class ? r.claim_class.replace(/_/g, ' ') : 'RESTRICTED');
+                return (
+                  <option key={r.report_type} value={r.report_type}>
+                    {displayName} [{classLabel}]
+                  </option>
+                );
+              })}
             </select>
             {selectedMeta && (
               <div style={{ marginTop: 6, fontSize: 11, color: '#94a3b8' }}>
-                Audience: <em>{selectedMeta.target_audience}</em>
+                Audience: <em>{selectedMeta.target_audience || selectedMeta.description || 'Authorized Personnel'}</em>
               </div>
             )}
           </div>

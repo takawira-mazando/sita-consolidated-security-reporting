@@ -20,6 +20,10 @@
   --font: 'Inter', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono', monospace;
   --grotesk: 'Space Grotesk', sans-serif;
+  --panel-bg: var(--surface);
+  --border: var(--border-dim);
+  --text: var(--text-primary);
+  --input-bg: var(--surface-2);
 }
 
 [data-theme='light'] {
@@ -41,6 +45,10 @@
   --green-dim: #d6f2e7;
   --violet: #008bb8;
   --violet-dim: #dff0f7;
+  --panel-bg: var(--surface);
+  --border: var(--border-dim);
+  --text: var(--text-primary);
+  --input-bg: var(--surface-2);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }

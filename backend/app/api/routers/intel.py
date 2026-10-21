@@ -16,10 +16,24 @@ what the blocked parts are blocked on. No estate data, no counts.
 administrators: it audits the platform's own privileged actions, so no admin tier
 and no executive role may hold it. See the module docstring in
 ``app.processing.intel.privilege``.
+
+Third-party inference
+---------------------
+Five routes carry the ``ai-residue`` tag because ``capability.py`` declares an
+irreducible deliverable on them. Two of those are now backed by AIMI: campaign
+attribution (AVP-3) and risk-delta causal attribution (AVP-8). This router is
+the only place the gateway is called, which is what keeps every module under
+``app.processing.intel`` free of an ``httpx`` import and therefore keeps
+``TestNoModelImports`` meaningful. Calls run in a threadpool because the SSE
+transport blocks, and each one degrades to the deterministic result rather than
+raising: an analyst mid-incident should not see a 500 because a third party is
+slow.
 """
 from fastapi import APIRouter, Body, Depends, Query
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.aimi import enrichment
 from app.api.auth import require_roles
 from app.db import get_session
 from app.processing.intel import (
@@ -30,6 +44,7 @@ from app.processing.intel import (
     capability,
     causal,
     controls,
+    dbsec,
     delta,
     estate,
     packet,
@@ -41,6 +56,54 @@ from app.processing.intel import (
 )
 
 router = APIRouter(prefix="/intel", tags=["intel"])
+
+
+# ---------------------------------------------------------------------------
+# Database Security AI Alerts  (RBAC + tenancy scoped)
+# ---------------------------------------------------------------------------
+
+@router.post("/dbsec/ai-alerts", tags=["intel", "dbsec", "ai-residue"])
+async def post_dbsec_ai_alerts(
+    lookback_hours: int = Query(24, ge=1, le=168,
+                                description="Analysis window in hours (1 h–7 d)"),
+    db_name: str | None = Query(None, max_length=255,
+                                description="Optional: scope to a specific database name"),
+    min_severity: str | None = Query(None, pattern="^(critical|high|medium|low)$",
+                                     description="Only return archetypes at or above this severity"),
+    limit_events: int = Query(100, ge=10, le=500,
+                              description="Max individual log events to ingest per signal source"),
+    session: AsyncSession = Depends(get_session),
+    claims=Depends(require_roles("findings", "compliance", "risks")),
+):
+    """Live DAM AI alert analysis over tenant-scoped database security telemetry.
+
+    Ingests three signal sources bounded strictly by the caller's tenancy scope:
+      - Imperva / Thales DAM alerts (Alert model — source = imperva | thales | dam)
+      - Database violation findings (Finding model — category = sql/injection/dal/…)
+      - WAF SQL-class blocks (WafBlock model — attack_type contains sql/brute/credential)
+
+    Classifies events into 6 DAM attack archetypes (SQLi exfiltration, privilege
+    escalation, schema recon, mass read, credential brute-force, off-hours anomaly),
+    scores each with a cross-signal confidence index, and returns RBAC-differentiated
+    alert cards:
+      - findings (SOC/DBA): full technical payload — rule IDs, targets, MITRE, D3FEND.
+      - compliance: POPIA s.22 exposure, breach window estimate, data-class at risk.
+      - risks (Executive): blast radius, business impact, DAM resilience grade.
+
+    Advisory only — no automated blocking or alert suppression occurs.
+    Requires human analyst review before any remediation action.
+    """
+    result = await dbsec.analyse_dbsec_ai_alerts(
+        session=session,
+        claims=claims,
+        lookback_hours=lookback_hours,
+        db_name=db_name,
+        min_severity=min_severity,
+        limit_events=limit_events,
+    )
+    import dataclasses
+    return dataclasses.asdict(result)
+
 
 
 @router.get("/capability")
@@ -120,7 +183,8 @@ async def get_control_score(
 
     Calls ``compute_popia_score``, which existed in
     ``app.processing.compliance`` with zero callers. No model, no external
-    service, no AIMI dependency.
+    service, and no AIMI dependency: AVP-1 was demoted to engineering in
+    ``capability.py``, so no residue is declared for it and none is requested.
 
     The score will be materially lower than the seeded figure it is compared
     against, because five of the eight POPIA conditions have no telemetry to
@@ -263,6 +327,12 @@ async def post_attribute_campaign(
     keywords from the supplied report text, then cross-references them against
     the estate's own exposure. Returns a structured attribution dossier for
     analyst review. Advisory only — no alert rules are created.
+
+    When AIMI is enabled, ``model_enrichment`` additionally carries a third-party
+    judgement about whether the campaign names this sector. Only public threat
+    identifiers and the analyst's own pasted excerpt are sent; no estate row
+    crosses the boundary. ``enriched_by_model`` is False when the provider is
+    disabled, mid-breaker, unreachable, or had nothing to correlate.
     """
     # Fetch estate exposure for cross-reference
     try:
@@ -277,6 +347,20 @@ async def post_attribute_campaign(
         estate_exposed_techniques=exposed,
         estate_covered_techniques=covered,
     )
+
+    # The deterministic extraction runs first and is what the narrative is
+    # grounded in, so the enrichment call is issued against known facts rather
+    # than against the raw paste.
+    result.model_enrichment = await run_in_threadpool(
+        enrichment.enrich_campaign_attribution,
+        report_text,
+        result.extracted_techniques,
+        result.extracted_cves,
+        result.sector_match_candidates,
+        result.exposure_overlap,
+    )
+    result.enriched_by_model = bool(result.model_enrichment.get("enriched_by_model"))
+
     return result.__dict__
 
 
@@ -319,12 +403,32 @@ async def post_risk_causal(
     This endpoint adds the external-cause hypothesis: maps the dominant signal
     to an ATT&CK technique and, if a threat report is supplied, checks whether
     that technique appears in the report. Advisory only — analyst review required.
+
+    When AIMI is enabled, ``causal_hypothesis.model_enrichment`` carries an
+    explanation of what the mapped technique represents. The measured delta is
+    computed locally and is not sent: the question is what the technique means,
+    not what this estate's numbers are.
     """
     delta_payload = await delta.app_delta(session, claims, app_name, window_days)
-    return causal.enrich_delta_with_context(
+
+    hypothesis = causal.enrich_delta_with_context(
         delta_payload=delta_payload,
         threat_report_text=threat_report,
     )
+    causal_hypothesis = hypothesis["causal_hypothesis"]
+    causal_hypothesis["model_enrichment"] = await run_in_threadpool(
+        enrichment.enrich_risk_delta_causal,
+        causal_hypothesis["app_name"],
+        causal_hypothesis["total_risk_delta"],
+        causal_hypothesis["primary_signal"],
+        causal_hypothesis["mapped_technique"],
+        causal_hypothesis["techniques_in_supplied_report"],
+    )
+    hypothesis["enriched_by_model"] = bool(
+        causal_hypothesis["model_enrichment"].get("enriched_by_model")
+    )
+
+    return hypothesis
 
 
 @router.post("/audit/explain", tags=["intel", "ai-residue"])

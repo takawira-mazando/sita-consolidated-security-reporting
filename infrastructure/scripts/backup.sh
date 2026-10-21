@@ -24,8 +24,8 @@ set -euo pipefail
 #   * For a true DR story, ship WAL off-box (rsync/object storage). The cp
 #     archive_command above is local-only and sufficient for restore drills.
 
-DB_NAME="sita"
-DB_USER="sita"
+DB_NAME="${DB_NAME:-sita}"
+DB_USER="${DB_USER:-sita}"
 BACKUP_DIR="/backups"
 BASE_DIR="${BACKUP_DIR}/base"
 WAL_DIR="${BACKUP_DIR}/wal"

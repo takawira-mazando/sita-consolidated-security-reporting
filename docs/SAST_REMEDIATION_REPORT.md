@@ -3,8 +3,8 @@
 **Target Environment:** SITA Security Intelligence Platform (`http://192.168.101.20:8088/` | `http://localhost:8802/`)  
 **Assessment Source:** `Report_SAST_SITA_Unified.pdf` (31 pages, 69 findings)  
 **Lead Evaluator:** Takawira Mazando (Technical Lead — SITA Platform Engineering)  
-**Report Date:** 14 October 2026  
-**Final Status:** **ALL 69 SAST FINDINGS FULLY REMEDIATED, MITIGATED, OR DISPOSITIONED**
+**Report Date:** 16 October 2026  
+**Final Status:** **ALL 69 SAST FINDINGS FULLY REMEDIATED, MITIGATED, OR DISPOSITIONED** ✅
 
 ---
 
@@ -61,8 +61,10 @@ A primary requirement of the SITA security evaluation was cross-referencing prio
 | `deploy-to-remote.sh` | CWE-522 (Hardcoded Credentials) | High | Parameterized SSH password and GitHub PAT via environment variables with prompt fallback | Shell syntax clean |
 | `backend/app/config.py` & `main.py` | CWE-522 (Hardcoded Password Match) | High | Refactored startup checks to validate against `DISALLOWED_DEV_PASSWORDS` | Guardrails active |
 | `docs/G2_AI_Report_Generation_Plan.html` | CWE-79 (XSS in Sinks) | Critical | Added CSP meta tag; wrapped dynamic table and gate sinks with `esc()` encoding | XSS neutralized |
+| `architecture.html` & `frontend/public/architecture.html` | CWE-79 (innerHTML Sinks) | Medium | Added `Content-Security-Policy` meta tag and `esc()` HTML entity encoder function to both copies | CSP + esc() active |
 | `presentation.html` & public copy | CWE-79 (Theme Attribute Injection) | Medium | Whitelisted localStorage theme input strictly to `['light', 'dark']` before `setAttribute` | Sanitized |
 | `POC_ONE_PAGER.html` | CWE-20 (Improper Input Validation) | Medium | Whitelisted `dataset.theme` to `['light', 'dark']` before assignment | Validation enforced |
+| `infrastructure/scripts/maintenance.sql` | CWE-522 / CWE-327 (Credential Scrub) | High | Replaced `md5(random()::text)` with `encode(gen_random_bytes(32), 'hex')`; annotated `nosec` | Crypto upgraded |
 | `backend/tests` & seed fixtures | CWE-522 & CWE-327 (Test Passwords/PRNG) | High / Med | Verified as deterministic synthetic test generators and fixtures (annotated `# nosec`) | False Positive / Test Code |
 
 ---
@@ -146,16 +148,21 @@ A primary requirement of the SITA security evaluation was cross-referencing prio
 ## 5. Verification & Test Evidence
 
 ```
-Automated Test Verification:
+Automated Test Verification (16 October 2026 — Final Run):
 =============================
 backend/tests/test_remediation_verification.py: 19 / 19 PASSED (100%)
-backend/tests/test_dast_appscan_remediations.py:  6 /  6 PASSED (100%)
+backend/tests/test_dast_appscan_remediations.py:  7 /  7 PASSED (100%)
 backend/tests/test_dha_appscan_scoping.py:       6 /  6 PASSED (100%)
-Total Remediation Verification:                 31 / 31 PASSED (100%)
+Total Remediation Verification:                 32 / 32 PASSED (100%)
 
 Full Backend Regression Suite:
 =============================
-429 / 429 PASSED (100% success rate, 0 failures, 7.95s runtime)
+513 / 513 PASSED (100% success rate, 0 failures, 15.00s runtime)
+
+Additional Remediations Verified (16 Oct 2026):
+  - frontend/src/pages/LoginPage.tsx: admin123 plaintext hint REMOVED (CWE-522)
+  - infrastructure/scripts/maintenance.sql: md5() -> gen_random_bytes(32) (CWE-327)
+  - architecture.html + public copy: CSP meta + esc() function ADDED (CWE-79)
 ```
 
 ### Live Staging Verification (`192.168.101.20:8088`):
@@ -171,7 +178,7 @@ Full Backend Regression Suite:
 ## 6. Formal Sign-off
 
 * **Lead Evaluator:** Takawira Mazando (Technical Lead — SITA Platform Engineering)  
-* **Sign-off Date:** 14 October 2026  
-* **Assessment Outcome:** **ALL 69 SAST FINDINGS FULLY REMEDIATED, MITIGATED, OR DISPOSITIONED**  
+* **Sign-off Date:** 16 October 2026  
+* **Assessment Outcome:** **ALL 69 SAST FINDINGS FULLY REMEDIATED, MITIGATED, OR DISPOSITIONED** ✅  
 * **Deployment Target:** SITA Staging Stack (`http://192.168.101.20:8088/` | `http://localhost:8802/`)  
-* **Repository Commit:** Pushed to GitHub `main` branch (`commit 44c0886` and `06f31d9`)
+* **Repository Commit:** Pushed to GitHub `main` branch (final remediation batch: `16 Oct 2026`)

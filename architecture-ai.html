@@ -7,10 +7,8 @@
   <script>
     (function () {
       try {
-        var t = localStorage.getItem('sita-tree-theme');
-        if (t !== 'light' && t !== 'dark') {
-          t = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-        }
+        var raw = localStorage.getItem('sita-tree-theme');
+        var t = (raw === 'light') ? 'light' : 'dark';
         document.documentElement.setAttribute('data-theme', t);
       } catch (e) {}
     })();

@@ -7,7 +7,9 @@ Use when no test AppScan Cloud account is available.
 import asyncio
 import uuid
 from datetime import datetime, timezone, timedelta
-import random
+import secrets
+
+rng = secrets.SystemRandom()
 
 from app.db import SessionFactory
 from app.lake.writer import upsert_lake_batch
@@ -51,21 +53,21 @@ def generate_findings(count_per_app: int = 15) -> list[dict]:
 
     for app_name, app_desc, scan_type in APPS:
         for i in range(count_per_app):
-            sev_name, sev_num, cvss = random.choices(
+            sev_name, sev_num, cvss = rng.choices(
                 SEVERITIES, weights=[5, 15, 35, 45], k=1
             )[0]
 
-            status = random.choice(STATUSES)
-            days_ago = random.randint(0, 60)
+            status = rng.choice(STATUSES)
+            days_ago = rng.randint(0, 60)
             first_seen = base_date + timedelta(days=days_ago)
-            last_seen = first_seen + timedelta(days=random.randint(0, 5))
+            last_seen = first_seen + timedelta(days=rng.randint(0, 5))
 
             # Critical/High get CVEs
             cve = None
-            if sev_name in ("critical", "high") and random.random() < 0.7:
-                cve = f"CVE-2026-{random.randint(1000, 9999)}"
+            if sev_name in ("critical", "high") and rng.random() < 0.7:
+                cve = f"CVE-2026-{rng.randint(1000, 9999)}"
 
-            category = random.choice(CATEGORIES)
+            category = rng.choice(CATEGORIES)
 
             records.append({
                 "external_id": f"APPSCAN-{app_name.upper().replace('-', '')}-{i:04d}",
@@ -80,7 +82,7 @@ def generate_findings(count_per_app: int = 15) -> list[dict]:
                 "first_found_date": first_seen.isoformat(),
                 "last_found_date": last_seen.isoformat(),
                 "cve": cve,
-                "cvss_score": cvss + random.uniform(-0.5, 0.5),
+                "cvss_score": cvss + rng.uniform(-0.5, 0.5),
                 "owasp_category": category,
                 "scan_type": scan_type,
             })

@@ -285,3 +285,62 @@ export async function getVaptBaselineStatus(): Promise<{
   return data;
 }
 
+
+
+// -- Database Security AI Alerts ---------------------------------------------
+
+export interface DamAlertCard {
+  archetype_id: string;
+  title: string;
+  severity: 'critical' | 'high' | 'medium' | 'low';
+  confidence_score: number;
+  confidence_label: 'HIGH' | 'MEDIUM' | 'LOW';
+  evidence_count: number;
+  evidence_sources: string[];
+  mitre_technique: string;
+  owasp_ref: string;
+  popia_condition: string;
+  advisory_only: boolean;
+  requires_human_review?: boolean;
+  // SOC/DBA (findings role)
+  d3fend_countermeasure?: string;
+  technical_summary?: string;
+  top_rule_ids?: string[];
+  top_targets?: string[];
+  temporal_burst?: string;
+  // Compliance role
+  regulatory_impact?: string;
+  breach_window_est?: string;
+  data_class_at_risk?: string;
+  // All roles
+  business_impact: string;
+  blast_radius_est: string;
+  remediation_urgency: string;
+  dam_resilience_grade: string;
+}
+
+export interface DbSecAiResult {
+  generated_at: string;
+  tenant_scope: string;
+  lookback_hours: number;
+  total_events_analysed: number;
+  dam_alerts_ingested: number;
+  findings_ingested: number;
+  waf_db_blocks_ingested: number;
+  db_inventory_size: number;
+  overall_dam_posture: 'CRITICAL' | 'ELEVATED' | 'GUARDED' | 'NORMAL';
+  posture_rationale: string;
+  ai_alert_cards: DamAlertCard[];
+  rbac_view: 'SOC_DBA_TECHNICAL' | 'COMPLIANCE_REGULATORY' | 'EXECUTIVE_RISK';
+  advisory_only: boolean;
+}
+
+export async function postDbSecAiAlerts(params: {
+  lookback_hours?: number;
+  db_name?: string;
+  min_severity?: string;
+  limit_events?: number;
+}): Promise<DbSecAiResult> {
+  const { data } = await api.post('/intel/dbsec/ai-alerts', null, { params });
+  return data;
+}

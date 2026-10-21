@@ -1,5 +1,6 @@
 import hashlib
-from pydantic import model_validator
+
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings
 
 DEV_JWT_SECRET = "sita-local-dev-token-key-ephemeral"  # nosec B105
@@ -63,6 +64,28 @@ class Settings(BaseSettings):
     teams_webhook_url: str = ""
     pagerduty_routing_key: str = ""
 
+    # AIMI (provider-hosted inference for the gated value propositions)
+    #
+    # Off by default and off in every environment that has not set a key. The
+    # deterministic intel layer is the product; AIMI supplies only the residue
+    # that capability.py declares irreducible. With AIMI_ENABLED false the
+    # gateway short-circuits before any socket opens, so the platform runs
+    # identically to a build with no AIMI dependency at all.
+    aimi_enabled: bool = False
+    aimi_base_url: str = "https://aimiafrica.cloud"
+    #: Supplied by AIMI on issue. Never logged, never returned by an endpoint,
+    #: and rendered as a SecretStr so it cannot be interpolated by accident.
+    aimi_api_key: SecretStr = SecretStr("")
+    aimi_timeout_seconds: int = 10
+    #: Consecutive failures before the breaker opens and callers fall back to
+    #: the deterministic path for this long.
+    aimi_circuit_threshold: int = 3
+    aimi_circuit_cooldown_seconds: int = 60
+    #: Ceiling on characters sent outbound in one call. Threat-report excerpts
+    #: are analyst-supplied and can be arbitrarily long; the gateway truncates
+    #: rather than posting a whole document to a third party.
+    aimi_max_outbound_chars: int = 8000
+
     # AppScan Cloud
     appscan_key_id: str = ""
     appscan_key_secret: str = ""
@@ -117,6 +140,39 @@ class Settings(BaseSettings):
                     "PII_ENCRYPTION_KEY must be set to a real base64-encoded 32-byte key "
                     "in non-dev environments; the dev key encrypts personal data with a "
                     "value published in source control"
+                )
+        return self
+
+    @model_validator(mode="after")
+    def _guard_aimi_enablement(self):
+        """An enabled AIMI without a key is a startup failure, not a warning.
+
+        The failure this prevents is the expensive one: a deployment that sets
+        ``AIMI_ENABLED=true`` to test the integration, ships without a key, and
+        then silently serves the deterministic path in production while the
+        operator believes residue enrichment is live. Enabling is an assertion
+        about intent, so the configuration it depends on had better be there.
+
+        The egress register is checked at call time by the gateway rather than
+        here, so that this module keeps no dependency on ``app.monitoring``.
+        """
+        if self.aimi_enabled:
+            if not self.aimi_api_key.get_secret_value():
+                raise ValueError(
+                    "AIMI_ENABLED is true but AIMI_API_KEY is empty. Either supply "
+                    "the key or set AIMI_ENABLED=false; the residue enrichment "
+                    "cannot run without it."
+                )
+            if not self.aimi_base_url.startswith("https://"):
+                raise ValueError(
+                    "AIMI_BASE_URL must be an https:// URL. Credentialed egress "
+                    "over plaintext would put the API key on the wire in clear."
+                )
+            if self.aimi_timeout_seconds <= 0 or self.aimi_circuit_threshold <= 0:
+                raise ValueError(
+                    "AIMI_TIMEOUT_SECONDS and AIMI_CIRCUIT_THRESHOLD must be "
+                    "positive; a zero timeout or a breaker that opens on the "
+                    "first failure would disable the feature by accident."
                 )
         return self
 

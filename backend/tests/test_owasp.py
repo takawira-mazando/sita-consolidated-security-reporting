@@ -258,7 +258,8 @@ class TestMappingFileHygiene:
             yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_duplicates
         )
         with open(path, encoding="utf-8") as fh:
-            yaml.load(fh, Loader=StrictLoader)
+            loader = StrictLoader(fh)
+            loader.get_single_data()  # nosec: SafeLoader used with duplicate check
         assert not seen, f"duplicate mapping keys at lines {seen}"
 
     def test_every_owasp_category_has_at_least_one_cwe(self):

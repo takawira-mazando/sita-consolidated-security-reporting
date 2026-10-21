@@ -9,9 +9,9 @@ if hasattr(sys.stdout, "reconfigure"):
 if hasattr(sys.stderr, "reconfigure"):
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-REMOTE_HOST = "192.168.101.20"
-REMOTE_USER = "uni"
-REMOTE_PASS = "H051@pivot"
+REMOTE_HOST = os.environ.get("REMOTE_HOST", "127.0.0.1")
+REMOTE_USER = os.environ.get("REMOTE_USER", "sita")
+REMOTE_PASS = os.environ.get("REMOTE_PASS", "")
 DEPLOY_DIR = "/opt/sita/sita-platform"
 STACK_DIR = "/opt/sita/sita-platform/infrastructure"
 

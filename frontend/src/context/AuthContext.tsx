@@ -32,12 +32,17 @@ const HA_BRANCHES = [
 ];
 
 export const FALLBACK_DEMO_ACCOUNTS: DemoAccount[] = [
-  // Department of Home Affairs (DHA) — Official Live Demo Personas
-  { email: 'soc-ha@example.com', label: 'SOC Analyst', role: 'soc-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
-  { email: 'appsec-ha@example.com', label: 'AppSec Engineer', role: 'appsec-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
-  { email: 'dbsec-ha@example.com', label: 'DB Security', role: 'dbsec-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
-  { email: 'deptadmin-ha@example.com', label: 'Dept Admin', role: 'deptadmin-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
-  { email: 'branchadmin-ha@example.com', label: 'Branch Admin', role: 'branchadmin-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  // Nationwide & SITA Estate Personas (Full access across all dashboards)
+  { email: 'admin@example.com', label: 'Platform Superadmin (All Roles)', role: 'admin', department_ids: [], is_nationwide: true },
+  { email: 'exec@example.com', label: 'Executive (CISO / DG)', role: 'exec', department_ids: [], is_nationwide: true },
+  { email: 'compliance@example.com', label: 'Compliance Officer (POPIA/ISO)', role: 'compliance', department_ids: [], is_nationwide: true },
+  { email: 'sre@example.com', label: 'Service Ops / SRE', role: 'sre', department_ids: [], is_nationwide: true },
+
+  // Department of Home Affairs (DHA) — Live Demo Personas
+  { email: 'soc-ha@example.com', label: 'SOC Analyst (DHA)', role: 'soc-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  { email: 'appsec-ha@example.com', label: 'AppSec Engineer (DHA)', role: 'appsec-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  { email: 'dbsec-ha@example.com', label: 'DB Security (DHA)', role: 'dbsec-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  { email: 'deptadmin-ha@example.com', label: 'Dept Admin (DHA)', role: 'deptadmin-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
 ];
 
 export const ADMIN_EMAIL = 'admin@example.com';
@@ -189,7 +194,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    fetchDemoAccounts('home-affairs-digital')
+    fetchDemoAccounts()
       .then((accounts) => {
         if (!cancelled && accounts.length) setDemoAccounts(accounts);
       })

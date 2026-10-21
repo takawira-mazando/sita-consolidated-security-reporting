@@ -6,9 +6,11 @@ import BarRow from '../components/dashboard/BarRow';
 import OemTag from '../components/dashboard/OemTag';
 import Chip from '../components/dashboard/Chip';
 import ExplainOverlay from '../components/dashboard/ExplainOverlay';
+import DbSecAiAlertsPanel from '../components/dashboard/DbSecAiAlertsPanel';
 import { buildExplain, buildLayman, ROLE_LABELS, type ExplainFacts } from '../data/explanations';
 import { useDbSecData } from '../hooks/useDbSecData';
 import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
+import { useDbSecAiAlerts } from '../hooks/useDbSecAiAlerts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
@@ -35,6 +37,7 @@ export default function DbSecDashboard({ tier = 'dept' }: { tier?: TenancyTier }
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useDbSecData();
   const narrative = useNarrativeFacts();
+  const aiAlerts = useDbSecAiAlerts();
 
   if (d.loading) {
     return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'db_sec', color: 'var(--green)', bg: 'var(--green-dim)' }} consolidatedTag="Imperva DAM · database audit" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
@@ -118,6 +121,13 @@ export default function DbSecDashboard({ tier = 'dept' }: { tier?: TenancyTier }
           )) : <div className="panel-empty">No alert activity yet.</div>}
         </Panel>
       </div>
+
+      <DbSecAiAlertsPanel
+        result={aiAlerts.data}
+        loading={aiAlerts.loading}
+        error={aiAlerts.error}
+        onRun={aiAlerts.run}
+      />
 
       <Panel title={<><span>Active Database Alerts</span> <OemTag source="imperva" label="Imperva DAM" /></>} bodyClassName="scroll-x" bodyStyle={{ padding: 0 }}>
         <table>

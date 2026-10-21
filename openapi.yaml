@@ -1,0 +1,3608 @@
+openapi: 3.1.0
+info:
+  title: SITA Security Intelligence Platform API
+  version: 1.0.0
+paths:
+  /api/v1/auth/login:
+    post:
+      tags:
+      - auth
+      summary: Login
+      operationId: login_api_v1_auth_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/demo-login:
+    post:
+      tags:
+      - auth
+      summary: Demo Login
+      operationId: demo_login_api_v1_auth_demo_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DemoLoginRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/demo-accounts:
+    get:
+      tags:
+      - auth
+      summary: Demo Accounts
+      operationId: demo_accounts_api_v1_auth_demo_accounts_get
+      parameters:
+      - name: department_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          title: Department Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DemoAccount'
+                title: Response Demo Accounts Api V1 Auth Demo Accounts Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/tenancy:
+    get:
+      tags:
+      - auth
+      summary: Tenancy Hierarchy
+      description: 'National + provincial hierarchy for the login page.
+
+
+        Department/branch/province names are public government information; this
+
+        endpoint exists so authenticated users can pick the tenancy context to
+
+        sign into. Access control still happens on the data itself via tenant_filter.
+
+
+        Authentication is required: the org-chart is filtered to the caller''s
+
+        assigned scope so a department-scoped caller sees only their department''s
+
+        branches. This prevents unauthenticated/weak-signature tokens from
+
+        harvesting the full estate org-chart (AppScan Weak JWT / BFLA findings).'
+      operationId: tenancy_hierarchy_api_v1_auth_tenancy_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TenancyResponse'
+      security:
+      - HTTPBearer: []
+  /api/v1/auth/me:
+    get:
+      tags:
+      - auth
+      summary: Me
+      operationId: me_api_v1_auth_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__routers__auth__UserOut'
+      security:
+      - HTTPBearer: []
+  /api/v1/auth/switch-tenant:
+    post:
+      tags:
+      - auth
+      summary: Switch Tenant
+      description: 'Re-issue a token for a new tenancy scope without re-authenticating.
+
+
+        The target must sit within the user''s admin-set entitlement; an empty body
+
+        resets to the account''s default (stored) scope.
+
+
+        Only admin and transversal-admin roles can switch tenants.
+
+
+        Every switch is audited: it re-scopes a live session across tenant
+
+        boundaries without re-authenticating, so it is the single highest-value
+
+        event to have a signed, attributable record of.'
+      operationId: switch_tenant_api_v1_auth_switch_tenant_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SwitchTenantRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/risks:
+    get:
+      tags:
+      - risks
+      summary: Get Risks
+      operationId: get_risks_api_v1_risks_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: app
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: App
+      - name: bucket
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Bucket
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date To
+      - name: department_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          description: Filter by department within assigned scope
+          title: Department Id
+        description: Filter by department within assigned scope
+      - name: branch_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          description: Filter by branch within assigned scope
+          title: Branch Id
+        description: Filter by branch within assigned scope
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 20
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/risks/by-cluster:
+    get:
+      tags:
+      - risks
+      summary: Get Risks By Cluster
+      description: 'Rank Treasury clusters by average fused risk (most vulnerable first).
+
+
+        cluster_id/ministry_id are nullable reporting metadata derived from each
+
+        row''s department_id; they never widen the tenant scope (tenant_filter still
+
+        keys on department_id).'
+      operationId: get_risks_by_cluster_api_v1_risks_by_cluster_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date To
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/risks/by-ministry:
+    get:
+      tags:
+      - risks
+      summary: Get Risks By Ministry
+      description: Rank ministries by average fused risk (most vulnerable first).
+      operationId: get_risks_by_ministry_api_v1_risks_by_ministry_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: cluster_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cluster Id
+      - name: date_from
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date From
+      - name: date_to
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            format: date
+          - type: 'null'
+          title: Date To
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/risks/{app_name}/trend:
+    get:
+      tags:
+      - risks
+      summary: Get Risk Trend
+      operationId: get_risk_trend_api_v1_risks__app_name__trend_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: app_name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: App Name
+      - name: days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 90
+          minimum: 7
+          default: 30
+          title: Days
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RiskTrend'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/findings:
+    get:
+      tags:
+      - findings
+      summary: Get Findings
+      operationId: get_findings_api_v1_findings_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: app
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: App
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Severity
+      - name: category
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+      - name: owasp_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: OWASP Top 10 category id, e.g. A03
+          title: Owasp Id
+        description: OWASP Top 10 category id, e.g. A03
+      - name: cwe_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          description: Precise CWE identifier, e.g. CWE-89
+          title: Cwe Id
+        description: Precise CWE identifier, e.g. CWE-89
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: since
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Since
+      - name: department_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          description: Filter by department within assigned scope
+          title: Department Id
+        description: Filter by department within assigned scope
+      - name: branch_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          description: Filter by branch within assigned scope
+          title: Branch Id
+        description: Filter by branch within assigned scope
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/findings/{finding_id}:
+    get:
+      tags:
+      - findings
+      summary: Get Finding
+      operationId: get_finding_api_v1_findings__finding_id__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: finding_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Finding Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Finding'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/compliance:
+    get:
+      tags:
+      - compliance
+      summary: Get Compliance
+      operationId: get_compliance_api_v1_compliance_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: framework
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^(popia|iso_27001|ect_act|rica|ncia|icasa_eca)$
+          - type: 'null'
+          title: Framework
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/compliance/gaps:
+    get:
+      tags:
+      - compliance
+      summary: Get Compliance Gaps
+      operationId: get_compliance_gaps_api_v1_compliance_gaps_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: framework
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Framework
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: sort_by
+        in: query
+        required: false
+        schema:
+          type: string
+          default: due_date
+          title: Sort By
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/compliance/evidence:
+    get:
+      tags:
+      - compliance
+      summary: Get Evidence
+      operationId: get_evidence_api_v1_compliance_evidence_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: gap_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Gap Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/compliance/frameworks:
+    get:
+      tags:
+      - compliance
+      summary: List Frameworks
+      description: 'Every regulatory framework assessed, with its applicability determination.
+
+
+        Frameworks that do not bind the platform are returned with
+
+        ``applicability: not_applicable`` and a stated rationale, so a considered
+
+        determination is visible rather than implied by omission.'
+      operationId: list_frameworks_api_v1_compliance_frameworks_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/compliance/transfers:
+    get:
+      tags:
+      - compliance
+      summary: List Transfers
+      description: 'Cross-border data transfer register: destinations without a mechanism on file.
+
+
+        The working list for closing gap G-07. Every entry here is an external
+
+        system the platform exchanges South African government data with where no
+
+        data transfer agreement or prior authorisation has been recorded.'
+      operationId: list_transfers_api_v1_compliance_transfers_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/alerts:
+    get:
+      tags:
+      - alerts
+      summary: Get Alerts
+      operationId: get_alerts_api_v1_alerts_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Severity
+      - name: status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Status
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+      - name: since
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Since
+      - name: department_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          description: Filter by department within assigned scope
+          title: Department Id
+        description: Filter by department within assigned scope
+      - name: branch_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          description: Filter by branch within assigned scope
+          title: Branch Id
+        description: Filter by branch within assigned scope
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          default: 1
+          title: Page
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedResponse'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/alerts/{alert_id}/dispatch:
+    get:
+      tags:
+      - alerts
+      summary: Get Alert Dispatch
+      operationId: get_alert_dispatch_api_v1_alerts__alert_id__dispatch_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: alert_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Alert Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {}
+                title: Response Get Alert Dispatch Api V1 Alerts  Alert Id  Dispatch Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/alerts/{alert_id}/acknowledge:
+    patch:
+      tags:
+      - alerts
+      summary: Acknowledge Alert
+      operationId: acknowledge_alert_api_v1_alerts__alert_id__acknowledge_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: alert_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Alert Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/alerts/{alert_id}/resolve:
+    patch:
+      tags:
+      - alerts
+      summary: Resolve Alert
+      operationId: resolve_alert_api_v1_alerts__alert_id__resolve_patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: alert_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Alert Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/dashboard/summary:
+    get:
+      tags:
+      - dashboard
+      summary: Get Dashboard Summary
+      operationId: get_dashboard_summary_api_v1_dashboard_summary_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/metrics/appsec/waf:
+    get:
+      tags:
+      - metrics
+      summary: Get Waf Blocks
+      operationId: get_waf_blocks_api_v1_metrics_appsec_waf_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/metrics/appsec/api-exposure:
+    get:
+      tags:
+      - metrics
+      summary: Get Api Exposure
+      operationId: get_api_exposure_api_v1_metrics_appsec_api_exposure_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/metrics/appsec/owasp:
+    get:
+      tags:
+      - metrics
+      summary: Get Owasp Posture
+      description: 'Cross-source OWASP Top 10 posture.
+
+
+        This is the rollup no OEM can produce. AppScan reports its own findings
+
+        against OWASP; Imperva reports its own in its own vocabulary; API Security
+
+        reports its own. None of them can answer "what is our estate''s combined
+
+        OWASP exposure", because none of them sees the other two.
+
+
+        Scoped with `tenant_filter` on every branch, exactly as the rest of the
+
+        metrics surface is. The `unmapped` bucket is returned rather than hidden:
+
+        it is the platform''s own coverage gap and an auditor should see it.'
+      operationId: get_owasp_posture_api_v1_metrics_appsec_owasp_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: app
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: App
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/metrics/appsec/fix-rate:
+    get:
+      tags:
+      - metrics
+      summary: Get Fix Rate
+      operationId: get_fix_rate_api_v1_metrics_appsec_fix_rate_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/metrics/soc/slo:
+    get:
+      tags:
+      - metrics
+      summary: Get Slo Metrics
+      operationId: get_slo_metrics_api_v1_metrics_soc_slo_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/metrics/sre/system:
+    get:
+      tags:
+      - metrics
+      summary: Get System Metrics
+      description: 'System-level platform metrics. Requires admin_read capability.
+
+
+        Distinct from /sre/agents which is a discovery endpoint — this returns
+
+        internal platform health metrics and is therefore gated on admin_read
+
+        rather than the sre convenience alias (AppScan BFLA path-manipulation fix).'
+      operationId: get_system_metrics_api_v1_metrics_sre_system_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 1
+          description: Maximum metrics rows to return
+          default: 100
+          title: Limit
+        description: Maximum metrics rows to return
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/metrics/sre/agents:
+    get:
+      tags:
+      - metrics
+      summary: Get Agents
+      operationId: get_agents_api_v1_metrics_sre_agents_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/metrics/dbsec/inventory:
+    get:
+      tags:
+      - metrics
+      summary: Get Database Inventory
+      operationId: get_database_inventory_api_v1_metrics_dbsec_inventory_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/metrics/compliance/trend:
+    get:
+      tags:
+      - metrics
+      summary: Get Compliance Trend
+      operationId: get_compliance_trend_api_v1_metrics_compliance_trend_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/metrics/compliance/calendar:
+    get:
+      tags:
+      - metrics
+      summary: Get Regulatory Calendar
+      operationId: get_regulatory_calendar_api_v1_metrics_compliance_calendar_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/meta/model:
+    get:
+      tags:
+      - meta
+      summary: Get Platform Model
+      operationId: get_platform_model_api_v1_meta_model_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/meta/narrative-facts:
+    get:
+      tags:
+      - meta
+      summary: Get Narrative Facts
+      operationId: get_narrative_facts_api_v1_meta_narrative_facts_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/exports/findings.csv:
+    get:
+      tags:
+      - exports
+      summary: Export Findings
+      operationId: export_findings_api_v1_exports_findings_csv_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/exports/risk-scores.csv:
+    get:
+      tags:
+      - exports
+      summary: Export Risk Scores
+      operationId: export_risk_scores_api_v1_exports_risk_scores_csv_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/exports/alerts.csv:
+    get:
+      tags:
+      - exports
+      summary: Export Alerts
+      operationId: export_alerts_api_v1_exports_alerts_csv_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/exports/ag-compliance:
+    post:
+      tags:
+      - exports-ag
+      summary: Export Ag Compliance
+      operationId: export_ag_compliance_api_v1_exports_ag_compliance_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/exports/ag-compliance/public-key:
+    get:
+      tags:
+      - exports-ag
+      summary: Get Ag Compliance Public Key
+      description: Public key for offline Auditor-General cryptographic verification.
+      operationId: get_ag_compliance_public_key_api_v1_exports_ag_compliance_public_key_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/exports/ag-compliance/verify/{integrity_hash}:
+    get:
+      tags:
+      - exports-ag
+      summary: Verify Ag Compliance
+      description: 'Verify an attestation against its stored signed evidence.
+
+
+        Verification is cryptographic, not a database-existence check: an audit row is
+
+        not proof that the bytes it names were ever signed. The response distinguishes
+
+        ``no_record`` (nothing was issued under this hash) from ``invalid`` (something
+
+        was issued but the evidence does not hold).'
+      operationId: verify_ag_compliance_api_v1_exports_ag_compliance_verify__integrity_hash__get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: integrity_hash
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Integrity Hash
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/benchmark/province:
+    get:
+      tags:
+      - benchmark
+      summary: Province Benchmark
+      operationId: province_benchmark_api_v1_benchmark_province_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/intel/dbsec/ai-alerts:
+    post:
+      tags:
+      - intel
+      - intel
+      - dbsec
+      - ai-residue
+      summary: Post Dbsec Ai Alerts
+      description: "Live DAM AI alert analysis over tenant-scoped database security telemetry.\n\nIngests\
+        \ three signal sources bounded strictly by the caller's tenancy scope:\n  - Imperva / Thales DAM\
+        \ alerts (Alert model — source = imperva | thales | dam)\n  - Database violation findings (Finding\
+        \ model — category = sql/injection/dal/…)\n  - WAF SQL-class blocks (WafBlock model — attack_type\
+        \ contains sql/brute/credential)\n\nClassifies events into 6 DAM attack archetypes (SQLi exfiltration,\
+        \ privilege\nescalation, schema recon, mass read, credential brute-force, off-hours anomaly),\n\
+        scores each with a cross-signal confidence index, and returns RBAC-differentiated\nalert cards:\n\
+        \  - findings (SOC/DBA): full technical payload — rule IDs, targets, MITRE, D3FEND.\n  - compliance:\
+        \ POPIA s.22 exposure, breach window estimate, data-class at risk.\n  - risks (Executive): blast\
+        \ radius, business impact, DAM resilience grade.\n\nAdvisory only — no automated blocking or alert\
+        \ suppression occurs.\nRequires human analyst review before any remediation action."
+      operationId: post_dbsec_ai_alerts_api_v1_intel_dbsec_ai_alerts_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: lookback_hours
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 168
+          minimum: 1
+          description: Analysis window in hours (1 h–7 d)
+          default: 24
+          title: Lookback Hours
+        description: Analysis window in hours (1 h–7 d)
+      - name: db_name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          description: 'Optional: scope to a specific database name'
+          title: Db Name
+        description: 'Optional: scope to a specific database name'
+      - name: min_severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^(critical|high|medium|low)$
+          - type: 'null'
+          description: Only return archetypes at or above this severity
+          title: Min Severity
+        description: Only return archetypes at or above this severity
+      - name: limit_events
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 500
+          minimum: 10
+          description: Max individual log events to ingest per signal source
+          default: 100
+          title: Limit Events
+        description: Max individual log events to ingest per signal source
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/capability:
+    get:
+      tags:
+      - intel
+      summary: Get Capability
+      description: 'Which propositions are deterministic and which are genuinely gated.
+
+
+        Open to any authenticated caller: it describes the platform''s own
+
+        capability boundary and contains no tenant data.'
+      operationId: get_capability_api_v1_intel_capability_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/intel/vendor/contradictions:
+    get:
+      tags:
+      - intel
+      summary: Get Vendor Contradictions
+      description: Cross-OEM contradictions (AVP-4). Deterministic.
+      operationId: get_vendor_contradictions_api_v1_intel_vendor_contradictions_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/intel/vendor/attestation:
+    get:
+      tags:
+      - intel
+      summary: Get Vendor Attestation
+      description: 'Coverage and agreement across sources (AVP-10). Deterministic.
+
+
+        Returns ``denominator_known: false``. No asset inventory exists, so no
+
+        coverage percentage is published — see the response''s ``denominator_note``.'
+      operationId: get_vendor_attestation_api_v1_intel_vendor_attestation_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/intel/estate/ownership:
+    get:
+      tags:
+      - intel
+      summary: Get Estate Ownership
+      description: Ownership ambiguity and blast radius (AVP-6). Deterministic.
+      operationId: get_estate_ownership_api_v1_intel_estate_ownership_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/intel/risk/movers:
+    get:
+      tags:
+      - intel
+      summary: Get Risk Movers
+      description: Applications whose fused score moved most (AVP-8 stage a). Deterministic.
+      operationId: get_risk_movers_api_v1_intel_risk_movers_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: window_days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 90
+          minimum: 1
+          default: 14
+          title: Window Days
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 100
+          minimum: 1
+          default: 25
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/risk/delta:
+    get:
+      tags:
+      - intel
+      summary: Get Risk Delta
+      description: 'Decompose one application''s score movement by signal (AVP-8 stage a).
+
+
+        Stage (b), the external cause, is not available: it needs campaign
+
+        enrichment and a ``findings.cve_id`` column that does not exist. The
+
+        response says so explicitly under ``external_cause`` rather than omitting it.'
+      operationId: get_risk_delta_api_v1_intel_risk_delta_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: app_name
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+          title: App Name
+      - name: window_days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 90
+          minimum: 2
+          default: 14
+          title: Window Days
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/controls/score:
+    get:
+      tags:
+      - intel
+      summary: Get Control Score
+      description: 'POPIA computed from telemetry (AVP-1). Deterministic.
+
+
+        Calls ``compute_popia_score``, which existed in
+
+        ``app.processing.compliance`` with zero callers. No model, no external
+
+        service, and no AIMI dependency: AVP-1 was demoted to engineering in
+
+        ``capability.py``, so no residue is declared for it and none is requested.
+
+
+        The score will be materially lower than the seeded figure it is compared
+
+        against, because five of the eight POPIA conditions have no telemetry to
+
+        bind to and score zero with the reason stated. That is the correct answer,
+
+        not a defect in the computation.'
+      operationId: get_control_score_api_v1_intel_controls_score_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/intel/controls/iso:
+    get:
+      tags:
+      - intel
+      summary: Get Iso Status
+      description: 'ISO 27001 readiness. Deliberately returns no score (AVP-1).
+
+
+        Four Annex A themes now have an evidence binding and eight do not. A score
+
+        from four of twelve themes would overstate coverage in the one direction an
+
+        auditor cares about, so none is published — the bound and unbound themes are
+
+        returned instead, which makes the remaining work legible.'
+      operationId: get_iso_status_api_v1_intel_controls_iso_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/intel/peer/prescription:
+    get:
+      tags:
+      - intel
+      summary: Get Peer Prescription
+      description: 'Control gaps in the caller''s own estate, ranked by live exposure (AVP-7).
+
+
+        Deterministic set difference. **No peer department''s findings, counts or
+
+        request URIs are read** — the blinded ranking that prompts a department to
+
+        open this endpoint stays exactly as ``benchmark`` already presents it.'
+      operationId: get_peer_prescription_api_v1_intel_peer_prescription_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/intel/attack/coverage:
+    get:
+      tags:
+      - intel
+      summary: Get Attack Coverage
+      description: 'Red against blue ATT&CK coverage (AVP-2, deterministic half).
+
+
+        Red is techniques the estate is exposed to, from the CWE already classified
+
+        onto every finding. Blue is techniques the platform''s own alert rules can
+
+        evidence, from a side table. The gap between them is the deliverable.
+
+
+        Curated mapping data only. No model.'
+      operationId: get_attack_coverage_api_v1_intel_attack_coverage_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/intel/hunts:
+    get:
+      tags:
+      - intel
+      summary: Get Hunts
+      description: 'Coverage gaps turned into runnable hunt cards (AVP-9).
+
+
+        Every field is computed: the gap from coverage, the query from curated
+
+        column bindings, the expected hit shape from the caller''s own rows.'
+      operationId: get_hunts_api_v1_intel_hunts_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 25
+          minimum: 1
+          default: 10
+          title: Limit
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/packet:
+    post:
+      tags:
+      - intel
+      summary: Post Packet
+      description: 'Assemble and sign a dispute-ready evidence packet (AVP-12).
+
+
+        Reuses the AG attestation''s ECDSA primitives, so it verifies by exactly the
+
+        same published procedure. ``generated_at`` is excluded from the signed body,
+
+        so two packets over the same facts are byte-identical.
+
+
+        Requires an anchor. With neither ``alert_id`` nor ``app_name`` this would be
+
+        the AG attestation, which already exists.'
+      operationId: post_packet_api_v1_intel_packet_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: alert_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Alert Id
+      - name: app_name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: App Name
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/privilege/audit:
+    post:
+      tags:
+      - intel
+      summary: Post Privilege Audit
+      description: 'Accountability checks over the signed audit trail (AVP-11). Deterministic.
+
+
+        POST rather than GET: the trail it reads records the caller''s own actions,
+
+        and ``demoInterceptor`` rewrites any GET whose path matches a demo pattern.
+
+        Holding this route excludes every admin tier — an administrator does not get
+
+        the tool that audits administrators.'
+      operationId: post_privilege_audit_api_v1_intel_privilege_audit_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: window_days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 365
+          minimum: 1
+          default: 30
+          title: Window Days
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/attack/author-rule:
+    post:
+      tags:
+      - intel
+      - intel
+      - ai-residue
+      summary: Post Author Rule
+      description: 'Author a reviewable alert-rule proposal for a technique (AVP-2 AI residue).
+
+
+        Advisory only: the rule is NEVER automatically merged. The response contains
+
+        a git diff that a platform operator must review and approve before the rule
+
+        is added to ``alert_rules.yaml``.'
+      operationId: post_author_rule_api_v1_intel_attack_author_rule_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: technique_id
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 3
+          maxLength: 16
+          description: MITRE ATT&CK technique ID, e.g. T1190
+          title: Technique Id
+        description: MITRE ATT&CK technique ID, e.g. T1190
+      - name: technique_name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: Technique Name
+      - name: severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^(critical|high|medium|low)$
+          - type: 'null'
+          title: Severity
+      - name: target_source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Target Source
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/threat/attribute:
+    post:
+      tags:
+      - intel
+      - intel
+      - ai-residue
+      summary: Post Attribute Campaign
+      description: 'Attribute a threat report to this estate (AVP-3 AI residue).
+
+
+        Deterministically extracts ATT&CK techniques, CVEs, and adjacent-sector
+
+        keywords from the supplied report text, then cross-references them against
+
+        the estate''s own exposure. Returns a structured attribution dossier for
+
+        analyst review. Advisory only — no alert rules are created.
+
+
+        When AIMI is enabled, ``model_enrichment`` additionally carries a third-party
+
+        judgement about whether the campaign names this sector. Only public threat
+
+        identifiers and the analyst''s own pasted excerpt are sent; no estate row
+
+        crosses the boundary. ``enriched_by_model`` is False when the provider is
+
+        disabled, mid-breaker, unreachable, or had nothing to correlate.'
+      operationId: post_attribute_campaign_api_v1_intel_threat_attribute_post
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              type: string
+              title: Report Text
+              description: Raw text of a threat report (OSINT, CTI feed, MITRE ATT&CK advisory).
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /api/v1/intel/popia/dossier:
+    post:
+      tags:
+      - intel
+      - intel
+      - ai-residue
+      summary: Post Popia Dossier
+      description: 'Assemble a POPIA s.22 breach-notification evidence dossier (AVP-5 AI residue).
+
+
+        Gathers platform-held evidence (findings, alerts) and returns a structured
+
+        dossier anchored to a specific alert or application. The statutory threshold
+
+        judgement (s.22(1)) and the notification narrative are **deliberately withheld**
+
+        and flagged for human legal review.'
+      operationId: post_popia_dossier_api_v1_intel_popia_dossier_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: alert_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 64
+          - type: 'null'
+          title: Alert Id
+      - name: app_name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          title: App Name
+      - name: window_days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 180
+          minimum: 1
+          default: 30
+          title: Window Days
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/risk/causal:
+    post:
+      tags:
+      - intel
+      - intel
+      - ai-residue
+      summary: Post Risk Causal
+      description: 'Explain a risk-delta movement with external-cause context (AVP-8 AI residue).
+
+
+        Stage (a) decomposition is already available via ``GET /intel/risk/delta``.
+
+        This endpoint adds the external-cause hypothesis: maps the dominant signal
+
+        to an ATT&CK technique and, if a threat report is supplied, checks whether
+
+        that technique appears in the report. Advisory only — analyst review required.
+
+
+        When AIMI is enabled, ``causal_hypothesis.model_enrichment`` carries an
+
+        explanation of what the mapped technique represents. The measured delta is
+
+        computed locally and is not sent: the question is what the technique means,
+
+        not what this estate''s numbers are.'
+      operationId: post_risk_causal_api_v1_intel_risk_causal_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: app_name
+        in: query
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 255
+          title: App Name
+      - name: window_days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 90
+          minimum: 2
+          default: 14
+          title: Window Days
+      requestBody:
+        content:
+          text/plain:
+            schema:
+              anyOf:
+              - type: string
+              - type: 'null'
+              description: Optional raw threat-report text to cross-reference against the delta.
+              title: Threat Report
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/audit/explain:
+    post:
+      tags:
+      - intel
+      - intel
+      - ai-residue
+      summary: Post Explain Behaviour
+      description: 'Explain multi-step behavioural patterns in the signed audit trail (AVP-11 AI residue).
+
+
+        Groups audit events into temporal clusters and labels patterns that no
+
+        single per-row rule would flag (self-approve chains, escalating exports,
+
+        cross-scope pivots, rapid authority sweeps). Returns a structured report
+
+        for analyst review. Advisory only — no disciplinary actions are created.'
+      operationId: post_explain_behaviour_api_v1_intel_audit_explain_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: window_days
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 365
+          minimum: 1
+          default: 30
+          title: Window Days
+      - name: actor_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          description: Scope to a single actor. Omit to analyse all actors.
+          title: Actor Id
+        description: Scope to a single actor. Omit to analyse all actors.
+      - name: min_confidence
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 10
+          minimum: 1
+          description: Minimum corroborating-signal count to flag a cluster.
+          default: 2
+          title: Min Confidence
+        description: Minimum corroborating-signal count to flag a cluster.
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/vapt/interpret-logs:
+    post:
+      tags:
+      - intel
+      - intel
+      - vapt
+      - ai-residue
+      summary: Post Interpret Vapt Logs
+      description: 'AIMI VAPT Log Interpretation Layer atop live security telemetry logs.
+
+
+        Ingests tenant-scoped logs (Imperva WAF blocks, AppScan DAST/SAST findings,
+
+        database access events, and alerts), analyzes them for VAPT exploitation
+
+        patterns (SQLi, BOLA, XSS, Path Traversal, Brute-Force, Deserialization,
+
+        OpenAPI reconnaissance), correlates against remediated VAPT baselines,
+
+        computes perimeter resilience grades, and provides role-differentiated insights
+
+        (SOC/AppSec forensics vs Compliance regulatory impact vs Executive business risk).'
+      operationId: post_interpret_vapt_logs_api_v1_intel_vapt_interpret_logs_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: lookback_hours
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 720
+          minimum: 1
+          description: Analysis window in hours (up to 30 days)
+          default: 24
+          title: Lookback Hours
+        description: Analysis window in hours (up to 30 days)
+      - name: app_name
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            maxLength: 255
+          - type: 'null'
+          description: Optional application name filter
+          title: App Name
+        description: Optional application name filter
+      - name: min_severity
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+            pattern: ^(critical|high|medium|low)$
+          - type: 'null'
+          title: Min Severity
+      - name: limit_events
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 5
+          description: Max individual interpreted log rows to return
+          default: 50
+          title: Limit Events
+        description: Max individual interpreted log rows to return
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/intel/vapt/baseline-status:
+    get:
+      tags:
+      - intel
+      - intel
+      - vapt
+      summary: Get Vapt Baseline Status
+      description: Retrieve verified status of VAPT baseline remediations and DAST/SAST controls.
+      operationId: get_vapt_baseline_status_api_v1_intel_vapt_baseline_status_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /api/v1/public/summary:
+    get:
+      tags:
+      - public
+      summary: Public Summary
+      operationId: public_summary_api_v1_public_summary_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /api/v1/reports-ai/available:
+    get:
+      tags:
+      - reports-ai
+      summary: Available Reports
+      description: Return report templates that the caller holds an authorized role to generate (Gate
+        1).
+      operationId: available_reports_api_v1_reports_ai_available_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                items:
+                  additionalProperties: true
+                  type: object
+                type: array
+                title: Response Available Reports Api V1 Reports Ai Available Get
+      security:
+      - HTTPBearer: []
+  /api/v1/reports-ai/catalog:
+    get:
+      tags:
+      - reports-ai
+      summary: Report Catalog
+      description: Return full platform report catalog metadata.
+      operationId: report_catalog_api_v1_reports_ai_catalog_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Report Catalog Api V1 Reports Ai Catalog Get
+      security:
+      - HTTPBearer: []
+  /api/v1/reports-ai/generate:
+    post:
+      tags:
+      - reports-ai
+      summary: Generate Ai Report
+      description: 'Generate a verified, tenancy-scoped AI intelligence report.
+
+
+        Enforces the Two-Gate Authorization Model:
+
+        - Gate 1: Capability RBAC check against REPORT_CATALOGUE
+
+        - Gate 2: Tenancy Scope encapsulation via ReportScope & scope_hash'
+      operationId: generate_ai_report_api_v1_reports_ai_generate_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateReportRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                additionalProperties: true
+                type: object
+                title: Response Generate Ai Report Api V1 Reports Ai Generate Post
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /admin/departments:
+    get:
+      tags:
+      - admin
+      summary: List Departments
+      operationId: list_departments_admin_departments_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /admin/branches:
+    get:
+      tags:
+      - admin
+      summary: List Branches
+      operationId: list_branches_admin_branches_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: department_id
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Department Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/connectors:
+    get:
+      tags:
+      - admin
+      summary: Get Connectors
+      operationId: get_connectors_admin_connectors_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /admin/dead-letter:
+    get:
+      tags:
+      - admin
+      summary: Get Dead Letter
+      operationId: get_dead_letter_admin_dead_letter_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 10000
+          minimum: 1
+          default: 1
+          title: Page
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 20
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/connectors/{name}/reset:
+    post:
+      tags:
+      - admin
+      summary: Reset Connector
+      operationId: reset_connector_admin_connectors__name__reset_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: name
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Name
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/connectors/pull-logs:
+    post:
+      tags:
+      - admin
+      summary: Pull Logs Endpoint
+      operationId: pull_logs_endpoint_admin_connectors_pull_logs_post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: source
+        in: query
+        required: false
+        schema:
+          type: string
+          default: all
+          title: Source
+      - name: count
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 10
+          title: Count
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/dead-letter/reprocess/{record_id}:
+    post:
+      tags:
+      - admin
+      summary: Reprocess Dlq
+      operationId: reprocess_dlq_admin_dead_letter_reprocess__record_id__post
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: record_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: Record Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/users:
+    get:
+      tags:
+      - admin
+      summary: List Users
+      operationId: list_users_admin_users_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 10000
+          minimum: 1
+          default: 1
+          title: Page
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 20
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                title: Response List Users Admin Users Get
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    post:
+      tags:
+      - admin
+      summary: Create User
+      description: "Create a new user with strict tenancy and Role-Based Access Control (RBAC) validation.\n\
+        \nThis endpoint integrates the full SITA tenancy model (Provinces, Departments, Branches) \nand\
+        \ enforces **Delegated Authority**. The caller may only create users whose roles and \nscope fall\
+        \ strictly within their own administrative boundaries.\n\n### Delegated Authority (Hierarchical\
+        \ Tiers)\n- **Tier 5 (Platform Operator / creator):** Role `operator`. National scope. Can create\
+        \ the SITA superuser (`admin`) and peer `operator` accounts only (rotation). Nothing else.\n-\
+        \ **Tier 4 (SITA Superuser):** Role `admin`. National scope. Can create `transversal-admin`, `exec`,\
+        \ `compliance`, `sre`, `dept-admin`, `province-dept-admin`, `branch-admin` and the operational\
+        \ roles — never a peer `admin` or an `operator`.\n- **Tier 3 (Transversal Admin):** Role `transversal-admin`.\
+        \ Assigned scope (may be national). Can create `transversal-admin` (peer), `exec`, `compliance`,\
+        \ `sre`, `dept-admin`, `province-dept-admin`, `branch-admin` and the operational roles within\
+        \ its scope.\n- **Tier 2 (Department Admin):** Role `dept-admin` / `province-dept-admin`. Department/province\
+        \ scope. Can create `branch-admin` (dept-admin only) and the operational roles within their assigned\
+        \ departments/province.\n- **Tier 1 (Branch Admin):** Role `branch-admin`. Branch scope. Can create\
+        \ the operational roles *only* within their assigned branch.\n- **Tier 0 (Service Ops):** Role\
+        \ `sre`. Estate-wide scope, operational roles only (`soc`, `appsec`, `dbsec`, `province-soc-lead`,\
+        \ `local-appsec`) — no admin tiers.\n\n### Payload Requirements\n- **Employee**: identified either\
+        \ by `identifier_scheme` + `identifier_value`\n  (preferred — e.g. `persal` + an 8-digit PERSAL\
+        \ number) or by `person_id`.\n  Supply exactly one form. Accounts can only be created for employees\n\
+        \  imported from the HR system — there is no path for external or non-employee\n  users.\n- **email**:\
+        \ Must match the HR employee's registered email.\n- **roles**: Must contain valid SITA roles.\n\
+        - **department_ids**: Must contain valid department slugs (e.g., `home-affairs-digital`) if the\
+        \ role requires department scoping.\n- **branch_ids**: If provided, must belong to the specified\
+        \ department.\n\n### Three gates on provisioning\n1. **Delegation** (`can_manage`) — may the caller\
+        \ grant this authority? Roles\n   must be strictly below the caller's tier and the granted scope\
+        \ inside the\n   caller's own.\n2. **Tenancy** (`person_within_scope`) — is this the caller's\
+        \ employee? The\n   HR record's department/branch must fall inside the caller's scope. This is\n\
+        \   separate from gate 1: an in-scope grant does not make a foreign employee\n   in scope.\n3.\
+        \ **Alignment** — a scoped account must sit in the employee's own department.\n\n### Security\n\
+        - Requires `admin_write` permission.\n- Attempts to escalate privileges or scope will result in\
+        \ `HTTP 403 Forbidden`."
+      operationId: create_user_admin_users_post
+      security:
+      - HTTPBearer: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__routers__admin__UserOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/users/{user_id}:
+    patch:
+      tags:
+      - admin
+      summary: Update User
+      operationId: update_user_admin_users__user_id__patch
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: User Id
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdate'
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/app__api__routers__admin__UserOut'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+    delete:
+      tags:
+      - admin
+      summary: Delete User
+      operationId: delete_user_admin_users__user_id__delete
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: user_id
+        in: path
+        required: true
+        schema:
+          type: string
+          title: User Id
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/ipinfo:
+    get:
+      tags:
+      - admin
+      summary: Get Ip Info
+      description: Proxy endpoint for ipapi.co JSON data (CORS-safe).
+      operationId: get_ip_info_admin_ipinfo_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /admin/persons:
+    get:
+      tags:
+      - admin
+      summary: List Persons
+      description: Browse HR-provisioned person records (the only identity source for creating user accounts).
+      operationId: list_persons_admin_persons_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: q
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Q
+      - name: source
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source
+      - name: employment_status
+        in: query
+        required: false
+        schema:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Employment Status
+      - name: page
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 10000
+          minimum: 1
+          default: 1
+          title: Page
+      - name: size
+        in: query
+        required: false
+        schema:
+          type: integer
+          maximum: 200
+          minimum: 1
+          default: 50
+          title: Size
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/persons/by-identifier:
+    get:
+      tags:
+      - admin
+      summary: Find Person By Identifier
+      description: 'Look up a person record by a scheme-qualified employment identifier.
+
+
+        Replaces ad-hoc lookups by employee_number with one that is explicit about
+
+        which identifier is being presented, so a PERSAL number can never be
+
+        mistaken for the originating feed''s own reference.'
+      operationId: find_person_by_identifier_admin_persons_by_identifier_get
+      security:
+      - HTTPBearer: []
+      parameters:
+      - name: scheme
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Scheme
+      - name: value
+        in: query
+        required: true
+        schema:
+          type: string
+          title: Value
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /admin/employment/schemes:
+    get:
+      tags:
+      - admin
+      summary: List Identifier Schemes
+      description: 'The identifier schemes the platform recognises, with their validation rules.
+
+
+        Surfaced so an operator provisioning an account can see which identifier is
+
+        expected rather than discovering the constraint through a 400.'
+      operationId: list_identifier_schemes_admin_employment_schemes_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /admin/hr/sync:
+    post:
+      tags:
+      - admin
+      summary: Hr Sync
+      description: 'Upsert person records from the HR system (PERSAL/payroll or SCIM feed).
+
+
+        Keyed on employee_number. HR sync never modifies roles or department/branch
+
+        scopes — those are set by admins on the linked user. Terminated employees
+
+        are soft-disabled on any linked platform account (is_active=False).'
+      operationId: hr_sync_admin_hr_sync_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              items:
+                $ref: '#/components/schemas/HRSyncRecord'
+              type: array
+              title: Records
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - HTTPBearer: []
+  /admin/hr/sim/employees:
+    get:
+      tags:
+      - admin
+      summary: Sim Hr Employees
+      description: 'Browse the simulated external HR system''s employee master.
+
+
+        Read-only helper so the simulated feed can be inspected before syncing.'
+      operationId: sim_hr_employees_admin_hr_sim_employees_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /admin/hr/sim/sync:
+    post:
+      tags:
+      - admin
+      summary: Hr Sim Sync
+      description: 'Pull every row from the simulated external HR system and run the exact
+
+        same HR sync pipeline used for live feeds (POST /admin/hr/sync).
+
+
+        This is how the HR-only account provisioning flow is tested: the pull lands
+
+        records in identity.persons, which then become the only source that user
+
+        accounts can be provisioned from.'
+      operationId: hr_sim_sync_admin_hr_sim_sync_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+      security:
+      - HTTPBearer: []
+  /health:
+    get:
+      summary: Health
+      operationId: health_health_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+  /health/detailed:
+    get:
+      summary: Health Detailed
+      description: Detailed health check - restricted to internal use
+      operationId: health_detailed_health_detailed_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema: {}
+components:
+  schemas:
+    DemoAccount:
+      properties:
+        email:
+          type: string
+          title: Email
+        label:
+          type: string
+          title: Label
+        role:
+          type: string
+          title: Role
+        department_ids:
+          items:
+            type: string
+          type: array
+          title: Department Ids
+          default: []
+        province_ids:
+          items:
+            type: string
+          type: array
+          title: Province Ids
+          default: []
+        department_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Department Name
+        province_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Province Name
+        is_nationwide:
+          type: boolean
+          title: Is Nationwide
+          default: false
+      type: object
+      required:
+      - email
+      - label
+      - role
+      title: DemoAccount
+    DemoLoginRequest:
+      properties:
+        role:
+          type: string
+          maxLength: 64
+          pattern: ^[a-zA-Z0-9_\-]+$
+          title: Role
+        department_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          title: Department Id
+        branch_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          title: Branch Id
+        province_id:
+          anyOf:
+          - type: string
+            maxLength: 16
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          title: Province Id
+      additionalProperties: false
+      type: object
+      required:
+      - role
+      title: DemoLoginRequest
+    Finding:
+      properties:
+        id:
+          type: string
+          title: Id
+        source:
+          type: string
+          title: Source
+        external_id:
+          type: string
+          title: External Id
+        app_name:
+          type: string
+          title: App Name
+        severity:
+          type: string
+          title: Severity
+        title:
+          type: string
+          title: Title
+        description:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Description
+        category:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Category
+        owasp_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Owasp Id
+        owasp_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Owasp Name
+        cwe_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Cwe Id
+        owasp_status:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Owasp Status
+        taxonomy_version:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Taxonomy Version
+        first_seen:
+          type: string
+          format: date-time
+          title: First Seen
+        last_seen:
+          type: string
+          format: date-time
+          title: Last Seen
+        status:
+          type: string
+          title: Status
+        version:
+          type: integer
+          title: Version
+          default: 1
+      type: object
+      required:
+      - id
+      - source
+      - external_id
+      - app_name
+      - severity
+      - title
+      - first_seen
+      - last_seen
+      - status
+      title: Finding
+    GenerateReportRequest:
+      properties:
+        report_type:
+          type: string
+          title: Report Type
+          description: ID of report to generate (e.g. executive_summary)
+      type: object
+      required:
+      - report_type
+      title: GenerateReportRequest
+    HRSyncRecord:
+      properties:
+        employee_number:
+          type: string
+          title: Employee Number
+        persal_number:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Persal Number
+        source_system:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Source System
+        email:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Email
+        id_number:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Id Number
+        title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Title
+        initials:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Initials
+        surname:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Surname
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        job_title:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Job Title
+        org_unit:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Org Unit
+        department_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Department Id
+        branch_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Branch Id
+        manager_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Manager Id
+        manager_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Manager Name
+        work_phone:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Work Phone
+        location:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Location
+        employment_status:
+          type: string
+          title: Employment Status
+          default: active
+        clearance_level:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Clearance Level
+      type: object
+      required:
+      - employee_number
+      title: HRSyncRecord
+    HTTPValidationError:
+      properties:
+        detail:
+          items:
+            $ref: '#/components/schemas/ValidationError'
+          type: array
+          title: Detail
+      type: object
+      title: HTTPValidationError
+    LoginRequest:
+      properties:
+        email:
+          type: string
+          maxLength: 254
+          title: Email
+        password:
+          type: string
+          maxLength: 128
+          title: Password
+        department_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          title: Department Id
+        branch_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          title: Branch Id
+        province_id:
+          anyOf:
+          - type: string
+            maxLength: 16
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          title: Province Id
+      additionalProperties: false
+      type: object
+      required:
+      - email
+      - password
+      title: LoginRequest
+    LoginResponse:
+      properties:
+        token:
+          type: string
+          title: Token
+        user:
+          $ref: '#/components/schemas/app__api__routers__auth__UserOut'
+      type: object
+      required:
+      - token
+      - user
+      title: LoginResponse
+    PaginatedResponse:
+      properties:
+        items:
+          items: {}
+          type: array
+          title: Items
+        total:
+          type: integer
+          title: Total
+        page:
+          type: integer
+          minimum: 1.0
+          title: Page
+        size:
+          type: integer
+          maximum: 200.0
+          minimum: 1.0
+          title: Size
+        pages:
+          type: integer
+          title: Pages
+          default: 0
+      type: object
+      required:
+      - items
+      - total
+      - page
+      - size
+      title: PaginatedResponse
+    RiskScore:
+      properties:
+        app_name:
+          type: string
+          title: App Name
+        score_date:
+          type: string
+          format: date
+          title: Score Date
+        fused_score:
+          type: number
+          maximum: 100.0
+          minimum: 0.0
+          title: Fused Score
+        signal_appscan:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Signal Appscan
+        signal_imperva:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Signal Imperva
+        signal_api_exposure:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Signal Api Exposure
+        signal_compliance_penalty:
+          anyOf:
+          - type: number
+          - type: 'null'
+          title: Signal Compliance Penalty
+        bucket:
+          type: string
+          title: Bucket
+        computed_at:
+          type: string
+          format: date-time
+          title: Computed At
+      type: object
+      required:
+      - app_name
+      - score_date
+      - fused_score
+      - bucket
+      - computed_at
+      title: RiskScore
+    RiskTrend:
+      properties:
+        app_name:
+          type: string
+          title: App Name
+        trend:
+          items:
+            $ref: '#/components/schemas/RiskScore'
+          type: array
+          title: Trend
+      type: object
+      required:
+      - app_name
+      - trend
+      title: RiskTrend
+    SwitchTenantRequest:
+      properties:
+        department_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          title: Department Id
+        branch_id:
+          anyOf:
+          - type: string
+            maxLength: 64
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          title: Branch Id
+        province_id:
+          anyOf:
+          - type: string
+            maxLength: 16
+            pattern: ^[a-zA-Z0-9_\-]+$
+          - type: 'null'
+          title: Province Id
+      additionalProperties: false
+      type: object
+      title: SwitchTenantRequest
+    TenancyBranch:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+      type: object
+      required:
+      - id
+      - name
+      title: TenancyBranch
+    TenancyDepartment:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        branch_count:
+          type: integer
+          title: Branch Count
+        branches:
+          items:
+            $ref: '#/components/schemas/TenancyBranch'
+          type: array
+          title: Branches
+        province_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Province Id
+      type: object
+      required:
+      - id
+      - name
+      - branch_count
+      - branches
+      title: TenancyDepartment
+    TenancyProvince:
+      properties:
+        id:
+          type: string
+          title: Id
+        name:
+          type: string
+          title: Name
+        department_count:
+          type: integer
+          title: Department Count
+      type: object
+      required:
+      - id
+      - name
+      - department_count
+      title: TenancyProvince
+    TenancyResponse:
+      properties:
+        counts:
+          additionalProperties:
+            type: integer
+          type: object
+          title: Counts
+        departments:
+          items:
+            $ref: '#/components/schemas/TenancyDepartment'
+          type: array
+          title: Departments
+        provinces:
+          items:
+            $ref: '#/components/schemas/TenancyProvince'
+          type: array
+          title: Provinces
+          default: []
+      type: object
+      required:
+      - counts
+      - departments
+      title: TenancyResponse
+    UserCreate:
+      properties:
+        email:
+          type: string
+          title: Email
+        password:
+          type: string
+          minLength: 8
+          title: Password
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        roles:
+          items:
+            type: string
+          type: array
+          title: Roles
+        department_ids:
+          items:
+            type: string
+          type: array
+          title: Department Ids
+        branch_ids:
+          items:
+            type: string
+          type: array
+          title: Branch Ids
+        province_ids:
+          items:
+            type: string
+          type: array
+          title: Province Ids
+        person_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Person Id
+        identifier_scheme:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Identifier Scheme
+        identifier_value:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Identifier Value
+      type: object
+      required:
+      - email
+      - password
+      title: UserCreate
+    UserUpdate:
+      properties:
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        roles:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Roles
+        department_ids:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Department Ids
+        branch_ids:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Branch Ids
+        province_ids:
+          anyOf:
+          - items:
+              type: string
+            type: array
+          - type: 'null'
+          title: Province Ids
+        is_active:
+          anyOf:
+          - type: boolean
+          - type: 'null'
+          title: Is Active
+        password:
+          anyOf:
+          - type: string
+            minLength: 8
+          - type: 'null'
+          title: Password
+        person_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Person Id
+      type: object
+      title: UserUpdate
+    ValidationError:
+      properties:
+        loc:
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+          type: array
+          title: Location
+        msg:
+          type: string
+          title: Message
+        type:
+          type: string
+          title: Error Type
+        input:
+          title: Input
+        ctx:
+          type: object
+          title: Context
+      type: object
+      required:
+      - loc
+      - msg
+      - type
+      title: ValidationError
+    app__api__routers__admin__UserOut:
+      properties:
+        id:
+          type: string
+          title: Id
+        email:
+          type: string
+          title: Email
+        display_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Display Name
+        roles:
+          items:
+            type: string
+          type: array
+          title: Roles
+        department_ids:
+          items:
+            type: string
+          type: array
+          title: Department Ids
+        branch_ids:
+          items:
+            type: string
+          type: array
+          title: Branch Ids
+        province_ids:
+          items:
+            type: string
+          type: array
+          title: Province Ids
+          default: []
+        department_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Department Id
+        department_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Department Name
+        province_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Province Name
+        branch_names:
+          items:
+            type: string
+          type: array
+          title: Branch Names
+          default: []
+        is_active:
+          type: boolean
+          title: Is Active
+        created_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Created At
+        updated_at:
+          anyOf:
+          - type: string
+            format: date-time
+          - type: 'null'
+          title: Updated At
+      type: object
+      required:
+      - id
+      - email
+      - roles
+      - department_ids
+      - branch_ids
+      - is_active
+      title: UserOut
+    app__api__routers__auth__UserOut:
+      properties:
+        sub:
+          type: string
+          title: Sub
+        email:
+          type: string
+          title: Email
+        roles:
+          items:
+            type: string
+          type: array
+          title: Roles
+        name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Name
+        department_ids:
+          items:
+            type: string
+          type: array
+          title: Department Ids
+          default: []
+        branch_ids:
+          items:
+            type: string
+          type: array
+          title: Branch Ids
+          default: []
+        province_ids:
+          items:
+            type: string
+          type: array
+          title: Province Ids
+          default: []
+        department_id:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Department Id
+        department_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Department Name
+        province_name:
+          anyOf:
+          - type: string
+          - type: 'null'
+          title: Province Name
+        branch_names:
+          items:
+            type: string
+          type: array
+          title: Branch Names
+          default: []
+      type: object
+      required:
+      - sub
+      - email
+      - roles
+      title: UserOut
+  securitySchemes:
+    HTTPBearer:
+      type: http
+      scheme: bearer

@@ -32,7 +32,7 @@ def test_every_registered_destination_is_informed():
 
 
 def test_the_documented_destinations_are_all_registered():
-    """The six external systems identified in the gap analysis."""
+    """Every external system the codebase actually reaches."""
     for destination_id in (
         "appscan",
         "imperva",
@@ -41,6 +41,7 @@ def test_the_documented_destinations_are_all_registered():
         "teams",
         "ipapi",
         "smtp",
+        "aimi",
     ):
         assert destination_id in TRANSFER_REGISTER
 
@@ -60,9 +61,25 @@ def test_appscan_is_registered_as_an_unauthorised_cross_border_pull():
     assert dest.authorised is False
 
 
-def test_onshore_smtp_is_the_only_authorised_destination():
+def test_only_the_two_documented_destinations_are_authorised():
+    """Exactly two transfers have a basis on file, and no others.
+
+    This asserted a single authorised destination until AIMI was signed off as
+    the inference provider, so the list moved from one to two. It is written as
+    an explicit equality rather than a length check on purpose: the failure this
+    test exists to catch is an *unregistered* transfer becoming authorised, and
+    ``len(...) >= 1`` would not notice that happening.
+    """
     authorised = [d.id for d in TRANSFER_REGISTER.values() if d.authorised]
-    assert authorised == ["smtp"]
+    assert authorised == ["smtp", "aimi"]
+
+
+def test_the_two_authorised_destinations_have_a_stated_basis():
+    for dest in TRANSFER_REGISTER.values():
+        if not dest.authorised:
+            continue
+        assert dest.transfer_mechanism, f"{dest.id} must state its basis"
+        assert dest.data_classes, f"{dest.id} must state what it carries"
 
 
 def test_cross_border_property():

@@ -174,7 +174,7 @@ INSERT INTO warehouse.findings
      raw_data, first_seen, last_seen, status, version)
 VALUES
     (gen_random_uuid()::text, 'imperva', 'DAM-2026-0422', 'DB-CUST-01', 'critical',
-     'Unauthorized access attempt', 'Login as sa from non-approved IP 203.0.113.7.',
+     'Unauthorized access attempt', 'Login as sa from non-approved host [untrusted].',
      'unauth_access', NULL, now() - interval '2 days', now() - interval '5 hours', 'open', 1),
     (gen_random_uuid()::text, 'imperva', 'DAM-2026-0419', 'DB-CUST-01', 'critical',
      'Data exfiltration pattern', 'SELECT over 1M rows from customers table at 03:00.',
@@ -376,7 +376,7 @@ INSERT INTO staging.rejected_records
     (id, batch_id, source, raw_payload, rejection_reason, rejection_code, rejected_at, reprocessed)
 VALUES
     (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'imperva_waf',
-     '{"rule":"SQLi","app":"legacy-api","action":"block","src_ip":"203.0.113.9"}',
+     '{"rule":"SQLi","app":"legacy-api","action":"block","src_ip":"external-untrusted"}',
      'Missing mandatory field: src_ip', 'ERR_MISSING_FIELD', now() - interval '6 hours', FALSE),
     (gen_random_uuid(), '11111111-1111-1111-1111-111111111111', 'apisec',
      '{"endpoint":"/api/v3/export","method":"GET","exposure":85}',

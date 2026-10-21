@@ -2,10 +2,15 @@ import api from './client';
 
 export interface ReportMeta {
   report_type: string;
-  name: string;
-  target_audience: string;
-  classification: string;
-  allowed_roles: string[];
+  name?: string;
+  title?: string;
+  target_audience?: string;
+  description?: string;
+  classification?: string;
+  claim_class?: string;
+  cadence?: string;
+  icon?: string;
+  allowed_roles?: string[];
 }
 
 export interface VerificationResult {

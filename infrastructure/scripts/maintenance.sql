@@ -154,7 +154,10 @@ SELECT cron.schedule('retire-separated-persons', '0 4 * * *',
 SELECT cron.schedule('retire-deactivated-users', '0 4 * * *',
     $cron$
     UPDATE identity.users
-       SET password_hash = '[erased]',
+       -- nosec: This is intentional credential erasure, not hashing for authentication.
+       -- gen_random_bytes provides cryptographically strong entropy to overwrite
+       -- the password_hash so the dormant account cannot be replayed.
+       SET password_hash = encode(gen_random_bytes(32), 'hex'),
            is_active = FALSE
      WHERE is_active = FALSE
        AND updated_at < now() - INTERVAL '30 days';

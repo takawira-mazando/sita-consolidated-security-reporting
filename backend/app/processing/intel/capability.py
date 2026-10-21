@@ -21,16 +21,34 @@ English it contains. Nine propositions failed that bar and now carry an empty
 residue, which drops them from any AI business case and returns them to the
 engineering backlog where they belong.
 
-The four survivors
-------------------
+The survivors
+--------------
+Five propositions cleared that bar:
+
 - **AVP-2** Authoring a working detection rule. The mapping from a technique to
   a logsource to a field predicate is authored, not looked up.
 - **AVP-3** Attributing an observed campaign to *this* estate. Reading threat
   reporting and judging whether it names this sector and this technique set.
 - **AVP-5** Applying a statutory test to technical facts. Deciding whether a
   given incident meets the POPIA s.22 threshold is a legal judgement.
+- **AVP-8** Explaining a measured risk movement against external threat
+  activity. Which indicator accounts for movement the arithmetic already saw.
 - **AVP-11** Explaining a behavioural sequence across many audit rows. Each row
   is a query; the pattern across them is not.
+
+Which are served, and by what
+------------------------------
+A declared residue and a served residue are different states, and the registry
+tracks them separately: ``residue_backed_by`` names the provider serving it, and
+``residue_not_wired_because`` explains an absence. Two are wired to AIMI through
+``app.ai.aimi.enrichment`` — AVP-3 and AVP-8. Three are not: AVP-2 because the
+available tool emits a rule dialect the platform cannot use, AVP-5 because the
+statutory judgement is not delegated, and AVP-11 because there is no tool and no
+lawful payload. The reasons are recorded on the propositions rather than here so
+they travel with the manifest that clients read.
+
+Every wired residue is additive. The deterministic result is computed first and
+is authoritative; a provider outage degrades a report rather than failing it.
 """
 from __future__ import annotations
 
@@ -65,6 +83,15 @@ class Proposition:
     #: The one deliverable impossible without a model. Empty means no AI residue.
     residue: str = ""
     residue_gate: str = ""
+    #: Where the residue is served from, once a provider is wired. Empty means
+    #: the residue is declared but not yet backed — which is a different state
+    #: from "has no residue", and is reported separately in the manifest so the
+    #: two cannot be confused. See ``app.ai.aimi.enrichment`` for the two that
+    #: are wired and the reasons the other three are not.
+    residue_backed_by: str = ""
+    #: Why a declared residue is not wired. Empty when it is wired, or when the
+    #: proposition carries no residue at all.
+    residue_not_wired_because: str = ""
     #: Why this proposition has no AI residue, when it has none.
     demoted_because: str = ""
 
@@ -122,6 +149,14 @@ REGISTRY: dict[str, Proposition] = {
                 "in the platform's own alert_rules.yaml shape."
             ),
             residue_gate=DETECTION_CONTENT,
+            residue_not_wired_because=(
+                "tool_aimi_detection_engineer takes a single technique_id and "
+                "emits Sigma/Suricata/Wazuh. It cannot choose the OEM source or "
+                "the normalised field, which is most of what the residue asks "
+                "for, and its output is not in alert_rules.yaml shape. "
+                "author_rules.py already covers six techniques deterministically; "
+                "wiring the tool without a translation layer would deliver less."
+            ),
         ),
         Proposition(
             avp="AVP-3",
@@ -140,6 +175,10 @@ REGISTRY: dict[str, Proposition] = {
                 "technique set onto the techniques this estate is exposed to."
             ),
             residue_gate=THREAT_ENRICHMENT,
+            residue_backed_by=(
+                "app.ai.aimi.enrichment.enrich_campaign_attribution via "
+                "tool_aimi_ioc_correlate"
+            ),
         ),
         Proposition(
             avp="AVP-4",
@@ -183,6 +222,13 @@ REGISTRY: dict[str, Proposition] = {
                 "draft the notification narrative for a human to approve."
             ),
             residue_gate=LEGAL_GUIDANCE,
+            residue_not_wired_because=(
+                "tool_aimi_regulatory_guide is documented for fraud and AML "
+                "scenarios, which is FIC framing rather than POPIA data-breach "
+                "framing, and the residue is a statutory judgement that "
+                "compliance has not delegated to a third party. See "
+                "app.ai.aimi.enrichment for the pairing that would be needed."
+            ),
         ),
         Proposition(
             avp="AVP-6",
@@ -232,6 +278,10 @@ REGISTRY: dict[str, Proposition] = {
                 "for the movement the arithmetic already measured."
             ),
             residue_gate=THREAT_ENRICHMENT,
+            residue_backed_by=(
+                "app.ai.aimi.enrichment.enrich_risk_delta_causal via "
+                "tool_aimi_playbook_attack"
+            ),
         ),
         Proposition(
             avp="AVP-9",
@@ -285,6 +335,15 @@ REGISTRY: dict[str, Proposition] = {
                 "rule would flag."
             ),
             residue_gate=DETECTION_CONTENT,
+            residue_not_wired_because=(
+                "Two independent blockers. No AIMI tool reads an event sequence "
+                "and explains it: tool_aimi_cluster_detect clusters ATT&CK "
+                "techniques, not audit rows. And app.processing.intel.privilege "
+                "designates identity.* and audit.action_audit as NEVER_READ with "
+                "no model path, per NFR-AI-11, so there is no lawful payload to "
+                "send. Sending audit rows to a third party would reverse a "
+                "governance decision that is currently enforced."
+            ),
         ),
         Proposition(
             avp="AVP-12",
@@ -333,6 +392,20 @@ def residues() -> dict[str, str]:
     return {a: p.residue for a, p in REGISTRY.items() if p.residue}
 
 
+def wired_residues() -> dict[str, str]:
+    """Residues that a provider is actually serving, and which one."""
+    return {a: p.residue_backed_by for a, p in REGISTRY.items() if p.residue_backed_by}
+
+
+def unwired_residues() -> dict[str, str]:
+    """Residues that are declared but not served, and why."""
+    return {
+        a: p.residue_not_wired_because
+        for a, p in REGISTRY.items()
+        if p.residue and not p.residue_backed_by
+    }
+
+
 def demoted() -> dict[str, str]:
     """Propositions with no AI residue, and the reason each was dropped."""
     return {a: p.demoted_because for a, p in REGISTRY.items() if not p.residue}
@@ -364,6 +437,8 @@ def manifest() -> dict:
             "requires_model": prop.requires_model,
             "ai_residue": prop.residue,
             "residue_gate": prop.residue_gate,
+            "residue_backed_by": prop.residue_backed_by,
+            "residue_not_wired_because": prop.residue_not_wired_because,
             "demoted_because": prop.demoted_because,
             "deterministic_parts": [
                 {"name": p.name, "shipped": p.shipped,
@@ -387,6 +462,8 @@ def manifest() -> dict:
         "requires_model_count": sum(1 for p in REGISTRY.values() if p.requires_model),
         "demoted_count": sum(1 for p in REGISTRY.values() if not p.residue),
         "with_ai_residue": sorted(residues(), key=key),
+        "residue_backed_by_provider": sorted(wired_residues(), key=key),
+        "residue_declared_but_unwired": sorted(unwired_residues(), key=key),
         "demoted_to_engineering": sorted(demoted(), key=key),
         "shipped": {a: [p.name for p in parts]
                     for a, parts in sorted(shipped_parts().items(), key=lambda kv: key(kv[0]))},

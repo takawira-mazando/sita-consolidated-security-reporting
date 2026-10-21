@@ -39,30 +39,27 @@ DEMO_ACCOUNTS = [
     # entitlement: /demo-login issues it by default and any scope override
     # must stay within it (scope_covers). Nationwide personas (exec,
     # compliance, sre, transversal-admin) hold an empty scope = whole estate.
-    {"email": "exec@example.com", "password": "pass123", "roles": ["exec"], "label": "Executive", "role": "exec", "department_ids": []},  # nosec B105
-    {"email": "soc@example.com", "password": "pass123", "roles": ["soc"], "label": "SOC Analyst", "role": "soc", "department_ids": ["home-affairs-digital"]},  # nosec B105
-    {"email": "appsec@example.com", "password": "pass123", "roles": ["appsec"], "label": "AppSec", "role": "appsec", "department_ids": ["home-affairs-digital", "treasury"]},  # nosec B105
-    {"email": "dbsec@example.com", "password": "pass123", "roles": ["dbsec"], "label": "DB Security", "role": "dbsec", "department_ids": ["home-affairs-digital", "dpsa-hr"]},  # nosec B105
-    {"email": "compliance@example.com", "password": "pass123", "roles": ["compliance"], "label": "Compliance", "role": "compliance", "department_ids": []},  # nosec B105
-    {"email": "sre@example.com", "password": "pass123", "roles": ["sre"], "label": "Service Ops", "role": "sre", "department_ids": []},  # nosec B105
-    {"email": "deptadmin@example.com", "password": "pass123", "roles": ["dept-admin"], "label": "Dept Admin", "role": "dept-admin", "department_ids": ["treasury"]},  # nosec B105
-    {"email": "branchadmin@example.com", "password": "pass123", "roles": ["branch-admin"], "label": "Branch Admin", "role": "branch-admin", "department_ids": ["treasury"]},  # nosec B105
-    {"email": "transversal@example.com", "password": "pass123", "roles": ["transversal-admin"], "label": "Transversal Admin", "role": "transversal-admin", "department_ids": []},  # nosec B105
-    {"email": "provincesoc@example.com", "password": "pass123", "roles": ["province-soc-lead"], "label": "Provincial SOC Lead", "role": "province-soc-lead", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
-    {"email": "provdeptadmin@example.com", "password": "pass123", "roles": ["province-dept-admin"], "label": "Provincial Dept Admin", "role": "provdeptadmin", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
-    {"email": "localappsec@example.com", "password": "pass123", "roles": ["local-appsec"], "label": "Local AppSec", "role": "localappsec", "department_ids": ["gp-health"], "province_ids": ["gp"]},  # nosec B105
-    {"email": "admin@example.com", "password": "admin123", "roles": ["admin"] + ALL_ROLES, "label": "Admin", "role": "admin", "department_ids": []},  # nosec B105
-    # Managed-service creator: the platform provider's own credential. Holds
-    # no dashboard — its sole function is to create the SITA superuser
-    # (`admin`) from the HR pool, plus peer operators for rotation.
-    {"email": "operator@example.com", "password": "operator123", "roles": ["operator", "admin"] + ALL_ROLES, "label": "Platform Operator", "role": "operator", "department_ids": []},  # nosec B105
+    {"email": "exec@example.com", "password": "Sita#Exec2026!Strategic", "roles": ["exec"], "label": "Executive", "role": "exec", "department_ids": []},  # nosec B105
+    {"email": "soc@example.com", "password": "Sita#SocAnalyst2026!Triage", "roles": ["soc"], "label": "SOC Analyst", "role": "soc", "department_ids": ["home-affairs-digital"]},  # nosec B105
+    {"email": "appsec@example.com", "password": "Sita#AppSec2026!Remediation", "roles": ["appsec"], "label": "AppSec", "role": "appsec", "department_ids": ["home-affairs-digital", "treasury"]},  # nosec B105
+    {"email": "dbsec@example.com", "password": "Sita#DbSec2026!Guardrails", "roles": ["dbsec"], "label": "DB Security", "role": "dbsec", "department_ids": ["home-affairs-digital", "dpsa-hr"]},  # nosec B105
+    {"email": "compliance@example.com", "password": "Sita#Compliance2026!Audit", "roles": ["compliance"], "label": "Compliance", "role": "compliance", "department_ids": []},  # nosec B105
+    {"email": "sre@example.com", "password": "Sita#OpsSre2026!Infra", "roles": ["sre"], "label": "Service Ops", "role": "sre", "department_ids": []},  # nosec B105
+    {"email": "deptadmin@example.com", "password": "Sita#DeptAdmin2026!Control", "roles": ["dept-admin"], "label": "Dept Admin", "role": "dept-admin", "department_ids": ["treasury"]},  # nosec B105
+    {"email": "branchadmin@example.com", "password": "Sita#BranchAdmin2026!Field", "roles": ["branch-admin"], "label": "Branch Admin", "role": "branch-admin", "department_ids": ["treasury"]},  # nosec B105
+    {"email": "transversal@example.com", "password": "Sita#Transversal2026!Estate", "roles": ["transversal-admin"], "label": "Transversal Admin", "role": "transversal-admin", "department_ids": []},  # nosec B105
+    {"email": "provincesoc@example.com", "password": "Sita#ProvSoc2026!Regional", "roles": ["province-soc-lead"], "label": "Provincial SOC Lead", "role": "province-soc-lead", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
+    {"email": "provdeptadmin@example.com", "password": "Sita#ProvAdmin2026!Regional", "roles": ["province-dept-admin"], "label": "Provincial Dept Admin", "role": "provdeptadmin", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
+    {"email": "localappsec@example.com", "password": "Sita#LocalAppSec2026!Field", "roles": ["local-appsec"], "label": "Local AppSec", "role": "localappsec", "department_ids": ["gp-health"], "province_ids": ["gp"]},  # nosec B105
+    {"email": "admin@example.com", "password": "Sita#Admin2026!Enterprise", "roles": ["admin"] + ALL_ROLES, "label": "Admin", "role": "admin", "department_ids": []},  # nosec B105
+    {"email": "operator@example.com", "password": "Sita#Operator2026!Platform", "roles": ["operator", "admin"] + ALL_ROLES, "label": "Platform Operator", "role": "operator", "department_ids": []},  # nosec B105
 
     # Home Affairs department-scoped demo accounts
-    {"email": "soc-ha@example.com", "password": "pass123", "roles": ["soc"], "label": "SOC Analyst (Home Affairs)", "role": "soc-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
-    {"email": "appsec-ha@example.com", "password": "pass123", "roles": ["appsec"], "label": "AppSec (Home Affairs)", "role": "appsec-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
-    {"email": "dbsec-ha@example.com", "password": "pass123", "roles": ["dbsec"], "label": "DB Security (Home Affairs)", "role": "dbsec-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
-    {"email": "deptadmin-ha@example.com", "password": "pass123", "roles": ["dept-admin"], "label": "Dept Admin (Home Affairs)", "role": "deptadmin-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
-    {"email": "branchadmin-ha@example.com", "password": "pass123", "roles": ["branch-admin"], "label": "Branch Admin (Home Affairs)", "role": "branchadmin-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "soc-ha@example.com", "password": "Sita#SocAnalyst2026!Triage", "roles": ["soc"], "label": "SOC Analyst (Home Affairs)", "role": "soc-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "appsec-ha@example.com", "password": "Sita#AppSec2026!Remediation", "roles": ["appsec"], "label": "AppSec (Home Affairs)", "role": "appsec-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "dbsec-ha@example.com", "password": "Sita#DbSec2026!Guardrails", "roles": ["dbsec"], "label": "DB Security (Home Affairs)", "role": "dbsec-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "deptadmin-ha@example.com", "password": "Sita#DeptAdmin2026!Control", "roles": ["dept-admin"], "label": "Dept Admin (Home Affairs)", "role": "deptadmin-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "branchadmin-ha@example.com", "password": "Sita#BranchAdmin2026!Field", "roles": ["branch-admin"], "label": "Branch Admin (Home Affairs)", "role": "branchadmin-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
 ]
 
 LOGIN_WINDOW_SECONDS = 60
@@ -334,7 +331,7 @@ def _account_default_scope(user: User) -> tuple[list[str], list[str], list[str]]
     )
 
 
-def _audit_auth(
+async def _audit_auth(
     session: AsyncSession,
     request: Request | None,
     action: str,
@@ -359,7 +356,7 @@ def _audit_auth(
     if reason:
         detail["reason"] = reason
 
-    record_access(
+    await record_access(
         session,
         action=action,
         actor=actor,
@@ -375,7 +372,7 @@ def _audit_auth(
     )
 
 
-def _audit_auth_denied(
+async def _audit_auth_denied(
     session: AsyncSession,
     request: Request | None,
     action: str,
@@ -383,7 +380,7 @@ def _audit_auth_denied(
     status_code: int,
     reason: str,
 ) -> None:
-    _audit_auth(
+    await _audit_auth(
         session,
         request,
         action,
@@ -405,12 +402,12 @@ async def login(
         await session.execute(select(User).where(User.email == attempted))
     ).scalar_one_or_none()
     if user is None or not verify_password(body.password, user.password_hash):
-        _audit_auth_denied(
+        await _audit_auth_denied(
             session, request, "auth.login_failed", attempted, 401, "invalid_credentials"
         )
         raise HTTPException(status_code=401, detail="Invalid email or password")
     if not user.is_active:
-        _audit_auth_denied(
+        await _audit_auth_denied(
             session, request, "auth.login_failed", attempted, 403, "account_disabled"
         )
         raise HTTPException(status_code=403, detail="Account is disabled")
@@ -419,7 +416,7 @@ async def login(
             body.department_id, body.branch_id, body.province_id
         )
         if not scope_covers(_scope_claims(user), depts, branches, provinces):
-            _audit_auth_denied(
+            await _audit_auth_denied(
                 session, request, "auth.login_failed", attempted, 403, "scope_escalation"
             )
             raise HTTPException(
@@ -427,10 +424,10 @@ async def login(
                 detail="Requested tenancy scope is outside your assigned scope",
             )
         issued = _issue(user, depts, branches, provinces)
-        _audit_auth(session, request, "auth.login", attempted, "success", issued)
+        await _audit_auth(session, request, "auth.login", attempted, "success", issued)
         return issued
     issued = _issue(user)
-    _audit_auth(session, request, "auth.login", attempted, "success", issued)
+    await _audit_auth(session, request, "auth.login", attempted, "success", issued)
     return issued
 
 
@@ -453,7 +450,7 @@ async def demo_login(
         await session.execute(select(User).where(User.email == account["email"]))
     ).scalar_one_or_none()
     if user is None or not user.is_active:
-        _audit_auth_denied(
+        await _audit_auth_denied(
             session, request, "auth.login_failed", account["email"], 401, "demo_unavailable"
         )
         raise HTTPException(status_code=401, detail="Demo account not available")
@@ -462,7 +459,7 @@ async def demo_login(
             body.department_id, body.branch_id, body.province_id
         )
         if not scope_covers(_scope_claims(user), depts, branches, provinces):
-            _audit_auth_denied(
+            await _audit_auth_denied(
                 session, request, "auth.login_failed", account["email"], 403, "scope_escalation"
             )
             raise HTTPException(
@@ -470,14 +467,14 @@ async def demo_login(
                 detail="Requested tenancy scope is outside this demo account's scope",
             )
         issued = _issue(user, depts, branches, provinces)
-        _audit_auth(session, request, "auth.demo_login", account["email"], "success", issued)
+        await _audit_auth(session, request, "auth.demo_login", account["email"], "success", issued)
         return issued
     # No override: demo accounts sign in as their admin-set (seeded) tenancy —
     # nationwide personas get the whole estate, department-scoped and
     # provincial personas get exactly their tenant subtree.
     depts, branches, provinces = _account_default_scope(user)
     issued = _issue(user, depts, branches, provinces)
-    _audit_auth(session, request, "auth.demo_login", account["email"], "success", issued)
+    await _audit_auth(session, request, "auth.demo_login", account["email"], "success", issued)
     return issued
 
 
@@ -629,7 +626,7 @@ async def switch_tenant(
     """
     # Restrict tenant switching to admin/transversal-admin roles only
     if not any(r in claims.roles for r in ["admin", "transversal-admin", "operator"]):
-        _audit_auth_denied(
+        await _audit_auth_denied(
             session,
             request,
             "auth.switch_tenant",
@@ -645,7 +642,7 @@ async def switch_tenant(
         await session.execute(select(User).where(User.id == claims.sub))
     ).scalar_one_or_none()
     if user is None or not user.is_active:
-        _audit_auth_denied(
+        await _audit_auth_denied(
             session,
             request,
             "auth.switch_tenant",
@@ -659,7 +656,7 @@ async def switch_tenant(
             body.department_id, body.branch_id, body.province_id
         )
         if not scope_covers(_scope_claims(user), depts, branches, provinces):
-            _audit_auth_denied(
+            await _audit_auth_denied(
                 session,
                 request,
                 "auth.switch_tenant",
@@ -676,7 +673,7 @@ async def switch_tenant(
         depts, branches, provinces = _account_default_scope(user)
         issued = _issue(user, depts, branches, provinces)
 
-    _audit_auth(
+    await _audit_auth(
         session,
         request,
         "auth.switch_tenant",
