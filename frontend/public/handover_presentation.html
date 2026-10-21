@@ -287,9 +287,9 @@
     <p class="slide-sub" style="margin-bottom:16px;">AI is a strictly isolated read path layered above the warehouse. The model never runs in ingestion or dispatch.</p>
     <div class="g4" style="margin-top:10px;">
       <div class="card" style="border-top:3px solid #3b82f6;">
-        <div style="font-size:11px;font-weight:700;color:#3b82f6;margin-bottom:4px;text-transform:uppercase;">Layer 1 · Scope Gate</div>
-        <h4 style="font-size:13px;margin-bottom:6px;">Deterministic · No Model</h4>
-        <p style="font-size:12px;color:var(--muted);line-height:1.5;">Default-deny RBAC via <code>tenant_filter()</code>. Freezes scope hash. Model structurally cannot receive cross-department data.</p>
+        <div style="font-size:11px;font-weight:700;color:#3b82f6;margin-bottom:4px;text-transform:uppercase;">Layer 1 · Scope &amp; RBAC Gate</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">Deterministic · Dual Axis</h4>
+        <p style="font-size:12px;color:var(--muted);line-height:1.5;">Tenancy subtree isolation (Where) + Role Catalog Authorization (What). Model cannot see cross-department data OR unauthorized reports.</p>
       </div>
       <div class="card" style="border-top:3px solid #06b6d4;">
         <div style="font-size:11px;font-weight:700;color:#06b6d4;margin-bottom:4px;text-transform:uppercase;">Layer 2 · Fact Assembly</div>
@@ -308,6 +308,71 @@
       </div>
     </div>
   </div>
+
+  
+  <!-- 6d. AI RBAC WITHIN TENANCY -->
+  <div class="slide" data-act="Act 2 · Architecture">
+    <div class="eyebrow" style="color:var(--amber)"><span class="dot" style="background:var(--amber)"></span>Granular RBAC Within Tenancy</div>
+    <h2 class="slide-title" style="font-size:clamp(20px,2.8vw,36px); margin-bottom:18px;">AI Respects <span style="background:linear-gradient(135deg,#f59e0b,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">RBAC Within the Same Department.</span></h2>
+    <p class="slide-sub" style="margin-bottom:16px;">Tenancy controls the <strong>organization</strong> (Home Affairs vs Treasury). RBAC controls the <strong>clearance</strong> (Exec vs SOC vs AppSec vs Compliance).</p>
+    <div class="g4" style="margin-top:10px;">
+      <div class="card" style="border-top:3px solid #f59e0b;">
+        <div style="font-size:10px;font-weight:700;color:#f59e0b;text-transform:uppercase;margin-bottom:4px;">Executive (exec-ha)</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">Strategic Briefing</h4>
+        <p style="font-size:11.5px;color:var(--muted);line-height:1.5;">Receives business service impact, blast radius, risk gauges. <strong>Blocked</strong> from raw code sinks and CVE traces.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #3b82f6;">
+        <div style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase;margin-bottom:4px;">SOC Analyst (soc-ha)</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">Threat &amp; DAM Alerts</h4>
+        <p style="font-size:11.5px;color:var(--muted);line-height:1.5;">Receives DAM alert clusters, MITRE technique tags (T1190), D3FEND countermeasures. <strong>Blocked</strong> from AG audits.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #06b6d4;">
+        <div style="font-size:10px;font-weight:700;color:#06b6d4;text-transform:uppercase;margin-bottom:4px;">AppSec (appsec-ha)</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">Vulnerability Posture</h4>
+        <p style="font-size:11.5px;color:var(--muted);line-height:1.5;">Receives OWASP Top 10 breakdown, CWE traces, remediation diffs. <strong>Blocked</strong> from executive budgets and citizen PII.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #22c55e;">
+        <div style="font-size:10px;font-weight:700;color:#22c55e;text-transform:uppercase;margin-bottom:4px;">Compliance (compliance-ha)</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">POPIA &amp; AGSA Brief</h4>
+        <p style="font-size:11.5px;color:var(--muted);line-height:1.5;">Receives POPIA s.22 breach windows, ISO 27001 gaps, signed attestations. <strong>Blocked</strong> from technical exploit strings.</p>
+      </div>
+    </div>
+    <div class="quote" style="margin-top:16px;">
+      <p>"Four colleagues sitting in the exact same Home Affairs building receive completely different AI reports and claims matching their specific security clearance."</p>
+    </div>
+  </div>
+  <!-- 6d. AI RBAC WITHIN TENANCY -->
+  <div class="slide" data-act="Act 2 · Architecture">
+    <div class="eyebrow" style="color:var(--amber)"><span class="dot" style="background:var(--amber)"></span>Granular RBAC Within Tenancy</div>
+    <h2 class="slide-title" style="font-size:clamp(20px,2.8vw,36px); margin-bottom:18px;">AI Respects <span style="background:linear-gradient(135deg,#f59e0b,#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">RBAC Within the Same Department.</span></h2>
+    <p class="slide-sub" style="margin-bottom:16px;">Tenancy controls the <strong>organization</strong> (Home Affairs vs Treasury). RBAC controls the <strong>clearance</strong> (Exec vs SOC vs AppSec vs Compliance).</p>
+    <div class="g4" style="margin-top:10px;">
+      <div class="card" style="border-top:3px solid #f59e0b;">
+        <div style="font-size:10px;font-weight:700;color:#f59e0b;text-transform:uppercase;margin-bottom:4px;">Executive (exec-ha)</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">Strategic Briefing</h4>
+        <p style="font-size:11.5px;color:var(--muted);line-height:1.5;">Receives business service impact, blast radius, risk gauges. <strong>Blocked</strong> from raw code sinks and CVE traces.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #3b82f6;">
+        <div style="font-size:10px;font-weight:700;color:#3b82f6;text-transform:uppercase;margin-bottom:4px;">SOC Analyst (soc-ha)</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">Threat &amp; DAM Alerts</h4>
+        <p style="font-size:11.5px;color:var(--muted);line-height:1.5;">Receives DAM alert clusters, MITRE technique tags (T1190), D3FEND countermeasures. <strong>Blocked</strong> from AG audits.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #06b6d4;">
+        <div style="font-size:10px;font-weight:700;color:#06b6d4;text-transform:uppercase;margin-bottom:4px;">AppSec (appsec-ha)</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">Vulnerability Posture</h4>
+        <p style="font-size:11.5px;color:var(--muted);line-height:1.5;">Receives OWASP Top 10 breakdown, CWE traces, remediation diffs. <strong>Blocked</strong> from executive budgets and citizen PII.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #22c55e;">
+        <div style="font-size:10px;font-weight:700;color:#22c55e;text-transform:uppercase;margin-bottom:4px;">Compliance (compliance-ha)</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">POPIA &amp; AGSA Brief</h4>
+        <p style="font-size:11.5px;color:var(--muted);line-height:1.5;">Receives POPIA s.22 breach windows, ISO 27001 gaps, signed attestations. <strong>Blocked</strong> from technical exploit strings.</p>
+      </div>
+    </div>
+    <div class="quote" style="margin-top:16px;">
+      <p>"Four colleagues sitting in the exact same Home Affairs building receive completely different AI reports and claims matching their specific security clearance."</p>
+    </div>
+  </div>
+
 
   <!-- 6c. AI ZERO-LOG & PRIVACY -->
   <div class="slide" data-act="Act 2 · Architecture">

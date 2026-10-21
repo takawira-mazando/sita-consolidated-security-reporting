@@ -1010,14 +1010,14 @@
       <div class="slide-tag">Grounded AI Architecture &amp; Control</div>
       <h2 class="slide-title">The 4-Layer Control Model: <span class="hl-sapphire">Only Layer 3 Holds a Model</span></h2>
       <p class="slide-desc">
-        The AI engine is a strictly isolated read path layered above PostgreSQL. Three of the four layers are deterministic, mathematically guaranteeing that tenant containment, numeral fidelity, and data privacy hold with the model stopped.
+        The AI engine is a strictly isolated read path layered above PostgreSQL. Three of the four layers are deterministic, mathematically guaranteeing that tenant containment, role-based access control (RBAC), and data privacy hold with the model stopped.
       </p>
       <div class="grid-4" style="margin-top: 1.25rem;">
         <div class="card accent-sapphire">
           <div class="card-num">LAYER 01</div>
-          <h3 class="card-title">Scope Gate (Deterministic)</h3>
+          <h3 class="card-title">Scope &amp; RBAC Gate</h3>
           <p class="card-body">
-            Default-deny enforcement via <code>tenant_filter()</code>. Freezes immutable <code>scope_hash</code>. The model structurally cannot receive data outside the caller's authorized department or branch.
+            <strong>Dual-axis enforcement</strong>: Tenancy scoping via <code>tenant_filter()</code> <em>plus</em> Role RBAC gating via <code>can_access_report()</code>. Freezes <code>scope_hash</code>. Barred from cross-department data AND unauthorized report types.
           </p>
         </div>
         <div class="card accent-cyan">
@@ -1044,8 +1044,54 @@
       </div>
     </div>
 
-    <!-- SLIDE: ZERO-LOG AI & POPIA COMPLIANCE -->
+    
+    <!-- SLIDE: AI RBAC WITHIN TENANCY -->
     <div class="slide" data-index="9">
+      <div class="slide-tag">Granular Persona Clearance &amp; RBAC</div>
+      <h2 class="slide-title">AI Respects RBAC <span class="hl-gold">Within Each Department</span></h2>
+      <p class="slide-desc">
+        Tenancy defines <strong>where</strong> an analyst may look (Department/Branch isolation). RBAC defines <strong>what</strong> they are cleared to see. Two users in the same department receive completely different AI briefings and claim classes.
+      </p>
+      <table class="slide-table" style="margin-top: 1.1rem;">
+        <thead>
+          <tr>
+            <th>Persona (DHA Example)</th>
+            <th>Authorized AI Report Catalog</th>
+            <th>AI Fact-Pack Clearance (Layer 2)</th>
+            <th>Layer 4 Output Claim Classes Allowed</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Executive (exec-ha)</strong><br><span style="font-size:0.75rem;color:var(--dim)">Director-General / DDG</span></td>
+            <td>Executive Security Posture Briefing (<code>executive_summary</code>)</td>
+            <td>Strategic aggregate risk scores, business service impacts, blast radiuses, budget urgency</td>
+            <td><code>headline_metrics</code>, <code>risk_buckets</code>, <code>business_impact</code><br><span style="color:var(--crimson);font-size:0.72rem;">DENIED: raw CVE payloads, code sinks</span></td>
+          </tr>
+          <tr>
+            <td><strong>SOC Analyst (soc-ha)</strong><br><span style="font-size:0.75rem;color:var(--dim)">Security Operations Center</span></td>
+            <td>SOC Threat Intel Brief, Incident Summary (<code>threat_intel_brief</code>, <code>incident_summary</code>)</td>
+            <td>Active DAM alert clusters, MITRE technique tags (T1190), intrusion timestamps, D3FEND</td>
+            <td><code>mitre_techniques</code>, <code>alert_clusters</code>, <code>countermeasures</code><br><span style="color:var(--crimson);font-size:0.72rem;">DENIED: executive budgets, AG attestations</span></td>
+          </tr>
+          <tr>
+            <td><strong>AppSec Engineer (appsec-ha)</strong><br><span style="font-size:0.75rem;color:var(--dim)">Application Security</span></td>
+            <td>Technical Vulnerability Posture (<code>vulnerability_posture</code>)</td>
+            <td>SAST/DAST AppScan telemetry, OWASP Top 10 breakdown, CWE traces, remediation diffs</td>
+            <td><code>cve_ids</code>, <code>cwe_traces</code>, <code>code_remediations</code><br><span style="color:var(--crimson);font-size:0.72rem;">DENIED: regulatory compliance, citizen PII</span></td>
+          </tr>
+          <tr>
+            <td><strong>Compliance Officer (compliance-ha)</strong><br><span style="font-size:0.75rem;color:var(--dim)">Audit &amp; Governance</span></td>
+            <td>POPIA Privacy Impact, AGSA Audit Brief (<code>popia_impact_assessment</code>, <code>ag_audit_readiness</code>)</td>
+            <td>POPIA Section 22 breach exposure, ISO 27001 control gaps, MIOS compliance scores</td>
+            <td><code>popia_conditions</code>, <code>control_gaps</code>, <code>attestation_hashes</code><br><span style="color:var(--crimson);font-size:0.72rem;">DENIED: technical exploit payloads</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SLIDE: ZERO-LOG AI & POPIA COMPLIANCE -->
+    <div class="slide" data-index="10">
       <div class="slide-tag">Data Sovereignty &amp; POPIA Compliance</div>
       <h2 class="slide-title">Zero Raw Logs to AI: <span class="hl-emerald">Privacy by Design (NFR-AI-11)</span></h2>
       <p class="slide-desc">
@@ -1078,7 +1124,7 @@
 
 
     <!-- SLIDE 10: PROVINCIAL PEER BLINDING -->
-    <div class="slide" data-index="10">
+    <div class="slide" data-index="11">
       <div class="slide-tag">Inter-Governmental Analytics</div>
       <h2 class="slide-title">Provincial Peer Blinding: <span class="hl-sapphire">Collaborative Posture</span></h2>
       <p class="slide-desc">
@@ -1109,7 +1155,7 @@
     </div>
 
     <!-- SLIDE 11: QUALITY GATES & TEST METRICS -->
-    <div class="slide" data-index="11">
+    <div class="slide" data-index="12">
       <div class="slide-tag">Quality Assurance & Certification</div>
       <h2 class="slide-title">Test Exit Criteria (TEC): <span class="hl-emerald">100% Quality Gate Pass</span></h2>
       <p class="slide-desc">
@@ -1166,7 +1212,7 @@
     </div>
 
     <!-- SLIDE 12: PRODUCTION ROADMAP -->
-    <div class="slide" data-index="12">
+    <div class="slide" data-index="13">
       <div class="slide-tag">Execution Strategy & Next Phases</div>
       <h2 class="slide-title">National Rollout Plan: <span class="hl-gold">Phase 1 to Phase 3</span></h2>
       <p class="slide-desc">
@@ -1204,7 +1250,7 @@
     </div>
 
     <!-- SLIDE 13: BOARD DECISION REQUEST -->
-    <div class="slide" data-index="13">
+    <div class="slide" data-index="14">
       <div class="slide-tag">Decision & Governance Sign-Off</div>
       <h2 class="slide-title">Board Recommendation: <span class="hl-emerald">Accept PoC & Advance to Production</span></h2>
       <p class="slide-desc">
