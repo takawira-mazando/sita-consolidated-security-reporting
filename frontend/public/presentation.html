@@ -625,7 +625,7 @@
     </div>
 
     <!-- SLIDE 2: THE MANDATE & PROBLEM -->
-    <div class="slide" data-index="2">
+    <div class="slide" data-index="0">
       <div class="slide-tag">Strategic Context & National Mandate</div>
       <h2 class="slide-title">The Challenge: <span class="hl-gold">Fragmented Telemetry & Audit Overhead</span></h2>
       <p class="slide-desc">
@@ -657,7 +657,7 @@
     </div>
 
     <!-- SLIDE 3: 4-TIER TENANCY ARCHITECTURE -->
-    <div class="slide" data-index="3">
+    <div class="slide" data-index="1">
       <div class="slide-tag">Governance & Multi-Tenancy Architecture</div>
       <h2 class="slide-title">The 4-Tier Hierarchy: <span class="hl-cyan">SITA Overarching Authority</span></h2>
       <p class="slide-desc">
@@ -696,7 +696,7 @@
     </div>
 
     <!-- SLIDE 4: SUPERADMIN PROVISIONING CASCADE -->
-    <div class="slide" data-index="4">
+    <div class="slide" data-index="2">
       <div class="slide-tag">Identity & Anti-Elevation Governance</div>
       <h2 class="slide-title">Superadmin Delegation: <span class="hl-emerald">Strict Ceilings & Isolation</span></h2>
       <p class="slide-desc">
@@ -741,7 +741,7 @@
     </div>
 
     <!-- SLIDE 5: SITA & GOVERNMENT HR INTEGRATION -->
-    <div class="slide" data-index="5">
+    <div class="slide" data-index="3">
       <div class="slide-tag">Identity &amp; HR System Integration</div>
       <h2 class="slide-title">Government HR Integration: <span class="hl-sapphire">Sourced Employees, Created Authority</span></h2>
       <p class="slide-desc">
@@ -839,7 +839,7 @@
     </div>
 
     <!-- SLIDE 6: DHA PROOF OF CONCEPT -->
-    <div class="slide" data-index="6">
+    <div class="slide" data-index="4">
       <div class="slide-tag">Proof of Concept Demonstration</div>
       <h2 class="slide-title">The DHA Testbed: <span class="hl-gold">Department of Home Affairs</span></h2>
       <p class="slide-desc">
@@ -871,7 +871,7 @@
     </div>
 
     <!-- SLIDE 7: REAL OEM INGESTION -->
-    <div class="slide" data-index="7">
+    <div class="slide" data-index="5">
       <div class="slide-tag">Data Lake & OEM Connectors</div>
       <h2 class="slide-title">Real OEM Telemetry: <span class="hl-cyan">AppScan & Thales DAM</span></h2>
       <p class="slide-desc">
@@ -908,7 +908,7 @@
     </div>
 
     <!-- SLIDE 8: PERSONA-SPECIFIC DASHBOARDS -->
-    <div class="slide" data-index="8">
+    <div class="slide" data-index="6">
       <div class="slide-tag">Operational Experience & RBAC</div>
       <h2 class="slide-title">21 RBAC Views: <span class="hl-gold">Tailored to Each Operational Persona</span></h2>
       <p class="slide-desc">
@@ -943,7 +943,7 @@
     </div>
 
     <!-- SLIDE 9: AUDITOR-GENERAL & POPIA -->
-    <div class="slide" data-index="9">
+    <div class="slide" data-index="7">
       <div class="slide-tag">Regulatory Integrity &amp; Attestation</div>
       <h2 class="slide-title">Auditor-General (AG) Export: <span class="hl-emerald">ECDSA Digital Signatures</span></h2>
       <p class="slide-desc">
@@ -1004,6 +1004,78 @@
         </div>
       </div>
     </div>
+
+    <!-- SLIDE: AI INTEGRATION - 4-LAYER CONTROL MODEL -->
+    <div class="slide" data-index="8">
+      <div class="slide-tag">Grounded AI Architecture &amp; Control</div>
+      <h2 class="slide-title">The 4-Layer Control Model: <span class="hl-sapphire">Only Layer 3 Holds a Model</span></h2>
+      <p class="slide-desc">
+        The AI engine is a strictly isolated read path layered above PostgreSQL. Three of the four layers are deterministic, mathematically guaranteeing that tenant containment, numeral fidelity, and data privacy hold with the model stopped.
+      </p>
+      <div class="grid-4" style="margin-top: 1.25rem;">
+        <div class="card accent-sapphire">
+          <div class="card-num">LAYER 01</div>
+          <h3 class="card-title">Scope Gate (Deterministic)</h3>
+          <p class="card-body">
+            Default-deny enforcement via <code>tenant_filter()</code>. Freezes immutable <code>scope_hash</code>. The model structurally cannot receive data outside the caller's authorized department or branch.
+          </p>
+        </div>
+        <div class="card accent-cyan">
+          <div class="card-num">LAYER 02</div>
+          <h3 class="card-title">Fact Assembly (Deterministic)</h3>
+          <p class="card-body">
+            Pure SQL aggregation into canonical fact packs. Explicitly tags facts into 3 typed disclosure classes (<code>TENANT_SCOPED</code>, <code>ESTATE_WIDE</code>, <code>DERIVED</code>) to prevent cross-tenant leaks.
+          </p>
+        </div>
+        <div class="card accent-gold">
+          <div class="card-num">LAYER 03</div>
+          <h3 class="card-title">Model Residue (AIMI Africa)</h3>
+          <p class="card-body">
+            Gated provider inference. Strictly limited to external campaign attribution (AVP-3) and risk-delta causal explanation (AVP-8). Receives NO database connection and NO query tools.
+          </p>
+        </div>
+        <div class="card accent-emerald">
+          <div class="card-num">LAYER 04</div>
+          <h3 class="card-title">Verification (Two-Gate)</h3>
+          <p class="card-body">
+            Deterministic verifier enforces 100% numeral fidelity against the fact pack. Discards ungrounded claims. Requires human analyst sign-off before executive dissemination.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE: ZERO-LOG AI & POPIA COMPLIANCE -->
+    <div class="slide" data-index="9">
+      <div class="slide-tag">Data Sovereignty &amp; POPIA Compliance</div>
+      <h2 class="slide-title">Zero Raw Logs to AI: <span class="hl-emerald">Privacy by Design (NFR-AI-11)</span></h2>
+      <p class="slide-desc">
+        Raw machine telemetry and citizen data never reach external AI models. The platform enforces an absolute boundary between local data processing and cloud intelligence enrichment.
+      </p>
+      <div class="grid-3" style="margin-top: 1.25rem;">
+        <div class="card accent-emerald">
+          <div class="card-num">POPIA S.13 &amp; S.22</div>
+          <h3 class="card-title">Absolute Egress Protection</h3>
+          <p class="card-body">
+            South African citizen ID numbers, employee logins, source IP addresses, and database query strings are barred from egress. <code>redaction.py</code> actively scrubs all outbound text.
+          </p>
+        </div>
+        <div class="card accent-sapphire">
+          <div class="card-num">ABSTRACT CONCEPTS ONLY</div>
+          <h3 class="card-title">Public Threat Identifiers</h3>
+          <p class="card-body">
+            AI inference receives only public threat taxonomies: <strong>CVE identifiers</strong> and <strong>MITRE ATT&CK techniques</strong> (e.g., T1190). The model reasons over threat behavior without accessing private estate records.
+          </p>
+        </div>
+        <div class="card accent-cyan">
+          <div class="card-num">FAIL-SAFE RESILIENCE</div>
+          <h3 class="card-title">Circuit-Broken Fallback</h3>
+          <p class="card-body">
+            If AIMI or provider endpoints experience latency or failure, a circuit breaker trips automatically, serving the authoritative deterministic report. Zero production downtime or blank charts.
+          </p>
+        </div>
+      </div>
+    </div>
+
 
     <!-- SLIDE 10: PROVINCIAL PEER BLINDING -->
     <div class="slide" data-index="10">

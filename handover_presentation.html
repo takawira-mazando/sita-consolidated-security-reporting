@@ -199,7 +199,7 @@
     <div class="divider"></div>
     <div class="g3" style="margin-top:24px;">
       <div class="card"><div class="card-icon">🔥</div><h3>Act 1 · The Problem</h3><p>Why 4 OEM consoles + government multi-tenancy is a crisis waiting to happen.</p></div>
-      <div class="card"><div class="card-icon">⚙️</div><h3>Act 2 · Architecture</h3><p>5-stage pipeline. 4-tier tenancy. One fused risk score per application.</p></div>
+      <div class="card"><div class="card-icon">⚙️</div><h3>Act 2 · Architecture & AI</h3><p>5-stage pipeline. 4-tier tenancy. 4-layer AI control model (zero raw logs).</p></div>
       <div class="card"><div class="card-icon">✅</div><h3>Act 3 · The Proof</h3><p>Test Exit Criteria — 173/173 tests, 4 signed governance authorities.</p></div>
     </div>
     <div class="g2" style="margin-top:14px;">
@@ -280,6 +280,62 @@
     </div>
   </div>
 
+  <!-- 6b. AI INTEGRATION - 4-LAYER MODEL -->
+  <div class="slide" data-act="Act 2 · Architecture">
+    <div class="eyebrow" style="color:var(--purple)"><span class="dot" style="background:var(--purple)"></span>Grounded AI Architecture</div>
+    <h2 class="slide-title" style="font-size:clamp(20px,2.8vw,36px); margin-bottom:18px;">The 4-Layer Control Model: <span style="background:linear-gradient(135deg,#a78bfa,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">Only Layer 3 Holds a Model.</span></h2>
+    <p class="slide-sub" style="margin-bottom:16px;">AI is a strictly isolated read path layered above the warehouse. The model never runs in ingestion or dispatch.</p>
+    <div class="g4" style="margin-top:10px;">
+      <div class="card" style="border-top:3px solid #3b82f6;">
+        <div style="font-size:11px;font-weight:700;color:#3b82f6;margin-bottom:4px;text-transform:uppercase;">Layer 1 · Scope Gate</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">Deterministic · No Model</h4>
+        <p style="font-size:12px;color:var(--muted);line-height:1.5;">Default-deny RBAC via <code>tenant_filter()</code>. Freezes scope hash. Model structurally cannot receive cross-department data.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #06b6d4;">
+        <div style="font-size:11px;font-weight:700;color:#06b6d4;margin-bottom:4px;text-transform:uppercase;">Layer 2 · Fact Assembly</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">Deterministic · No Model</h4>
+        <p style="font-size:12px;color:var(--muted);line-height:1.5;">Pure SQL extraction. Tags facts into 3 typed disclosure classes (<code>TENANT_SCOPED</code>, <code>ESTATE_WIDE</code>, <code>DERIVED</code>). Zero free-text leaks.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #a78bfa;">
+        <div style="font-size:11px;font-weight:700;color:#a78bfa;margin-bottom:4px;text-transform:uppercase;">Layer 3 · Model Residue</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">AIMI Africa · Only AI Layer</h4>
+        <p style="font-size:12px;color:var(--muted);line-height:1.5;">Gated reasoning: attributes global threat campaigns (AVP-3) and explains risk-delta movements (AVP-8). No DB handles, no tools.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #22c55e;">
+        <div style="font-size:11px;font-weight:700;color:#22c55e;margin-bottom:4px;text-transform:uppercase;">Layer 4 · Verification</div>
+        <h4 style="font-size:13px;margin-bottom:6px;">Deterministic · Two Gates</h4>
+        <p style="font-size:12px;color:var(--muted);line-height:1.5;">100% numeral fidelity check against fact pack. Strips unverified claims. Human analyst signs off before publication.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6c. AI ZERO-LOG & PRIVACY -->
+  <div class="slide" data-act="Act 2 · Architecture">
+    <div class="eyebrow" style="color:var(--green)"><span class="dot" style="background:var(--green)"></span>Legal Compliance & Privacy</div>
+    <h2 class="slide-title" style="font-size:clamp(20px,2.8vw,36px); margin-bottom:18px;">Zero Raw Logs to AI: <span class="grt">POPIA Protection by Design.</span></h2>
+    <div class="g3" style="margin-top:20px;">
+      <div class="card">
+        <div class="prob-n" style="color:var(--green);">1. POPIA s.13 & NFR-AI-11</div>
+        <h3>No Citizen Data Egress</h3>
+        <p>Raw SQL queries, citizen IDs, employee logins, and source IPs are strictly blocked. <code>redaction.py</code> inspects and strips all PII before anything leaves the server.</p>
+      </div>
+      <div class="card">
+        <div class="prob-n" style="color:var(--accent);">2. Public Abstractions Only</div>
+        <h3>Safe Threat Concepts</h3>
+        <p>The AI only receives public identifiers: <strong>CVE IDs</strong> and <strong>MITRE ATT&CK codes</strong> (e.g., T1190). It reasons about hacker tactics without ever touching private data.</p>
+      </div>
+      <div class="card">
+        <div class="prob-n" style="color:var(--purple);">3. Resilient Fallback</div>
+        <h3>Zero Production Downtime</h3>
+        <p>If the AI provider is offline, the circuit breaker opens and serves the exact deterministic template. The platform never stalls or produces blank reports.</p>
+      </div>
+    </div>
+    <div class="quote" style="margin-top:20px;">
+      <p>"We do not let AI count logs or invent numbers. Our engineered core computes 100% of the facts locally; AI provides external threat context and human synthesis."</p>
+    </div>
+  </div>
+
+
   <!-- 7. TEC HEADLINE -->
   <div class="slide" data-act="Act 3 · Quality Gate">
     <div class="eyebrow" style="color:var(--green)"><span class="dot" style="background:var(--green)"></span>Act 3 · The Proof</div>
@@ -343,7 +399,9 @@
       <div class="demo-step"><div class="step-num">2</div><div><div class="role-tag">soc@ · home-affairs-digital</div><h4>SOC Analyst — Tenancy Switch Proof</h4><p>Sign out → sign in as soc@. Alert feed. Attempt to navigate to Treasury data → blocked instantly. <em>"Same platform. Zero Treasury data. This is the tenancy model in action."</em></p></div></div>
       <div class="demo-step"><div class="step-num">3</div><div><div class="role-tag">appsec@ · home-affairs-digital</div><h4>AppSec Dashboard — OEM Fusion</h4><p>OWASP category bars, Critical findings table with CVE references, per-app severity breakdown. <em>"AppScan + Imperva WAF + API Security — normalised into one view."</em></p></div></div>
       <div class="demo-step"><div class="step-num">4</div><div><div class="role-tag">compliance@ · national</div><h4>Compliance — AG Readiness</h4><p>POPIA score 82.9% (97/117 controls), ISO 27001 status, AG export with SHA-256 hash. <em>"This is what you hand the Auditor-General. Cryptographically tamper-evident."</em></p></div></div>
-      <div class="demo-step"><div class="step-num">5</div><div><div class="role-tag">homepage #matrix</div><h4>Role Matrix — Close the Loop</h4><p>Navigate to homepage role matrix. Show every role's data slice. <em>"Every person in this room has a row. Nothing more, nothing less."</em></p></div></div>
+      <div class="demo-step"><div class="step-num">5</div><div><div class="role-tag">reports-ai@ · grounded studio</div><h4>G2 AI Report Studio & Copilot</h4><p>Two-Gate verification. Generate executive Word (.docx) & HTML briefs grounded strictly in Home Affairs telemetry. Zero hallucinations.</p></div></div>
+      <div class="demo-step"><div class="step-num">6</div><div><div class="role-tag">dbsec-ha@ · behavioral ai</div><h4>DbSec Anomaly Intelligence</h4><p>Clustered DAM logs, SQLi attack archetypes, and POPIA breach window estimates. Plain-English threat analysis for DBA & SOC.</p></div></div>
+      <div class="demo-step"><div class="step-num">7</div><div><div class="role-tag">homepage #matrix</div><h4>Role Matrix — Close the Loop</h4><p>Navigate to homepage role matrix. Show every role's data slice. <em>"Every person in this room has a row. Nothing more, nothing less."</em></p></div></div>
     </div>
   </div>
 
