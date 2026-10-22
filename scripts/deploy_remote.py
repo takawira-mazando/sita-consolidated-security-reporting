@@ -9,9 +9,9 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     sys.stderr.reconfigure(encoding="utf-8", errors="replace")
 
-REMOTE_HOST = os.environ.get("REMOTE_HOST", "127.0.0.1")
-REMOTE_USER = os.environ.get("REMOTE_USER", "sita")
-REMOTE_PASS = os.environ.get("REMOTE_PASS", "")
+REMOTE_HOST = os.environ.get("REMOTE_HOST", "192.168.101.20")
+REMOTE_USER = os.environ.get("REMOTE_USER", "uni")
+REMOTE_PASS = os.environ.get("REMOTE_PASS", "H051@pivot")
 STACK_DIR = "/opt/sita/sita-platform/infrastructure"
 REPO_DIR = "/opt/sita/sita-platform"
 COMPOSE_FILE = f"{STACK_DIR}/docker-compose.remote.yml"
