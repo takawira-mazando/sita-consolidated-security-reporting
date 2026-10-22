@@ -1081,7 +1081,7 @@
       <h3>&#128279; Scoping &amp; Isolation Rules</h3>
       <ul>
         <li><strong>Tier 4 &mdash; SITA Command Center</strong> (<code>admin@</code>, <code>operator@</code>): Overarching transversal authority across all 173 departments, 9 provinces, and 347 branches. Unrestricted superadmin provisioning down the entire cascade.</li>
-        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation (0&ndash;100), and Auditor-General compliance export with cryptographic SHA-256 hash chains.</li>
+        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation (0&ndash;100), and Auditor-General compliance export with asymmetric ECDSA NIST P-256 digital signatures.</li>
         <li><strong>Tier 2 &mdash; Departmental &amp; Provincial</strong> (<code>dept-admin</code>, <code>deptadmin-ha</code>, <code>provincesoc</code>): Tactical operations scoped strictly to the assigned department (e.g., DHA) or province (Gauteng). Provincial peer blinding ensures provinces compare posture without leaking peer vulnerability details or PII.</li>
         <li><strong>Tier 1 &mdash; Operational Branch Tier</strong> (<code>branch-admin</code>, <code>branchadmin-ha</code>, <code>soc-ha</code>, <code>appsec-ha</code>, <code>dbsec-ha</code>): Granular remediation locked strictly to the assigned DDG branch (e.g. <code>dha-digital</code>, <code>dha-civic</code>).</li>
         <li><strong>Write-Time Denormalisation</strong>: Every warehouse row carries <code>department_id</code> and <code>branch_id</code> at ingestion; <code>tenant_filter()</code> enforces zero cross-tenant data leakage on all queries.</li>
@@ -2596,7 +2596,7 @@ const details = {
       <h3>Scoping &amp; Security Isolation</h3>
       <ul>
         <li><strong>Tier 4 &mdash; SITA Superadmins</strong> (<code>admin@</code>, <code>operator@</code>): Overarching transversal authority across all 173 departments and 9 provinces. Unrestricted superadmin provisioning down the entire cascade.</li>
-        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation, and AG compliance export with SHA-256 integrity hash verification.</li>
+        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation, and AG compliance export with asymmetric ECDSA NIST P-256 PKI digital signature verification.</li>
         <li><strong>Tier 2 &mdash; Department &amp; Provincial Admins</strong> (<code>dept-admin</code>, <code>provincesoc</code>): Tactical operations scoped strictly to the assigned department (e.g. DHA) or province. Provincial peer blinding prevents cross-tenant leakage.</li>
         <li><strong>Tier 1 &mdash; Branch Superadmins &amp; Specialists</strong> (<code>branch-admin</code>, <code>soc</code>, <code>appsec</code>, <code>dbsec</code>): Operational triage strictly confined to the assigned DDG branch (e.g. <code>dha-digital</code>).</li>
         <li><strong>Write-Time Denormalisation</strong>: Every warehouse record carries <code>department_id</code> and <code>branch_id</code> at ingestion; <code>tenant_filter()</code> guarantees zero cross-tenant leakage.</li>
@@ -2653,7 +2653,7 @@ const details = {
   },
   exportsag: {
     title: 'Auditor-General Compliance Export Engine',
-    badge: 'signed aggregation &middot; SHA-256 audit trail',
+    badge: 'signed aggregation &middot; ECDSA NIST P-256 PKI signature',
     body: String.raw`
       <p><strong>Purpose:</strong> Produce an Auditor-General-grade <strong>aggregation-only</strong> compliance attestation with tamper-evident integrity. Implemented in <code>C:\sita-platform\backend\app\api\routers\exports_ag.py</code> as <code>POST /api/v1/exports/ag-compliance</code>.</p>
       <div class="file-list"><span class="file-tag">exports_ag.py</span><span class="file-tag">models/audit.py</span><span class="file-tag">tests/test_exports_ag.py</span><span class="file-tag">tests/test_new_endpoints.py</span></div>
@@ -2666,7 +2666,7 @@ const details = {
       <h3>Integrity &amp; accountability</h3>
       <ul>
         <li><strong>Aggregation-only</strong> &mdash; raw findings, vulnerability counts, logs and PII are stripped; the payload carries a provenance statement to that effect.</li>
-        <li><strong>SHA-256 integrity hash</strong> &mdash; computed over the canonical JSON of the attestation and returned as <code>integrity_hash</code> alongside a <code>verify_url</code> (<code>GET /api/v1/exports/ag-compliance/verify/{hash}</code>).</li>
+        <li><strong>Asymmetric ECDSA NIST P-256 Signature (SECP256R1)</strong> &mdash; computed over canonical JSON and returned as <code>signature</code> (Base64 ASN.1 DER). Provides mathematical non-repudiation, detects insider tampering, and enables air-gapped auditor verification via OpenSSL without trusting SITA infrastructure. (SHA-256 hash digest retained for internal ActionAudit ledger).</li>
         <li><strong>Immutable action audit</strong> &mdash; every export writes one <code>audit.action_audit</code> row (actor, action, tenant scope, payload hash) via <code>C:\sita-platform\backend\app\models\audit.py</code>, giving non-repudiation. Table created in <code>C:\sita-platform\infrastructure\scripts\init-db.sql</code> and <code>C:\sita-platform\backend\_migrate_province.py</code>.</li>
       </ul>
     `

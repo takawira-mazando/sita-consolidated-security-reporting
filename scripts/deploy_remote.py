@@ -1,4 +1,5 @@
 """Automated Remote Deployment Script for SITA Platform to 192.168.101.20 via SSH/VPN."""
+import os
 import sys
 import time
 import paramiko
