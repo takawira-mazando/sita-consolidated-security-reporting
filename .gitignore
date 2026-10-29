@@ -69,6 +69,16 @@ scratch_*.txt
 ~$*.xlsx
 ~$*.docx
 
+# Local inspection scratch — do not publish
+check_sections.py
+find_spacing.py
+spacing_results.txt
+
+# Markdown kept local; do not publish these artefacts
+DEMO_RUNBOOK.md
+docs/SITA_POC_END_TO_END_DEMO_RUNBOOK.md
+reports/INV-2026-010_October_Invoice.md
+
 # Dev-only: test fixtures, synthetic data generators, and SQL seed files
 # These are local development / QA artefacts — not for production main branch
 backend/tests/test_remediation_verification.py
