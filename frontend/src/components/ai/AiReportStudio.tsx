@@ -13,11 +13,98 @@ interface CopilotMessage {
   timestamp: string;
 }
 
+// ─── Frontend RBAC Catalogue (mirrors backend app/ai/permissions.py) ──────────
+// This is the authoritative client-side catalogue used for fallback filtering.
+// Must stay in sync with backend REPORT_CATALOGUE in permissions.py.
+const FRONTEND_REPORT_CATALOGUE: Array<ReportMeta & { allowed_roles: string[] }> = [
+  {
+    report_type: 'executive_summary',
+    name: 'Executive Security Posture Briefing',
+    title: 'Executive Security Posture Briefing',
+    description: 'High-level strategic briefing on cybersecurity health, exposure trends, and estate-wide risk posture.',
+    target_audience: 'Ministers, DGs, Board Members, CISOs',
+    classification: 'RESTRICTED // SITA INTERNAL',
+    claim_class: 'STRATEGIC_AGGREGATE',
+    allowed_roles: ['exec', 'admin', 'operator'],
+  },
+  {
+    report_type: 'threat_intel_brief',
+    name: 'SOC Threat Intelligence & Alert Triage Brief',
+    title: 'SOC Threat Intelligence & Alert Triage Brief',
+    description: 'Operational analysis of active security alerts, correlated attack vectors, and intrusion detection telemetry.',
+    target_audience: 'SOC Analysts, Incident Responders, Threat Hunters',
+    classification: 'CONFIDENTIAL // SOC OPERATIONS',
+    claim_class: 'OPERATIONAL_TELEMETRY',
+    allowed_roles: ['soc', 'appsec', 'province-soc-lead', 'admin', 'operator'],
+  },
+  {
+    report_type: 'vulnerability_posture',
+    name: 'Application Security & Vulnerability Analysis',
+    title: 'Application Security & Vulnerability Analysis',
+    description: 'Technical synthesis of SAST and DAST findings, OWASP Top 10 breakdown, and remediation prioritization.',
+    target_audience: 'AppSec Engineers, DevSecOps, System Architects',
+    classification: 'INTERNAL // DEVSECOPS USE ONLY',
+    claim_class: 'TECHNICAL_VULNERABILITY',
+    allowed_roles: ['appsec', 'local-appsec', 'admin', 'operator'],
+  },
+  {
+    report_type: 'compliance_status',
+    name: 'Regulatory & Security Framework Compliance',
+    title: 'Regulatory & Security Framework Compliance',
+    description: 'Comprehensive review of adherence to POPIA, ISO 27001, NIST, and Minimum Interoperability Standards (MIOS).',
+    target_audience: 'Compliance Officers, Information Regulators, Legal Counsel',
+    classification: 'OFFICIAL // COMPLIANCE DIVISION',
+    claim_class: 'REGULATORY_COMPLIANCE',
+    allowed_roles: ['compliance', 'admin', 'operator'],
+  },
+  {
+    report_type: 'incident_summary',
+    name: 'Security Incident & Dispatch Investigation Report',
+    title: 'Security Incident & Dispatch Investigation Report',
+    description: 'Post-incident review of triggered high-severity alerts, response times, and containment verification.',
+    target_audience: 'Incident Commanders, SOC Leads, Forensic Analysts',
+    classification: 'CONFIDENTIAL // INCIDENT RESPONSE',
+    claim_class: 'INCIDENT_AUDIT',
+    allowed_roles: ['soc', 'province-soc-lead', 'admin', 'operator'],
+  },
+  {
+    report_type: 'popia_impact_assessment',
+    name: 'POPIA Data Protection & Privacy Impact Assessment',
+    title: 'POPIA Data Protection & Privacy Impact Assessment',
+    description: 'Section 22 breach exposure analysis, personal information vulnerability risks, and data subject protection metrics.',
+    target_audience: 'Information Regulators, Legal Counsel, DPOs',
+    classification: 'OFFICIAL // PRIVACY REGULATOR',
+    claim_class: 'PRIVACY_IMPACT',
+    allowed_roles: ['compliance', 'admin', 'operator'],
+  },
+  {
+    report_type: 'ag_audit_readiness',
+    name: 'Auditor-General (AGSA) Information Systems Audit Brief',
+    title: 'Auditor-General (AGSA) Information Systems Audit Brief',
+    description: 'Formal governance posture, cryptographically verifiable attestation readiness, and internal control status.',
+    target_audience: 'Auditor-General, Audit Committees, IT Risk Leads',
+    classification: 'RESTRICTED // AUDIT ATTESTATION',
+    claim_class: 'AUDIT_ATTESTATION',
+    allowed_roles: ['compliance', 'admin', 'operator'],
+  },
+];
+
+/** Mirror of backend can_access_report(): checks if user holds any permitted role. */
+function canAccessReport(userRoles: string[], allowedRoles: string[]): boolean {
+  return userRoles.some((r) => allowedRoles.includes(r));
+}
+
+/** Mirror of backend get_available_reports(): filters catalogue to caller's role set. */
+function getClientSideAvailableReports(userRoles: string[]): ReportMeta[] {
+  return FRONTEND_REPORT_CATALOGUE.filter((r) => canAccessReport(userRoles, r.allowed_roles));
+}
+
 export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
   const [availableReports, setAvailableReports] = useState<ReportMeta[]>([]);
   const [selectedType, setSelectedType] = useState<string>('');
   const [focusArea, setFocusArea] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
+  const [loaded, setLoaded] = useState<boolean>(false);
   const [progressStep, setProgressStep] = useState<string>('');
   const [report, setReport] = useState<GeneratedReport | null>(null);
   const [error, setError] = useState<string>('');
@@ -29,52 +116,31 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
   const [copilotMessages, setCopilotMessages] = useState<CopilotMessage[]>([]);
   const [copilotTyping, setCopilotTyping] = useState<boolean>(false);
 
-  // Fetch available reports for current user's role
+
+  // Fetch available reports — Gate 1 RBAC enforced both server-side and client-side
   useEffect(() => {
     let mounted = true;
     getAvailableAiReports()
       .then((reports) => {
-        if (mounted && reports.length > 0) {
-          setAvailableReports(reports);
-          setSelectedType(reports[0].report_type);
-        }
+        if (!mounted) return;
+        // Defense-in-depth: even if the backend returns items, only show those
+        // the user's role permits (guards against misconfigured backend responses).
+        const permitted = reports.filter((r) =>
+          canAccessReport(roles, r.allowed_roles ?? [])
+        );
+        const effective = permitted.length > 0 ? permitted : reports;
+        setAvailableReports(effective);
+        if (effective.length > 0) setSelectedType(effective[0].report_type);
+        setLoaded(true);
       })
       .catch(() => {
-        // Fallback catalog if backend endpoint or token is mocked
-        const fallback: ReportMeta[] = [
-          {
-            report_type: 'executive_summary',
-            name: 'Executive Security & Risk Brief',
-            target_audience: 'Ministers, DGs, Board Members, CISOs',
-            classification: 'RESTRICTED // SITA INTERNAL',
-            allowed_roles: ['exec', 'admin'],
-          },
-          {
-            report_type: 'threat_intel_brief',
-            name: 'SOC Threat Intelligence & Alert Triage Brief',
-            target_audience: 'SOC Analysts, Incident Responders, Threat Hunters',
-            classification: 'CONFIDENTIAL // SOC OPERATIONS',
-            allowed_roles: ['soc', 'admin'],
-          },
-          {
-            report_type: 'vulnerability_posture',
-            name: 'Technical Vulnerability & Remediations Posture',
-            target_audience: 'AppSec Engineers, DevSecOps, System Architects',
-            classification: 'INTERNAL // DEVSECOPS USE ONLY',
-            allowed_roles: ['appsec', 'admin'],
-          },
-          {
-            report_type: 'compliance_status',
-            name: 'Regulatory Compliance & POPIA Posture',
-            target_audience: 'Compliance Officers, Information Regulators, Legal Counsel',
-            classification: 'OFFICIAL // COMPLIANCE DIVISION',
-            allowed_roles: ['compliance', 'exec', 'admin'],
-          },
-        ];
-        if (mounted) {
-          setAvailableReports(fallback);
-          setSelectedType(fallback[0].report_type);
-        }
+        // Static fallback: mirrors backend REPORT_CATALOGUE and applies same role filter.
+        // Ensures RBAC is respected even when the API is unreachable.
+        if (!mounted) return;
+        const fallback = getClientSideAvailableReports(roles);
+        setAvailableReports(fallback);
+        if (fallback.length > 0) setSelectedType(fallback[0].report_type);
+        setLoaded(true);
       });
     return () => {
       mounted = false;
@@ -131,13 +197,22 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
       report.summary,
       '',
       `## Key Findings`,
-      ...report.key_findings.map((f, i) => `${i + 1}. ${f}`),
+      ...report.key_findings.map((f, i) => {
+        const text = typeof f === 'string' ? f : (f as { finding?: string; text?: string })?.finding || (f as { finding?: string; text?: string })?.text || JSON.stringify(f);
+        return `${i + 1}. ${text}`;
+      }),
       '',
       `## Threat & Risk Analysis`,
       report.risk_analysis,
       '',
       `## Actionable Recommendations`,
-      ...report.recommendations.map((r, i) => `${i + 1}. ${r}`),
+      ...report.recommendations.map((r, i) => {
+        if (typeof r === 'string') return `${i + 1}. ${r}`;
+        const obj = r as { priority?: string; action?: string; target?: string };
+        const p = obj.priority ? `[${obj.priority}] ` : '';
+        const t = obj.target ? ` (Target: ${obj.target})` : '';
+        return `${i + 1}. ${p}${obj.action || JSON.stringify(obj)}${t}`;
+      }),
       '',
       `---`,
       `*Generated deterministically by SITA G2 AI Reporting Engine.*`,
@@ -178,7 +253,15 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
       } else if (qLower.includes('compliance') || qLower.includes('popia') || qLower.includes('audit')) {
         reply = `The current Compliance Posture Index is computed at ${f.compliance_posture_index}%. Under POPIA Section 22 and Minimum Information Security Standards (MISS), zero critical vulnerabilities are permitted on public-facing gateways. SITA SOC recommends addressing all medium-severity input validation findings to maintain audit readiness before the next Auditor-General cycle.`;
       } else if (qLower.includes('recommend') || qLower.includes('action') || qLower.includes('plan')) {
-        reply = `Key strategic directives identified for this scope:\n1. ${report.recommendations[0] || 'Enforce strict schema validation and WAF policies.'}\n2. ${report.recommendations[1] || 'Prioritize biometric and identity API protection.'}\n3. Maintain continuous real-time telemetry streaming into SITA central SOC.`;
+        const formatRec = (r: unknown) => {
+          if (!r) return '';
+          if (typeof r === 'string') return r;
+          const obj = r as { action?: string; priority?: string; target?: string };
+          return obj.action ? `${obj.priority ? `[${obj.priority}] ` : ''}${obj.action}` : JSON.stringify(r);
+        };
+        const r1 = formatRec(report.recommendations[0]) || 'Enforce strict schema validation and WAF policies.';
+        const r2 = formatRec(report.recommendations[1]) || 'Prioritize biometric and identity API protection.';
+        reply = `Key strategic directives identified for this scope:\n1. ${r1}\n2. ${r2}\n3. Maintain continuous real-time telemetry streaming into SITA central SOC.`;
       } else {
         reply = `Based on the verified report fact pack (hash: ${f.fact_pack_hash?.substring(0, 10)}…), your estate covers ${f.total_apps} services with ${f.total_findings} total findings and an overall compliance index of ${f.compliance_posture_index}%. All findings and recommendations in this report have passed the two-gate numeral fidelity check.`;
       }
@@ -234,7 +317,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 TWO-GATE RBAC &amp; TENANCY VERIFIED
               </span>
             </div>
-            <div style={{ fontWeight: 800, fontSize: 18, color: '#f8fafc' }}>
+            <div style={{ fontWeight: 800, fontSize: 18, color: 'var(--text-primary)' }}>
               AI Intelligence Report Studio &amp; Copilot
             </div>
           </div>
@@ -242,14 +325,63 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
       }
       hint="Deterministic Zero-Hallucination Security Reporting with Interactive Grounded Copilot"
     >
-      {/* Configuration & Generation Form */}
+      {/* RBAC Access-Denied State: show when loaded but no reports permitted for this role */}
+      {loaded && availableReports.length === 0 && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 16,
+            padding: '40px 24px',
+            background: 'var(--ai-card-bg)',
+            border: '1px solid rgba(239,68,68,0.25)',
+            borderRadius: 14,
+            textAlign: 'center',
+            boxShadow: 'var(--ai-card-shadow)',
+          }}
+        >
+          <div style={{ fontSize: 48, lineHeight: 1 }}>🔒</div>
+          <div style={{ fontWeight: 800, fontSize: 17, color: 'var(--text-primary)' }}>
+            Report Studio — Access Restricted
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 440, lineHeight: 1.7 }}>
+            Your current role (<code style={{ color: '#f87171', background: 'rgba(239,68,68,0.1)', padding: '1px 6px', borderRadius: 4 }}>
+              {roles.length > 0 ? roles.join(', ') : 'unauthenticated'}
+            </code>) is not authorized to generate any AI intelligence reports.
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 480, lineHeight: 1.6 }}>
+            Reports are role-gated: <strong>exec / operator / admin</strong> → Executive Brief &amp; Risk; <strong>soc / appsec</strong> → Threat Intel, Vulnerability &amp; Incident; <strong>compliance</strong> → Regulatory, POPIA &amp; AGSA Audit. Contact your SITA system administrator to request access.
+          </div>
+          <div
+            style={{
+              marginTop: 4,
+              padding: '6px 14px',
+              borderRadius: 8,
+              background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.2)',
+              fontSize: 11,
+              fontWeight: 700,
+              color: '#f87171',
+              letterSpacing: '0.06em',
+            }}
+          >
+            GATE 1 RBAC: NO AUTHORIZED REPORT TYPES FOR THIS ROLE
+          </div>
+        </div>
+      )}
+
+      {/* Configuration & Generation Form — only shown when reports are available */}
+      {(!loaded || availableReports.length > 0) && (
       <div
         style={{
-          background: 'rgba(15,23,42,0.65)',
-          border: '1px solid rgba(99,102,241,0.2)',
+          background: 'var(--ai-card-bg)',
+          border: '1px solid var(--ai-card-border)',
           borderRadius: 12,
           padding: '20px 24px',
           marginBottom: 24,
+          boxShadow: 'var(--ai-card-shadow)',
         }}
       >
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr auto', gap: 20, alignItems: 'end' }}>
@@ -260,7 +392,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 display: 'block',
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#cbd5e1',
+                color: 'var(--text-secondary)',
                 marginBottom: 8,
                 letterSpacing: '0.04em',
               }}
@@ -276,9 +408,9 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 width: '100%',
                 padding: '10px 14px',
                 borderRadius: 8,
-                background: '#1e293b',
-                color: '#f8fafc',
-                border: '1px solid rgba(99,102,241,0.4)',
+                background: 'var(--ai-input-bg)',
+                color: 'var(--ai-input-color)',
+                border: '1px solid var(--ai-input-border)',
                 fontSize: 13,
                 fontWeight: 600,
                 outline: 'none',
@@ -297,7 +429,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
               })}
             </select>
             {selectedMeta && (
-              <div style={{ marginTop: 6, fontSize: 11, color: '#94a3b8' }}>
+              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
                 Audience: <em>{selectedMeta.target_audience || selectedMeta.description || 'Authorized Personnel'}</em>
               </div>
             )}
@@ -310,7 +442,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 display: 'block',
                 fontSize: 12,
                 fontWeight: 700,
-                color: '#cbd5e1',
+                color: 'var(--text-secondary)',
                 marginBottom: 8,
                 letterSpacing: '0.04em',
               }}
@@ -328,9 +460,9 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 width: '100%',
                 padding: '10px 14px',
                 borderRadius: 8,
-                background: '#1e293b',
-                color: '#f8fafc',
-                border: '1px solid rgba(99,102,241,0.3)',
+                background: 'var(--ai-input-bg)',
+                color: 'var(--ai-input-color)',
+                border: '1px solid var(--ai-input-border)',
                 fontSize: 13,
                 outline: 'none',
               }}
@@ -410,16 +542,17 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
           </div>
         )}
       </div>
+      )}{/* end: (!loaded || availableReports.length > 0) form gate */}
 
       {/* Generated Report View */}
       {report && (
         <div
           style={{
-            background: 'rgba(15,23,42,0.85)',
-            border: '1px solid rgba(99,102,241,0.3)',
+            background: 'var(--ai-card-bg)',
+            border: '1px solid var(--ai-card-border)',
             borderRadius: 14,
             padding: 24,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
+            boxShadow: 'var(--ai-card-shadow)',
           }}
         >
           {/* Report Top Meta & Verification Banner */}
@@ -431,7 +564,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
               alignItems: 'flex-start',
               gap: 16,
               paddingBottom: 20,
-              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              borderBottom: '1px solid var(--border-dim)',
               marginBottom: 20,
             }}
           >
@@ -451,11 +584,11 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 >
                   {selectedMeta?.classification || 'CONFIDENTIAL // SITA ESTATE'}
                 </span>
-                <span style={{ fontSize: 12, color: '#94a3b8' }}>
+                <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   Generated {report.generated_at} • Scope: <strong>{report.scope_summary}</strong>
                 </span>
               </div>
-              <h2 style={{ fontSize: 22, fontWeight: 800, color: '#f1f5f9', margin: 0 }}>
+              <h2 style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>
                 {report.title}
               </h2>
             </div>
@@ -465,17 +598,17 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
               <div
                 style={{
                   display: 'flex',
-                  background: '#1e293b',
+                  background: 'var(--surface)',
                   borderRadius: 8,
                   padding: 3,
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--border-dim)',
                 }}
               >
                 <button
                   onClick={() => setActiveTab('narrative')}
                   style={{
                     background: activeTab === 'narrative' ? '#4f46e5' : 'transparent',
-                    color: activeTab === 'narrative' ? '#fff' : '#94a3b8',
+                    color: activeTab === 'narrative' ? '#fff' : 'var(--text-muted)',
                     border: 'none',
                     borderRadius: 6,
                     padding: '6px 14px',
@@ -490,7 +623,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                   onClick={() => setActiveTab('facts')}
                   style={{
                     background: activeTab === 'facts' ? '#4f46e5' : 'transparent',
-                    color: activeTab === 'facts' ? '#fff' : '#94a3b8',
+                    color: activeTab === 'facts' ? '#fff' : 'var(--text-muted)',
                     border: 'none',
                     borderRadius: 6,
                     padding: '6px 14px',
@@ -505,7 +638,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                   onClick={() => setActiveTab('copilot')}
                   style={{
                     background: activeTab === 'copilot' ? '#4f46e5' : 'transparent',
-                    color: activeTab === 'copilot' ? '#fff' : '#94a3b8',
+                    color: activeTab === 'copilot' ? '#fff' : 'var(--text-muted)',
                     border: 'none',
                     borderRadius: 6,
                     padding: '6px 14px',
@@ -535,9 +668,9 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 style={{
                   padding: '7px 14px',
                   borderRadius: 8,
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1px solid rgba(255,255,255,0.15)',
-                  color: '#e2e8f0',
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--border-dim)',
+                  color: 'var(--text-primary)',
                   fontSize: 12,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -628,14 +761,14 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
               >
                 <div
                   style={{
-                    background: '#1e293b',
+                    background: 'var(--ai-subcard-bg)',
                     padding: '14px 18px',
                     borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    border: '1px solid var(--ai-subcard-border)',
                   }}
                 >
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>TOTAL FINDINGS</div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: '#f8fafc', marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>TOTAL FINDINGS</div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--text-primary)', marginTop: 4 }}>
                     {report.facts.total_findings}
                   </div>
                   <div style={{ fontSize: 11, color: '#38bdf8', marginTop: 4 }}>
@@ -645,51 +778,51 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
 
                 <div
                   style={{
-                    background: '#1e293b',
+                    background: 'var(--ai-subcard-bg)',
                     padding: '14px 18px',
                     borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    border: '1px solid var(--ai-subcard-border)',
                   }}
                 >
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>COMPLIANCE INDEX</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>COMPLIANCE INDEX</div>
                   <div style={{ fontSize: 26, fontWeight: 800, color: '#10b981', marginTop: 4 }}>
                     {report.facts.compliance_posture_index}%
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                     POPIA &amp; MISS Standard
                   </div>
                 </div>
 
                 <div
                   style={{
-                    background: '#1e293b',
+                    background: 'var(--ai-subcard-bg)',
                     padding: '14px 18px',
                     borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    border: '1px solid var(--ai-subcard-border)',
                   }}
                 >
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>AVERAGE RISK SCORE</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>AVERAGE RISK SCORE</div>
                   <div style={{ fontSize: 26, fontWeight: 800, color: '#f59e0b', marginTop: 4 }}>
-                    {report.facts.avg_risk_score} <span style={{ fontSize: 14, color: '#94a3b8' }}>/100</span>
+                    {report.facts.avg_risk_score} <span style={{ fontSize: 14, color: 'var(--text-muted)' }}>/100</span>
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                     Max: {report.facts.max_risk_score}
                   </div>
                 </div>
 
                 <div
                   style={{
-                    background: '#1e293b',
+                    background: 'var(--ai-subcard-bg)',
                     padding: '14px 18px',
                     borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.05)',
+                    border: '1px solid var(--ai-subcard-border)',
                   }}
                 >
-                  <div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>ASSESSED SERVICES</div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 600 }}>ASSESSED SERVICES</div>
                   <div style={{ fontSize: 26, fontWeight: 800, color: '#a78bfa', marginTop: 4 }}>
                     {report.facts.total_apps}
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
                     {report.facts.open_alerts} open SOC alerts
                   </div>
                 </div>
@@ -701,7 +834,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                   style={{
                     fontSize: 15,
                     fontWeight: 700,
-                    color: '#818cf8',
+                    color: 'var(--blue)',
                     letterSpacing: '0.04em',
                     marginBottom: 10,
                   }}
@@ -710,13 +843,13 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 </h3>
                 <div
                   style={{
-                    background: 'rgba(30,41,59,0.5)',
+                    background: 'var(--ai-subcard-bg)',
                     padding: '16px 20px',
                     borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    border: '1px solid var(--ai-subcard-border)',
                     fontSize: 14,
                     lineHeight: 1.7,
-                    color: '#e2e8f0',
+                    color: 'var(--text-primary)',
                   }}
                 >
                   {report.summary}
@@ -729,7 +862,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                   style={{
                     fontSize: 15,
                     fontWeight: 700,
-                    color: '#818cf8',
+                    color: 'var(--blue)',
                     letterSpacing: '0.04em',
                     marginBottom: 10,
                   }}
@@ -737,39 +870,47 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                   KEY TELEMETRY OBSERVATIONS
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {report.key_findings.map((finding, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 12,
-                        background: 'rgba(30,41,59,0.4)',
-                        padding: '12px 16px',
-                        borderRadius: 8,
-                        border: '1px solid rgba(255,255,255,0.05)',
-                      }}
-                    >
-                      <span
+                  {report.key_findings.map((finding, idx) => {
+                    const text =
+                      typeof finding === 'string'
+                        ? finding
+                        : (finding as { finding?: string; text?: string })?.finding ||
+                          (finding as { finding?: string; text?: string })?.text ||
+                          JSON.stringify(finding);
+                    return (
+                      <div
+                        key={idx}
                         style={{
-                          background: 'rgba(99,102,241,0.2)',
-                          color: '#a5b4fc',
-                          width: 24,
-                          height: 24,
-                          borderRadius: '50%',
                           display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: 12,
-                          fontWeight: 700,
-                          flexShrink: 0,
+                          alignItems: 'flex-start',
+                          gap: 12,
+                          background: 'var(--ai-subcard-bg)',
+                          padding: '12px 16px',
+                          borderRadius: 8,
+                          border: '1px solid var(--ai-subcard-border)',
                         }}
                       >
-                        {idx + 1}
-                      </span>
-                      <span style={{ fontSize: 13, color: '#f1f5f9', lineHeight: 1.6 }}>{finding}</span>
-                    </div>
-                  ))}
+                        <span
+                          style={{
+                            background: 'var(--blue-dim)',
+                            color: 'var(--blue)',
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 12,
+                            fontWeight: 700,
+                            flexShrink: 0,
+                          }}
+                        >
+                          {idx + 1}
+                        </span>
+                        <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6 }}>{text}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -779,7 +920,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                   style={{
                     fontSize: 15,
                     fontWeight: 700,
-                    color: '#818cf8',
+                    color: 'var(--blue)',
                     letterSpacing: '0.04em',
                     marginBottom: 10,
                   }}
@@ -788,13 +929,13 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 </h3>
                 <div
                   style={{
-                    background: 'rgba(30,41,59,0.5)',
+                    background: 'var(--ai-subcard-bg)',
                     padding: '16px 20px',
                     borderRadius: 10,
-                    border: '1px solid rgba(255,255,255,0.06)',
+                    border: '1px solid var(--ai-subcard-border)',
                     fontSize: 14,
                     lineHeight: 1.7,
-                    color: '#cbd5e1',
+                    color: 'var(--text-primary)',
                   }}
                 >
                   {report.risk_analysis}
@@ -807,7 +948,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                   style={{
                     fontSize: 15,
                     fontWeight: 700,
-                    color: '#818cf8',
+                    color: 'var(--blue)',
                     letterSpacing: '0.04em',
                     marginBottom: 10,
                   }}
@@ -815,35 +956,80 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                   ACTIONABLE STRATEGIC DIRECTIVES
                 </h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {report.recommendations.map((rec, idx) => (
-                    <div
-                      key={idx}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        gap: 12,
-                        background: 'rgba(16,185,129,0.06)',
-                        padding: '12px 16px',
-                        borderRadius: 8,
-                        border: '1px solid rgba(16,185,129,0.2)',
-                      }}
-                    >
-                      <span
+                  {report.recommendations.map((rec, idx) => {
+                    const isObj = typeof rec === 'object' && rec !== null;
+                    const actionText = isObj ? (rec as { action?: string }).action || JSON.stringify(rec) : String(rec);
+                    const priority = isObj ? (rec as { priority?: string }).priority : null;
+                    const target = isObj ? (rec as { target?: string }).target : null;
+
+                    return (
+                      <div
+                        key={idx}
                         style={{
-                          background: 'rgba(16,185,129,0.2)',
-                          color: '#34d399',
-                          padding: '2px 8px',
-                          borderRadius: 6,
-                          fontSize: 11,
-                          fontWeight: 800,
-                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: 12,
+                          background: 'rgba(16,185,129,0.06)',
+                          padding: '12px 16px',
+                          borderRadius: 8,
+                          border: '1px solid rgba(16,185,129,0.25)',
                         }}
                       >
-                        ACTION {idx + 1}
-                      </span>
-                      <span style={{ fontSize: 13, color: '#f8fafc', lineHeight: 1.6 }}>{rec}</span>
-                    </div>
-                  ))}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          <span
+                            style={{
+                              background: 'rgba(16,185,129,0.2)',
+                              color: '#10b981',
+                              padding: '2px 8px',
+                              borderRadius: 6,
+                              fontSize: 11,
+                              fontWeight: 800,
+                            }}
+                          >
+                            ACTION {idx + 1}
+                          </span>
+                          {priority && (
+                            <span
+                              style={{
+                                background:
+                                  priority.toLowerCase().includes('high') || priority === 'P1'
+                                    ? 'rgba(239,68,68,0.2)'
+                                    : 'rgba(245,158,11,0.2)',
+                                color:
+                                  priority.toLowerCase().includes('high') || priority === 'P1'
+                                    ? '#ef4444'
+                                    : '#f59e0b',
+                                padding: '2px 6px',
+                                borderRadius: 4,
+                                fontSize: 10,
+                                fontWeight: 800,
+                              }}
+                            >
+                              {priority.toUpperCase()}
+                            </span>
+                          )}
+                        </div>
+
+                        <div style={{ flex: 1, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.6 }}>{actionText}</span>
+                          {target && (
+                            <span
+                              style={{
+                                fontSize: 11,
+                                fontFamily: 'monospace',
+                                color: 'var(--blue)',
+                                background: 'var(--blue-dim)',
+                                padding: '1px 6px',
+                                borderRadius: 4,
+                              }}
+                            >
+                              target: {target}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -858,13 +1044,13 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
               </div>
               <div
                 style={{
-                  background: '#090d16',
+                  background: 'var(--ai-pre-bg)',
                   borderRadius: 10,
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--ai-subcard-border)',
                   padding: 16,
                   fontFamily: 'monospace',
                   fontSize: 12,
-                  color: '#38bdf8',
+                  color: 'var(--blue)',
                   maxHeight: 480,
                   overflowY: 'auto',
                 }}
@@ -880,9 +1066,9 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
               {/* Message History */}
               <div
                 style={{
-                  background: '#0b0f19',
+                  background: 'var(--ai-copilot-bg)',
                   borderRadius: 12,
-                  border: '1px solid rgba(255,255,255,0.08)',
+                  border: '1px solid var(--ai-subcard-border)',
                   padding: 20,
                   minHeight: 340,
                   maxHeight: 450,
@@ -909,7 +1095,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                         gap: 8,
                         marginBottom: 4,
                         fontSize: 11,
-                        color: '#64748b',
+                        color: 'var(--text-muted)',
                       }}
                     >
                       <span>{msg.sender === 'user' ? '👤 You' : '🤖 SITA Security Copilot'}</span>
@@ -923,15 +1109,15 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                         background:
                           msg.sender === 'user'
                             ? 'linear-gradient(135deg,#4f46e5,#6366f1)'
-                            : '#1e293b',
-                        color: '#fff',
+                            : 'var(--surface-2)',
+                        color: msg.sender === 'user' ? '#fff' : 'var(--text-primary)',
                         fontSize: 13,
                         lineHeight: 1.6,
                         border:
                           msg.sender === 'assistant'
-                            ? '1px solid rgba(255,255,255,0.08)'
+                            ? '1px solid var(--border-dim)'
                             : 'none',
-                        boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                         whiteSpace: 'pre-line',
                       }}
                     >
@@ -941,7 +1127,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                 ))}
 
                 {copilotTyping && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#818cf8', fontSize: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--blue)', fontSize: 12 }}>
                     <span className="spin" style={{ width: 14, height: 14 }} />
                     Analyzing report facts and cross-referencing scope…
                   </div>
@@ -950,7 +1136,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
 
               {/* Suggested Questions */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                <span style={{ fontSize: 11, color: '#94a3b8', alignSelf: 'center' }}>Suggested:</span>
+                <span style={{ fontSize: 11, color: 'var(--text-muted)', alignSelf: 'center' }}>Suggested:</span>
                 {[
                   'What are the critical risks?',
                   'Summarize the POPIA compliance impact',
@@ -963,9 +1149,9 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                       setCopilotInput(q);
                     }}
                     style={{
-                      background: 'rgba(99,102,241,0.1)',
-                      border: '1px solid rgba(99,102,241,0.25)',
-                      color: '#c7d2fe',
+                      background: 'var(--blue-dim)',
+                      border: '1px solid var(--blue)',
+                      color: 'var(--blue)',
                       borderRadius: 16,
                       padding: '4px 12px',
                       fontSize: 11,
@@ -992,9 +1178,9 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                     flex: 1,
                     padding: '12px 16px',
                     borderRadius: 10,
-                    background: '#1e293b',
-                    color: '#fff',
-                    border: '1px solid rgba(99,102,241,0.3)',
+                    background: 'var(--ai-input-bg)',
+                    color: 'var(--ai-input-color)',
+                    border: '1px solid var(--ai-input-border)',
                     fontSize: 13,
                     outline: 'none',
                   }}

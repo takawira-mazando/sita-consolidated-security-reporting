@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SITA Unified Security Intelligence Platform · Standalone Demonstration Showcase</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070d18;--card:#0f172a;--card-2:#162238;--card-hover:#1c2c47;--ink:#f1f5f9;--mid:#94a3b8;--dim:#64748b;--line:#1e293b;--line-hi:#334155;
+  --t5:#8b5cf6;--t5b:#2e1065;--t4:#f59e0b;--t4b:#451a03;--t3:#0ea5e9;--t3b:#082f49;--t2:#10b981;--t2b:#064e3b;--t1:#3b82f6;--t1b:#172554;
+  --flare-1:#3b82f6;--flare-2:#06b6d4;--link:#38bdf8;--ok:#10b981;--red:#ef4444;--amber:#f59e0b;
+  --sh:0 4px 20px -2px rgba(0,0,0,0.5),0 2px 6px -1px rgba(0,0,0,0.4);
+  --sh-lg:0 20px 45px -10px rgba(0,0,0,0.7),0 0 15px rgba(56,189,248,0.15);
+  box-sizing:border-box;color-scheme:dark;
+}
+[data-theme="light"]{
+  --bg:#f8fafc;--card:#ffffff;--card-2:#f1f5f9;--card-hover:#e2e8f0;--ink:#0f172a;--mid:#475569;--dim:#94a3b8;--line:#cbd5e1;--line-hi:#94a3b8;
+  --t5:#7c3aed;--t5b:#f3e8ff;--t4:#d97706;--t4b:#fef3c7;--t3:#0284c7;--t3b:#e0f2fe;--t2:#059669;--t2b:#d1fae5;--t1:#2563eb;--t1b:#dbeafe;
+  --flare-1:#2563eb;--flare-2:#0891b2;--link:#0284c7;--ok:#059669;--red:#dc2626;--amber:#d97706;
+  --sh:0 2px 10px rgba(0,0,0,0.06),0 1px 3px rgba(0,0,0,0.04);
+  --sh-lg:0 12px 30px -5px rgba(0,0,0,0.12);
+  color-scheme:light;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font:14.5px/1.6 'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;
+background-image:radial-gradient(900px 450px at 15% -5%,rgba(59,130,246,0.12) 0,transparent 70%),radial-gradient(750px 380px at 85% -5%,rgba(6,182,212,0.10) 0,transparent 70%);background-repeat:no-repeat}
+h1,h2,h3,h4,h5{font-family:'Space Grotesk',sans-serif;letter-spacing:-0.025em;line-height:1.15;color:var(--ink)}
+code,.mono{font-family:'JetBrains Mono',monospace;font-size:0.86em}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;text-align:left}
+a{color:inherit;text-decoration:none}
+:focus-visible{outline:2px solid var(--flare-1);outline-offset:3px;border-radius:8px}
+
+.wrap{max-width:1280px;margin:0 auto;padding:0 clamp(16px,3vw,36px)}
+header.top-bar{padding:30px 0 16px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.bar-row{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:16px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand img{height:34px;background:#fff;padding:3px 7px;border-radius:6px}
+.brand h1{font-size:19px;font-weight:700}
+.brand-sub{font-size:11.5px;color:var(--dim);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:0.05em}
+
+.top-actions{display:flex;align-items:center;gap:10px}
+.btn-launch{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:99px;background:linear-gradient(135deg,#7c3aed 0%,#2563eb 100%);color:#fff;font-weight:700;font-size:12.5px;box-shadow:0 4px 14px rgba(37,99,235,0.4);transition:all .2s}
+.btn-launch:hover{transform:translateY(-1px);box-shadow:0 6px 18px rgba(37,99,235,0.5)}
+.theme-btn{padding:7px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);font-size:12px;color:var(--mid)}
+
+.tabs{display:flex;gap:4px;overflow-x:auto;padding-bottom:2px;border-bottom:2px solid transparent}
+.tabs button{padding:10px 16px;border-radius:10px 10px 0 0;font:600 13px 'Space Grotesk',sans-serif;color:var(--mid);border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s}
+.tabs button:hover{color:var(--ink);background:var(--card-2)}
+.tabs button[aria-selected="true"]{color:var(--flare-1);border-bottom-color:var(--flare-1);background:var(--card);box-shadow:0 -2px 10px rgba(0,0,0,0.1)}
+
+/* Layout Styles */
+.lead-box{margin-bottom:28px}
+.lead-box h2{font-size:28px;font-weight:800;margin-bottom:8px}
+.lead-box p.lede{font-size:15px;color:var(--mid);max-width:860px;line-height:1.55}
+
+.eyebrow{display:inline-flex;align-items:center;gap:7px;font:600 11.5px 'JetBrains Mono',monospace;letter-spacing:0.07em;text-transform:uppercase;color:var(--flare-2);margin-bottom:8px}
+.eyebrow i{width:6px;height:6px;border-radius:50%;background:currentColor;display:inline-block}
+
+/* Section styling */
+section.show-sec{margin:40px 0 60px;padding-top:20px;border-top:1px solid var(--line)}
+section.show-sec:first-of-type{border-top:none;margin-top:0}
+.sec-head{margin-bottom:22px}
+.sec-head h3{font-size:22px;font-weight:700;margin-bottom:6px}
+.sec-head p{color:var(--mid);font-size:14px;max-width:820px}
+
+/* Grid & Cards */
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.g2{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:1050px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:680px){.g3,.g2,.g4{grid-template-columns:1fr}}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;box-shadow:var(--sh);position:relative;display:flex;flex-direction:column;justify-content:space-between}
+.card:hover{border-color:var(--line-hi);box-shadow:var(--sh-lg)}
+.card-n{font:700 12.5px 'JetBrains Mono',monospace;color:var(--flare-1);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.card h4{font-size:16px;font-weight:700;margin-bottom:6px}
+.card p{font-size:13px;color:var(--mid);line-height:1.55}
+
+/* Fusion Score Component */
+.fusion-box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:var(--sh);display:grid;grid-template-columns:1.5fr 1fr;gap:24px}
+@media(max-width:850px){.fusion-box{grid-template-columns:1fr}}
+.f-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;font-weight:700}
+.f-row{display:grid;grid-template-columns:160px 1fr 50px;align-items:center;gap:12px;margin-bottom:12px}
+.b-track{height:9px;background:var(--card-2);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+.b-fill{height:100%;border-radius:99px}
+.f-pct{font:700 13px 'JetBrains Mono',monospace;text-align:right}
+.buckets-box{background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:16px}
+.bucket-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;font-size:12.5px}
+.chip-b{padding:3px 8px;border-radius:6px;font:700 11px 'JetBrains Mono',monospace;text-transform:uppercase}
+.chip-crit{background:rgba(239,68,68,0.2);color:#ef4444;border:1px solid rgba(239,68,68,0.4)}
+.chip-mon{background:rgba(245,158,11,0.2);color:#f59e0b;border:1px solid rgba(245,158,11,0.4)}
+.chip-safe{background:rgba(16,185,129,0.2);color:#10b981;border:1px solid rgba(16,185,129,0.4)}
+
+/* Tenancy Architecture Visuals */
+.tenancy-box{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:26px;box-shadow:var(--sh);margin-bottom:20px}
+.tnode{background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:16px 20px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px}
+.tnode.troot{border-left:4px solid var(--amber)}
+.tnode.tdept{border-left:4px solid var(--ok)}
+.tnode.tprov{border-left:4px solid var(--flare-1)}
+.tnode.tbranch{border-left:4px solid var(--flare-2);font-size:13px}
+
+.tag-role{display:inline-block;padding:2px 7px;border-radius:6px;font:600 11px 'JetBrains Mono',monospace;background:rgba(255,255,255,0.06);margin-right:4px;border:1px solid var(--line)}
+
+/* Pipeline Stages */
+.pipe-card{background:var(--card);border:1px solid var(--line);border-top:3px solid var(--flare-1);border-radius:12px;padding:18px;box-shadow:var(--sh)}
+.pipe-n{font:800 24px 'Space Grotesk',sans-serif;color:var(--flare-2);margin-bottom:6px}
+.pipe-card h4{font-size:15px;font-weight:700;margin-bottom:6px}
+.pipe-card p{font-size:12.5px;color:var(--mid);line-height:1.5}
+
+/* Table Matrix */
+.matrix-wrap{overflow-x:auto;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--sh);margin-bottom:14px}
+table.mat{width:100%;border-collapse:collapse;font-size:13px;text-align:center}
+table.mat th{padding:12px 14px;background:var(--card-2);font-weight:700;border-bottom:1px solid var(--line);color:var(--ink);font-size:12px;text-transform:uppercase;letter-spacing:0.04em}
+table.mat td{padding:10px 14px;border-bottom:1px solid var(--line)}
+table.mat tr.tier-hdr td{background:rgba(255,255,255,0.03);text-align:left;font-weight:700;font-family:'Space Grotesk',sans-serif;color:var(--link);padding:8px 14px}
+table.mat tr.mrow:hover{background:var(--card-hover);cursor:pointer}
+.dot-on{width:8px;height:8px;border-radius:50%;background:var(--ok);display:inline-block;box-shadow:0 0 8px rgba(16,185,129,0.5)}
+.dot-off{width:6px;height:6px;border-radius:50%;background:var(--dim);display:inline-block;opacity:0.3}
+
+/* Action button inside cards */
+.btn-card-act{display:inline-flex;align-items:center;justify-content:center;gap:6px;width:100%;margin-top:14px;padding:8px 12px;border-radius:8px;background:var(--flare-1);color:#fff;font-weight:700;font-size:12px;text-decoration:none;box-shadow:0 2px 8px rgba(37,99,235,0.3);transition:all .2s}
+.btn-card-act:hover{opacity:0.92;transform:translateY(-1px)}
+
+/* Control Plane Specific Styles (Tree & RBAC) */
+.tree-layout{display:grid;grid-template-columns:360px 1fr;gap:24px}
+@media(max-width:900px){.tree-layout{grid-template-columns:1fr}}
+.tree-list{display:flex;flex-direction:column;gap:10px}
+.tn-btn{padding:14px 18px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:flex;align-items:center;gap:12px;transition:all .2s;cursor:pointer}
+.tn-btn:hover{border-color:var(--line-hi);background:var(--card-2)}
+.tn-btn.sel{border-color:var(--c,var(--flare-1));background:var(--card-2);box-shadow:0 0 12px rgba(0,0,0,0.3)}
+.tn-badge{width:36px;height:36px;border-radius:8px;background:var(--c,var(--flare-1));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px;flex-shrink:0}
+.panel-detail{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:24px;box-shadow:var(--sh);border-top:4px solid var(--c,var(--flare-1))}
+
+/* Modal Styles */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(8px)}
+.modal-box{background:var(--card);border:1px solid var(--line-hi);border-radius:18px;max-width:1050px;width:100%;max-height:88vh;overflow-y:auto;padding:28px;box-shadow:var(--sh-lg)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="top-bar">
+  <div class="bar-row">
+    <div class="brand">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/SITA_logo.png" alt="SITA Logo" onerror="this.style.display='none'">
+      <div>
+        <div class="brand-sub">Sovereign Cybersecurity Intelligence Architecture</div>
+        <h1>SITA Unified Security Intelligence Platform</h1>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button class="theme-btn" id="btn-theme" onclick="toggleTheme()">☀ / 🌙 Theme</button>
+      <a href="http://localhost:3001/?demo_login=admin&goto=/sita/admin" target="_blank" class="btn-launch">
+        🚀 Launch Live Platform (localhost:3001) ↗
+      </a>
+    </div>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button role="tab" id="tab-ov" aria-selected="true" onclick="setV('ov')">Overview &amp; Executive Showcase</button>
+    <button role="tab" id="tab-dp" aria-selected="false" onclick="setV('dp')">Data Plane (6 Cockpits)</button>
+    <button role="tab" id="tab-tree" aria-selected="false" onclick="setV('tree')">Control Plane Hierarchy</button>
+    <button role="tab" id="tab-st" aria-selected="false" onclick="setV('st')">The Tenants</button>
+    <button role="tab" id="tab-rb" aria-selected="false" onclick="setV('rb')">RBAC Provisioning</button>
+    <button role="tab" id="tab-wk" aria-selected="false" onclick="setV('wk')">Live Walkthrough</button>
+    <button role="tab" id="tab-gv" aria-selected="false" onclick="setV('gv')">Governance &amp; HR Lookup</button>
+    <button role="tab" id="tab-mx" aria-selected="false" onclick="setV('mx')">Summary Matrix</button>
+  </div>
+</header>
+
+<main id="main-view"></main>
+
+<footer style="margin:50px 0 30px;padding-top:20px;border-top:1px solid var(--line);display:flex;justify-content:space-between;font-size:12px;color:var(--dim)">
+  <span>© 2026 State Information Technology Agency (SITA) · Transversal Security Operations</span>
+  <span style="display:flex;align-items:center;gap:6px"><i style="width:7px;height:7px;border-radius:50%;background:var(--ok);display:inline-block"></i>All systems operational · POPIA NFR-AI-11 &amp; AGSA Compliant</span>
+</footer>
+
+</div>
+
+<!-- 14-Role AI Claim Class Matrix Modal -->
+<div id="ai-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeAiModal()">
+  <div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px">
+      <div>
+        <div style="font:700 11px 'JetBrains Mono',monospace;color:var(--flare-2);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:4px">Layer 4 · Deterministic Verification Gate</div>
+        <h3 style="font-size:22px;font-weight:800">🎯 The 14-Role AI Claim Class Matrix</h3>
+        <p style="font-size:13px;color:var(--mid);margin-top:4px">The AI Layer 4 verifier evaluates every generated sentence against this matrix. Sentences containing claims unauthorized for the caller's role are scrubbed before human release.</p>
+      </div>
+      <button onclick="closeAiModal()" style="font-size:20px;padding:4px 10px;border-radius:8px;background:var(--card-2);color:var(--ink)">&times;</button>
+    </div>
+    <div class="g3" style="gap:14px">
+      <div style="background:var(--card-2);border:1px solid var(--line);border-top:3px solid var(--flare-1);border-radius:12px;padding:16px">
+        <h4 style="color:var(--flare-1);margin-bottom:8px">🏛️ National Strategic</h4>
+        <div style="font-size:12px;line-height:1.55;color:var(--mid)">
+          <b>exec@ (Executive / CISO):</b> 0–100 Fused Risk Index, Exposure Trends, AGSA Readiness, POPIA Section 22 summary. Low-level CVEs and code sinks are scrubbed.<br><br>
+          <b>compliance@ (AGSA Liaison):</b> POPIA control status, ISO 27001 gap matrices, ECDSA P-256 signatures.<br><br>
+          <b>sre@ (Service Reliability):</b> Pipeline ingestion EPS, connector latency, DLQ error rates.
+        </div>
+      </div>
+      <div style="background:var(--card-2);border:1px solid var(--line);border-top:3px solid var(--flare-2);border-radius:12px;padding:16px">
+        <h4 style="color:var(--flare-2);margin-bottom:8px">🛡️ Specialized SecOps</h4>
+        <div style="font-size:12px;line-height:1.55;color:var(--mid)">
+          <b>soc@ (SOC Analyst):</b> Imperva WAF blocks, live SIEM feeds, MITRE ATT&CK techniques, D3FEND rules. Raw PII is scrubbed.<br><br>
+          <b>appsec@ (AppSec Engineer):</b> HCL AppScan DAST/SAST findings, OWASP Top 10, CWE IDs, code sinks, SLA counters.<br><br>
+          <b>dbsec@ (DB Specialist):</b> Imperva &amp; Thales DAM queries, privileged user audits, POPIA Special Personal Information (SPI) flags.
+        </div>
+      </div>
+      <div style="background:var(--card-2);border:1px solid var(--line);border-top:3px solid var(--amber);border-radius:12px;padding:16px">
+        <h4 style="color:var(--amber);margin-bottom:8px">⚙️ Administrative Tiers</h4>
+        <div style="font-size:12px;line-height:1.55;color:var(--mid)">
+          <b>admin@ (SITA Superadmin #1):</b> Tenancy bounds, downstream user provisioning across 173 departments. Zero telemetry.<br><br>
+          <b>transversal@ (Superadmin #2):</b> Sovereign multi-department delegation. Zero telemetry.<br><br>
+          <b>deptadmin@ (DHA Superadmin):</b> DHA tenancy bound. Jailed to DHA DDG branches.<br><br>
+          <b>branchadmin@ (DHA Civic Services):</b> Jailed strictly to Civic Services branch.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let S = { v: "ov", t: "t4", b: "dha-immigration", dpt: "t4" };
+
+function toggleTheme(){
+  const cur = document.documentElement.getAttribute("data-theme");
+  const next = cur === "light" ? "dark" : "light";
+  document.documentElement.setAttribute("data-theme", next);
+}
+
+function openAiModal(){ document.getElementById("ai-modal").style.display = "flex"; }
+function closeAiModal(){ document.getElementById("ai-modal").style.display = "none"; }
+
+function setV(v){
+  S.v = v;
+  document.querySelectorAll(".tabs button").forEach(b => {
+    b.setAttribute("aria-selected", b.id === "tab-" + v);
+  });
+  render();
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+/* ─── DATA SOURCES & DEFINITIONS ─── */
+const FUSION_DATA = [
+  { label: "AppScan findings", pct: 35, color: "#3b82f6" },
+  { label: "Imperva violations", pct: 25, color: "#06b6d4" },
+  { label: "API exposure", pct: 20, color: "#38bdf8" },
+  { label: "Compliance penalty", pct: 20, color: "#10b981" }
+];
+
+const SOURCES = [
+  { name: "HCL AppScan", kind: "AppSec · SAST/DAST" },
+  { name: "Imperva DAM", kind: "Database activity" },
+  { name: "Imperva WAF", kind: "Web application firewall" },
+  { name: "API Security", kind: "Shadow API discovery" },
+  { name: "POPIA", kind: "Compliance control data" },
+  { name: "ISO 27001", kind: "Compliance control data" }
+];
+
+const MATRIX_ROWS = [
+  { g: "🏛️ National Strategic & Assurance Roles (3)", items: [
+    { role: "Executive", tag: "exec@", roleKey: "exec", scope: "National · whole estate", c: [1,1,0,1,0] },
+    { role: "Compliance", tag: "compliance@", roleKey: "compliance", scope: "National · whole estate", c: [0,0,0,1,0] },
+    { role: "Service Ops (SRE)", tag: "sre@", roleKey: "sre", scope: "National · whole estate", c: [1,0,0,0,1] }
+  ]},
+  { g: "🛡️ Specialized Security Operations Roles (4)", items: [
+    { role: "SOC Analyst", tag: "soc@", roleKey: "soc-ha", scope: "Assigned departments/branches", c: [1,1,0,0,0] },
+    { role: "AppSec Engineer", tag: "appsec@", roleKey: "appsec-ha", scope: "Assigned departments/branches", c: [0,1,0,0,0] },
+    { role: "DB Security (DbSec)", tag: "dbsec@", roleKey: "dbsec-ha", scope: "Assigned departments/branches", c: [1,1,1,0,0] },
+    { role: "Local AppSec", tag: "localappsec@", roleKey: "local-appsec", scope: "Branch (province dept)", c: [0,1,0,0,0] }
+  ]},
+  { g: "📍 Provincial Cybersecurity Roles (2)", items: [
+    { role: "Provincial SOC Lead", tag: "provincesoc@", roleKey: "province-soc-lead", scope: "One province · peer-blinded", c: [1,1,0,0,0] },
+    { role: "Provincial Dept Admin", tag: "provdeptadmin@", roleKey: "province-dept-admin", scope: "Provincial Department (Tier 2 Control Plane)", c: [0,0,0,0,0] }
+  ]},
+  { g: "⚙️ Administrative Tiers (5) · delegated one-way down the tenancy tree", items: [
+    { role: "Branch Admin", tag: "branchadmin@", roleKey: "branchadmin-ha", scope: "Tier 1 · DDG operational branch (DHA)", c: [0,0,0,0,0] },
+    { role: "Department Superadmin", tag: "deptadmin@", roleKey: "deptadmin-ha", scope: "Tier 2 · Department of Home Affairs (DHA)", c: [0,0,0,0,0] },
+    { role: "National Gov Transversal Superadmin #2", tag: "transversal@", roleKey: "transversal-admin", scope: "Tier 3 · Sovereign multi-department estate", c: [0,0,0,0,0] },
+    { role: "SITA Superadmin #1", tag: "admin@", roleKey: "admin", scope: "Tier 4 · SITA Command Center (primary contact)", c: [0,0,0,0,0] },
+    { role: "Platform Provider / Developer", tag: "operator@", roleKey: "operator", scope: "Tier 5 · Platform root developer / creator", c: [0,0,0,0,0] }
+  ]}
+];
+
+const DP_DATA = [
+ {id:"exec",name:"Executive Cockpit",tag:"EXEC",color:"#ef4444",bg:"rgba(239,68,68,0.12)",role:"exec-report-viewer",liveRole:"exec",goto:"/national/exec",icon:"📊",persona:"CISO, Director-General, Portfolio Ministers & SITA Executive Board",prov:"SITA Command Center Superadmin (Tier 4)",oems:["Cross-OEM Fusion","Risk & Exposure","Compliance Posture","POPIA Risk"],subs:{t4:"Republic-wide consolidated threat posture across ~173 National & Provincial Departments — AG & POPIA statutory compliance",t3:"National security estate aggregate posture & transversal department exposure (PFMA Organs of State)",t2:"Departmental threat & compliance posture — Department of Home Affairs (Tier 2 Tenant)",t1:"Branch-level threat score & critical asset posture — DHA Civic Services (Tier 1 Scope)"},kpis:[{l:"Threat Index",v:"38/100",t:"Low Risk"},{l:"Organs Scoped",v:"173",t:"Transversal"},{l:"AGSA Readiness",v:"94.2%",t:"Statutory Audit"}],highlights:["Consolidated Threat & Risk Index across all PFMA Organs of State","Executive MTTR tracking and transversal exposure heatmaps","Auditor-General (AGSA) compliance readiness score","Critical asset protection & sovereign threat posture"]},
+ {id:"soc",name:"SOC Analyst Cockpit",tag:"SOC",color:"#3b82f6",bg:"rgba(59,130,246,0.12)",role:"province-soc-lead / local-soc-analyst",liveRole:"soc-ha",goto:"/dept/soc",icon:"🛡️",persona:"SOC Leads, Threat Hunters, Incident Responders & Tier 1-3 Analysts",prov:"Department Superadmin (Tier 2) or Branch Admin (Tier 1)",oems:["Imperva Cloud WAF","Imperva DAM","Microsoft Sentinel","Transversal Feed"],subs:{t4:"Transversal alert queue across all National and Provincial Departments, unified multi-OEM ingestion feed",t3:"Estate-wide alert correlation across National & Provincial Departments (Organs of State)",t2:"Departmental incident triage & threat mitigation — Department of Home Affairs",t1:"Branch-scoped live alert feed & packet analysis — DHA Civic Services"},kpis:[{l:"Active Incidents",v:"14",t:"2 Critical"},{l:"Mean Time to Detect",v:"4.2 min",t:"Target <15m"},{l:"WAF Blocks (24h)",v:"1.42M",t:"Transversal Edge"}],highlights:["Real-time transversal alert queue with unified OEM normalization","Automated triage, MITRE ATT&CK kill-chain mapping & IOC enrichment","High-risk perimeter DDoS, bot protection and API abuse telemetry","Tier-jailed escalation workflow to CSIRT and departmental incident leads"]},
+ {id:"appsec",name:"AppSec Engineer Cockpit",tag:"APPSEC",color:"#f59e0b",bg:"rgba(245,158,11,0.12)",role:"local-appsec",liveRole:"appsec-ha",goto:"/dept/appsec",icon:"⚡",persona:"Application Security Engineers, DevSecOps Leads & Penetration Testers",prov:"Department Superadmin (Tier 2) or Branch Admin (Tier 1)",oems:["HCL AppScan Enterprise","API Security","Container SBOM","CI/CD Gates"],subs:{t4:"Transversal CVE triage & vulnerability exposure across ~173 National & Provincial Departments (PFMA Organs of State)",t3:"Estate-wide vulnerability triage across National & Provincial Departments (Organs of State)",t2:"Departmental application security posture — Department of Home Affairs",t1:"Branch-scoped repository & service CVE mitigation — DHA Civic Services"},kpis:[{l:"Open CVEs",v:"89",t:"12 Critical"},{l:"Mean Time to Remediate",v:"6.8 days",t:"SLA: 14d"},{l:"AppScan Scans",v:"100% Pass",t:"Production Gate"}],highlights:["Transversal CVE & CWE triage across public-facing sovereign web applications","Automated DAST/SAST vulnerability deduplication & exploitability scoring","API contract drift, shadow endpoint discovery & OWASP Top 10 mitigation","Developer remediation SLAs, SLA breach alerts & pull-request security gates"]},
+ {id:"dbsec",name:"DbSec Specialist Cockpit",tag:"DBSEC",color:"#10b981",bg:"rgba(16,185,129,0.12)",role:"db-sec-specialist",liveRole:"dbsec-ha",goto:"/dept/dbsec",icon:"🗄️",persona:"Database Security Specialists, Data Protection Officers & Privileged DBAs",prov:"Department Superadmin (Tier 2)",oems:["Imperva SecureSphere DAM","Thales CipherTrust","Privileged User Audit","DDL Sentinel"],subs:{t4:"Transversal DAM across all National & Provincial Department databases, privileged access & DDL monitoring (PFMA Organs of State)",t3:"Estate-wide database security monitoring across National & Provincial Departments (Organs of State)",t2:"Departmental database audit & data privacy telemetry — Department of Home Affairs",t1:"Branch-scoped database audit & sensitive table access — DHA Civic Services"},kpis:[{l:"Protected DBs",v:"48",t:"Active DAM"},{l:"Privileged Queries",v:"18.4k/hr",t:"Audited"},{l:"POPIA Violations",v:"0",t:"Zero Breach"}],highlights:["Continuous Database Activity Monitoring (DAM) across critical sovereign registries","Privileged access monitoring, rogue DBA query alerts & schema DDL auditing","Automated discovery of POPIA Section 19 Special Personal Information (SPI)","SQL injection attempt capture at database tier before execution"]},
+ {id:"compliance",name:"Compliance & Audit Cockpit",tag:"COMPLIANCE",color:"#8b5cf6",bg:"rgba(139,92,246,0.12)",role:"compliance-auditor",liveRole:"compliance",goto:"/national/compliance",icon:"⚖️",persona:"Auditor-General Audit Teams, Internal Audit, POPIA Regulators & CCOs",prov:"SITA Command Center Superadmin (Tier 4)",oems:["Auditor-General (AGSA)","POPIA Oversight","ISO 27001","PFMA Controls"],subs:{t4:"Auditor-General & POPIA statutory oversight across all National and Provincial Departments (PFMA Organs of State)",t3:"Estate-wide regulatory compliance & transversal controls tracking (PFMA Organs of State)",t2:"Departmental regulatory compliance & statutory audit trail — Department of Home Affairs",t1:"Branch-level compliance checklist & audit evidence — DHA Civic Services"},kpis:[{l:"PFMA Audit Score",v:"96.4%",t:"Compliant"},{l:"POPIA Section 19",v:"Passed",t:"Regulator Sign-off"},{l:"Evidence Logs",v:"100%",t:"Tamper-proof"}],highlights:["Automated statutory audit pack generation for AGSA annual audits","POPIA Chapter 3 compliance evidence trails & operator oversight","Tamper-evident audit log ledger and non-repudiation verification","PFMA Section 38 risk management controls compliance status"]},
+ {id:"sre",name:"Service Ops / SRE Cockpit",tag:"SRE",color:"#06b6d4",bg:"rgba(6,182,212,0.12)",role:"sre-lead",liveRole:"sre",goto:"/national/sre",icon:"📈",persona:"Platform SREs, Telemetry Pipeline Engineers & SITA Operations Specialists",prov:"SITA Command Center Superadmin (Tier 4)",oems:["Pipeline Ingestion","Connector Telemetry","Microservice Uptime","Ingestion SLAs"],subs:{t4:"Platform-provider uptime, multi-tenant pipeline telemetry & connector ingestion SLAs across all National & Provincial Departments",t3:"Estate-wide pipeline health & transversal data broker status across organs of state",t2:"Departmental connector status & ingestion health — Department of Home Affairs",t1:"Branch-scoped webhook delivery & telemetry flow — DHA Civic Services"},kpis:[{l:"Pipeline Ingestion",v:"42.8k EPS",t:"Telemetry Rate"},{l:"Platform Uptime",v:"99.98%",t:"Target 99.95%"},{l:"Connector Health",v:"28/28 Up",t:"Zero Lag"}],highlights:["End-to-end telemetry ingestion rate (EPS) & connector health across all organs of state","Event broker throughput, queue lag and dead-letter queue (DLQ) telemetry","Sovereign multi-tenant isolation verification & tenant quota enforcement","Connector latency and statutory SLA compliance tracking (99.95% target)"]}
+];
+
+const DP_TIERS = [
+ {id:"t4",name:"Tier 4: SITA Command Center",badge:"🇿🇦 SITA Transversal",desc:"Whole-of-government republic-wide scope across ~173 National & Provincial Departments"},
+ {id:"t3",name:"Tier 3: National Security Estate",badge:"🏛 National Estate",desc:"Cross-department security estate aggregate posture & transversal oversight"},
+ {id:"t2",name:"Tier 2: Department",badge:"🏢 Department (DHA)",desc:"Departmental isolation bounded strictly to one organ of state (DHA testbed)"},
+ {id:"t1",name:"Tier 1: Branch",badge:"📍 Branch (Civic Services)",desc:"Granular operational boundary scoped to a specific branch/directorate"}
+];
+
+const TIERS_DATA = [
+ { id:"t5", n:5, name:"Platform Creator / Developer", short:"operator@", keys:["operator"], scope:"Platform provider root. Responsible for multi-tenant engine infrastructure.", does:["Deploys & manages multi-tenant pipeline","Provisions SITA Superadmin (Tier 4)","Audits platform runtime integrity"], bound:"Creates Tier 4 only. Holds zero live telemetry dashboards.", can:["Provision SITA Superadmin #1","Rotate platform encryption keys"], cant:"Cannot query citizen telemetry or alter security audit records." },
+ { id:"t4", n:4, name:"SITA Command Center Superadmin #1", short:"admin@", keys:["admin"], scope:"Mandated transversal ICT provider across ~173 National & Provincial Departments.", does:["Transversal security posture coordination","Provisions National Gov Superadmin #2 (Tier 3)","Provisions national security cockpits (Exec, Compliance, SRE)"], bound:"Provisions Tier 3 & national cockpits. Zero raw telemetry access.", can:["Provision Transversal Superadmin #2","Grant Exec/Compliance/SRE cockpits"], cant:"Cannot inspect raw database records or bypass tenant boundaries." },
+ { id:"t3", n:3, name:"National Security Estate Superadmin #2", short:"transversal@", keys:["transversal-admin"], scope:"Sovereign oversight across PFMA Organs of State.", does:["Multi-department transversal governance","Provisions Department Superadmins (Tier 2) across ~173 organs of state","Coordinates Auditor-General compliance reviews"], bound:"Provisions Tier 2 only. Zero raw telemetry access.", can:["Provision DHA/Treasury/SAPS Department Superadmins"], cant:"Cannot query individual departmental databases or access Tier 4 SITA controls." },
+ { id:"t2", n:2, name:"Department Superadmin (Home Affairs)", short:"deptadmin-ha@", keys:["dept-admin","deptadmin-ha"], scope:"Department of Home Affairs PFMA accounting entity.", does:["Provisions DHA Branch Admins (Tier 1)","Provisions department security specialists (SOC, AppSec, DBSec)","Jailed strictly to DHA digital estate"], bound:"Jailed to DHA tenancy. Zero cross-department access.", can:["Provision DHA Branch Admins","Grant DHA AppSec/SOC/DBSec specialist roles"], cant:"Cannot view or provision users in SAPS, Treasury, or Health." },
+ { id:"t1", n:1, name:"Branch Admin (DHA Civic Services)", short:"branchadmin-ha@", keys:["branch-admin","branchadmin-ha"], scope:"DDG Civic Services operational directorate.", does:["Provisions branch-scoped AppSec engineers & local analysts","Monitors civic identity & passport application security"], bound:"Jailed strictly to Civic Services branch. Cannot touch other 7 DHA branches.", can:["Provision branch-scoped operational specialists"], cant:"Cannot grant department-wide access or see Immigration/Finance findings." }
+];
+
+const COL = { t5:"#8b5cf6", t4:"#f59e0b", t3:"#0ea5e9", t2:"#10b981", t1:"#3b82f6" };
+
+/* ─── RENDERING VIEWS ─── */
+
+function renderOverview(){
+  return `<div class="lead-box">
+    <div class="eyebrow"><i></i>Platform capabilities · what it actually does</div>
+    <h2>One platform. Six security domains. Zero manual reconciliation.</h2>
+    <p class="lede">This solution unifies four disconnected OEM consoles into a single normalised feed — adding a grounded AI briefing layer, dual-axis RBAC, and a POPIA-compliant data egress model on top.</p>
+  </div>
+
+  <!-- 6 Feature Highlights Grid -->
+  <div class="g3" style="margin-bottom:38px">
+    <div class="card" style="border-top:3px solid #3b82f6">
+      <div>
+        <div class="card-n">◈ &nbsp;Fused 0–100 Risk Score</div>
+        <h4>Unified Risk Index</h4>
+        <p>AppScan SAST/DAST, Imperva DAM, Imperva WAF, API exposure, and compliance controls are weighted and blended into a single score per application — recomputed every 5 minutes. No black boxes: every weight is visible and exportable.</p>
+      </div>
+      <a href="http://localhost:3001/?demo_login=exec&goto=/national/exec" target="_blank" class="btn-card-act">⚡ Demo Live Score Engine ↗</a>
+    </div>
+
+    <div class="card" style="border-top:3px solid #06b6d4">
+      <div>
+        <div class="card-n">🧠 &nbsp;Grounded AI Intelligence (AIMI)</div>
+        <h4>4-Layer Sovereign AI</h4>
+        <p>A 4-layer control model generates role-specific security briefings. Only Layer 3 runs an external model — for campaign attribution and risk-delta causality. Layers 1, 2 &amp; 4 are deterministic. Zero raw logs leave the platform (POPIA NFR-AI-11).</p>
+      </div>
+      <a href="http://localhost:3001/?demo_login=exec&goto=/national/ai" target="_blank" class="btn-card-act">⚡ Open AI Intel Studio ↗</a>
+    </div>
+
+    <div class="card" style="border-top:3px solid #8b5cf6">
+      <div>
+        <div class="card-n">🎯 &nbsp;14-Role RBAC + Dual-Axis Tenancy</div>
+        <h4>Constitutional Access Control</h4>
+        <p>14 platform roles across a 5-tier government hierarchy, enforced at API, database, and AI layers simultaneously. Tenancy controls <em>which department</em> you see. RBAC controls <em>which claim classes</em> the AI may surface within that department.</p>
+      </div>
+      <button onclick="openAiModal()" class="btn-card-act" style="background:#8b5cf6">🎯 View 14-Role Claim Matrix</button>
+    </div>
+
+    <div class="card" style="border-top:3px solid #10b981">
+      <div>
+        <div class="card-n">⚡ &nbsp;Real-Time Alert Dispatch</div>
+        <h4>Resilient Event Broker</h4>
+        <p>Severity-gated routing to email, Microsoft Teams, and PagerDuty — each alert enriched with app owner, team, department, and priority. Circuit breakers, token-bucket rate limiting, retry backoff, and a dead-letter queue with one-click reprocess.</p>
+      </div>
+      <a href="http://localhost:3001/?demo_login=soc-ha&goto=/dept/soc" target="_blank" class="btn-card-act">⚡ View Live Alert Queue ↗</a>
+    </div>
+
+    <div class="card" style="border-top:3px solid #f59e0b">
+      <div>
+        <div class="card-n">📜 &nbsp;POPIA, ISO 27001 &amp; AGSA Compliance</div>
+        <h4>Asymmetric PKI Signing</h4>
+        <p>POPIA Section 22 breach exposure analysis, ISO 27001 gap tracking, and Auditor-General (AGSA) readiness reports with asymmetric ECDSA NIST P-256 PKI digital signing (SECP256R1) providing mathematical non-repudiation and offline, air-gapped OpenSSL verification.</p>
+      </div>
+      <a href="http://localhost:3001/?demo_login=compliance&goto=/national/compliance" target="_blank" class="btn-card-act">⚡ Open AGSA Audit Pack ↗</a>
+    </div>
+
+    <div class="card" style="border-top:3px solid #06b6d4">
+      <div>
+        <div class="card-n">🔄 &nbsp;Config-Driven Connector Onboarding</div>
+        <h4>Zero-Downtime Extensibility</h4>
+        <p>New OEM sources are added through YAML field mappers — no redeploy required. Every finding carries <code>department_id</code> and <code>branch_id</code> at write time, eliminating cross-tenant leaks at the database level.</p>
+      </div>
+      <a href="http://localhost:3001/?demo_login=sre&goto=/national/sre" target="_blank" class="btn-card-act">⚡ Inspect SRE Telemetry ↗</a>
+    </div>
+  </div>
+
+  <!-- Transparent Risk Scoring Section -->
+  <section class="show-sec">
+    <div class="sec-head">
+      <div class="eyebrow"><i></i>Transparent risk scoring · live from the warehouse</div>
+      <h3>Four sources. One score. Every weight visible.</h3>
+      <p>AppScan findings, Imperva WAF violations, API exposure, and compliance penalties are blended into a single weighted 0–100 risk score per application — recomputed every 5 minutes. Every component is auditable: no black-box vendor formula.</p>
+    </div>
+
+    <div class="fusion-box">
+      <div>
+        <div class="f-head">
+          <span>How the score is built</span>
+          <span class="mono" style="color:var(--flare-2)">weighted · 0–100</span>
+        </div>
+        ${FUSION_DATA.map(f => `
+          <div class="f-row">
+            <span style="font-size:13px;font-weight:500">${f.label}</span>
+            <div class="b-track"><div class="b-fill" style="width:${f.pct}%;background:${f.color}"></div></div>
+            <span class="f-pct">${f.pct}%</span>
+          </div>
+        `).join("")}
+        <p style="font-size:12.5px;color:var(--mid);margin-top:16px;line-height:1.5">
+          AppScan findings 35%, Imperva violations 25%, API exposure 20%, Compliance penalty 20%. Every component is visible and exportable — nothing black-boxed.
+        </p>
+      </div>
+
+      <div class="buckets-box">
+        <div style="font-weight:700;font-size:13px;margin-bottom:12px;color:var(--ink)">Score buckets</div>
+        <div class="bucket-row"><span class="chip-b chip-crit">Critical</span><span>needs attention now</span></div>
+        <div class="bucket-row"><span class="chip-b chip-mon">Monitored</span><span>elevated but being watched</span></div>
+        <div class="bucket-row"><span class="chip-b chip-safe">Safe</span><span>within acceptable posture</span></div>
+
+        <div style="font-weight:700;font-size:13px;margin:18px 0 10px;color:var(--ink)">Sources feeding the score</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          ${SOURCES.map(s => `
+            <div style="font-size:11.5px;background:var(--card);padding:6px 10px;border-radius:6px;border:1px solid var(--line)">
+              <b>${s.name}</b>
+              <div style="color:var(--dim);font-size:10.5px">${s.kind}</div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Government Multi-Tenancy Architecture -->
+  <section class="show-sec">
+    <div class="sec-head">
+      <div class="eyebrow"><i></i>Government Multi-Tenancy Architecture</div>
+      <h3>How This Solution Manages Security Intelligence Across Organs of State</h3>
+      <p>A 4-tier delegated hierarchy designed for the Republic of South Africa — guaranteeing strict data isolation, provincial peer blinding, and seamless managed service governance.</p>
+    </div>
+
+    <div class="tenancy-box">
+      <!-- Tier 5 & 4: Root -->
+      <div class="tnode troot">
+        <div style="display:flex;align-items:center;gap:14px">
+          <span style="font-size:32px">🇿🇦</span>
+          <div>
+            <div style="font:700 11px 'JetBrains Mono',monospace;color:var(--amber);text-transform:uppercase">Tier 5 &amp; 4 · SITA Platform Provider &amp; National Superadmin</div>
+            <h4 style="font-size:17px;margin:2px 0 4px">SITA National Security Command Center</h4>
+            <div style="color:var(--mid);font-size:12.5px">State Information Technology Agency (SITA) Platform Provider &amp; National Superadmin</div>
+            <div style="margin-top:8px">
+              <span class="tag-role">admin@</span><span class="tag-role">operator@</span><span class="tag-role">exec@</span><span class="tag-role">compliance@</span><span class="tag-role">sre@</span>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:16px;text-align:right">
+          <div><div style="font:800 18px 'Space Grotesk'">100%</div><span style="font-size:11px;color:var(--dim)">National Estate Visibility</span></div>
+          <div><div style="font:800 18px 'Space Grotesk';color:var(--ok)">ECDSA P-256</div><span style="font-size:11px;color:var(--dim)">AG Audit Signed</span></div>
+        </div>
+      </div>
+
+      <!-- Tier 3 & 2 Split: National vs Provincial -->
+      <div class="g2" style="margin-bottom:14px">
+        <!-- National -->
+        <div style="background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span style="font-size:20px">🏛️</span>
+            <div><b>156 National Departments</b><div style="font-size:11.5px;color:var(--dim)">National Organs of State (DHA, Treasury, SAPS, Health, DPSA, DOJ...)</div></div>
+          </div>
+          <div class="tnode tdept" style="margin-bottom:10px">
+            <div>
+              <div style="font:700 10px 'JetBrains Mono',monospace;color:var(--ok)">LIVE DEMO CASE · DHA</div>
+              <b>Department of Home Affairs (DHA)</b>
+              <div style="font-size:11px;color:var(--dim)">slug: <code>home-affairs-digital</code></div>
+              <div style="margin-top:6px"><span class="tag-role">soc-ha@</span><span class="tag-role">appsec-ha@</span><span class="tag-role">dbsec-ha@</span><span class="tag-role">deptadmin-ha@</span></div>
+            </div>
+          </div>
+          <div class="tnode" style="margin-bottom:0">
+            <div>
+              <b>National Treasury</b>
+              <div style="font-size:11px;color:var(--dim)">slug: <code>treasury</code></div>
+              <div style="margin-top:6px"><span class="tag-role">treasury.admin@</span><span class="tag-role">appsec@</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Provincial -->
+        <div style="background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:16px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+            <span style="font-size:20px">📍</span>
+            <div><b>9 Provinces &amp; 113 Provincial Departments</b><div style="font-size:11.5px;color:var(--dim)">Gauteng, Western Cape, KZN, Eastern Cape, Limpopo, Mpumalanga...</div></div>
+          </div>
+          <div class="tnode tprov" style="margin-bottom:10px">
+            <div>
+              <div style="font:700 10px 'JetBrains Mono',monospace;color:var(--flare-1)">PEER BLINDING ENGINE</div>
+              <b>Gauteng Provincial SOC Lead</b>
+              <div style="font-size:11px;color:var(--dim)">province_id: <code>gp</code> · 12 Departments</div>
+              <div style="margin-top:6px"><span class="tag-role">provincesoc@</span><span class="tag-role">provdeptadmin@</span></div>
+            </div>
+          </div>
+          <div class="tnode" style="margin-bottom:0;opacity:0.75">
+            <div>
+              <b>🙈 Peer Provinces (Western Cape, KZN, etc.)</b>
+              <div style="font-size:11px;color:var(--dim)">Anonymized Benchmark Peers (Raw logs &amp; PII blinded)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tier 1: Branches -->
+      <div class="tnode tbranch" style="margin-bottom:0">
+        <div style="width:100%">
+          <div style="font:700 11px 'JetBrains Mono',monospace;color:var(--flare-2);text-transform:uppercase;margin-bottom:10px">
+            Tier 1 · 347 Operational Department Branches (DDG Units)
+          </div>
+          <div class="g4">
+            <div style="background:var(--card);padding:10px;border-radius:8px;border:1px solid var(--line)">
+              <b>🆔 DHA Civic Services</b>
+              <div style="font-size:11px;color:var(--dim)"><code>dha-civic</code></div>
+            </div>
+            <div style="background:var(--card);padding:10px;border-radius:8px;border:1px solid var(--line)">
+              <b>💻 DHA Digital Transformation</b>
+              <div style="font-size:11px;color:var(--dim)"><code>dha-digital</code></div>
+            </div>
+            <div style="background:var(--card);padding:10px;border-radius:8px;border:1px solid var(--line)">
+              <b>🛂 DHA Immigration Services</b>
+              <div style="font-size:11px;color:var(--dim)"><code>dha-immigration</code></div>
+            </div>
+            <div style="background:var(--card);padding:10px;border-radius:8px;border:1px solid var(--line)">
+              <b>💰 Treasury Budget Branch</b>
+              <div style="font-size:11px;color:var(--dim)"><code>treasury-budget</code></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4 Pillars Grid -->
+    <div class="g4">
+      <div class="card">
+        <div style="font-size:24px;margin-bottom:6px">🛡️</div>
+        <h4>Write-Time Denormalization</h4>
+        <p>Every finding carries <code>department_id</code> and <code>branch_id</code> at write time, eliminating cross-tenant query leaks at the database level.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:24px;margin-bottom:6px">🔒</div>
+        <h4>Strict Downstream Delegation</h4>
+        <p>SITA Superadmin (<code>admin</code>) → Department Admin (<code>dept-admin</code>) → Branch Admin (<code>branch-admin</code>). Authority can never escalate above its subtree node.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:24px;margin-bottom:6px">🙈</div>
+        <h4>Provincial Peer Blinding</h4>
+        <p>Provincial SOC Leads compare risk posture against peer provinces with anonymized hashes—never exposing peer findings or PII.</p>
+      </div>
+      <div class="card">
+        <div style="font-size:24px;margin-bottom:6px">📜</div>
+        <h4>AG Audit Attestation</h4>
+        <p>Generates Auditor-General compliance exports with asymmetric ECDSA NIST P-256 PKI digital signatures, enabling air-gapped OpenSSL verification.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5-Stage Event-Driven Pipeline -->
+  <section class="show-sec">
+    <div class="sec-head">
+      <div class="eyebrow"><i></i>Event-driven data pipeline · 5 stages</div>
+      <h3>From raw OEM signal to actionable decision — automatically</h3>
+      <p>An independently scalable, circuit-breaker-protected pipeline. Every stage is observable: connector health, dead-letter queue depth, and reprocess counters are surfaced live on the SRE dashboard.</p>
+    </div>
+
+    <div class="g5" style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px">
+      <div class="pipe-card"><div class="pipe-n">01</div><h4>Ingest</h4><p>OEM connectors poll AppScan, Imperva DAM, Imperva WAF, API Security, and compliance sources — with rate limiting and circuit breakers.</p></div>
+      <div class="pipe-card"><div class="pipe-n">02</div><h4>Normalise</h4><p>Vendor-speak becomes one schema: canonical severity, UTC timestamps, typed fields, and de-duplication across every source.</p></div>
+      <div class="pipe-card"><div class="pipe-n">03</div><h4>Correlate</h4><p>YAML rules fire on records and aggregates — critical spikes, shadow APIs, compliance drops, and 3-sigma anomalies.</p></div>
+      <div class="pipe-card"><div class="pipe-n">04</div><h4>Score</h4><p>A weighted 0–100 fused risk score per application, bucketed safe / monitored / critical, recomputed every 5 minutes.</p></div>
+      <div class="pipe-card"><div class="pipe-n">05</div><h4>Dispatch</h4><p>Severity-gated routing to email, Teams, and PagerDuty — each alert enriched with app ownership and priority.</p></div>
+    </div>
+  </section>
+
+  <!-- Zero-Leak Telemetry Architecture -->
+  <section class="show-sec">
+    <div class="sec-head">
+      <div class="eyebrow" style="color:var(--ok)"><i></i>Zero-Leak Telemetry Architecture</div>
+      <h3>Why Raw Telemetry Is Gated by Tenancy &amp; the 14-Role Matrix</h3>
+      <p>In accordance with POPIA Section 22 and South African sovereign data sovereignty standards, all findings, database inventories, and vulnerability traces are locked behind authenticated, dual-axis tenant filters. Zero raw telemetry is exposed publicly.</p>
+    </div>
+
+    <div class="g4">
+      <div class="card" style="border-top:3px solid #3b82f6">
+        <div style="font:700 11px 'JetBrains Mono';color:var(--dim);margin-bottom:4px">DUAL-AXIS SCOPE ENFORCEMENT</div>
+        <h4>tenant_filter() at SQL Layer</h4>
+        <p>Every single database query is bound to the authenticated actor's <code>department_id</code> and <code>branch_id</code>. Cross-tenant reads are prevented at the Postgres query planner level.</p>
+        <div style="margin-top:10px;font-size:12px;font-weight:600;color:var(--ok)">🔒 Default-deny data isolation</div>
+      </div>
+
+      <div class="card" style="border-top:3px solid #06b6d4">
+        <div style="font:700 11px 'JetBrains Mono';color:var(--dim);margin-bottom:4px">14-ROLE CLAIM CLASS GATING</div>
+        <h4>Layer 4 Output Scrubber</h4>
+        <p>Even when AI models generate reports, Layer 4 evaluates every output claim. Low-level CVE IDs and code sinks are scrubbed for executives; POPIA penalties are scrubbed for SOC analysts.</p>
+        <div style="margin-top:10px;font-size:12px;font-weight:600;color:var(--flare-2)">🎯 7 claim classes enforced</div>
+      </div>
+
+      <div class="card" style="border-top:3px solid #8b5cf6">
+        <div style="font:700 11px 'JetBrains Mono';color:var(--dim);margin-bottom:4px">PROVINCIAL PEER BLINDING</div>
+        <h4>9 Sovereign Provinces</h4>
+        <p>Provincial SOC Leads (e.g. Gauteng) view aggregated benchmarks against national percentiles while all peer province findings, server names, and citizen data remain strictly blinded.</p>
+        <div style="margin-top:10px;font-size:12px;font-weight:600;color:var(--t5)">📍 Lateral leak prevention</div>
+      </div>
+
+      <div class="card" style="border-top:3px solid #10b981">
+        <div style="font:700 11px 'JetBrains Mono';color:var(--dim);margin-bottom:4px">CRYPTOGRAPHIC AUDIT ATTESTATION</div>
+        <h4>ECDSA NIST P-256 PKI Signing</h4>
+        <p>Compliance exports for the Auditor-General (AGSA) are signed with asymmetric ECDSA NIST P-256 (SECP256R1). Proves origin provenance, detects insider tampering, and enables air-gapped OpenSSL verification.</p>
+        <div style="margin-top:10px;font-size:12px;font-weight:600;color:var(--ok)">📜 AGSA &amp; ISO 27001 ready</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Grounded AI Intelligence Layer -->
+  <section class="show-sec">
+    <div class="sec-head">
+      <div class="eyebrow" style="color:var(--t5)"><i></i>Grounded AI Intelligence Layer</div>
+      <h3>The 4-Layer AI Control Model: Only Layer 3 Holds a Model</h3>
+      <p>A strictly isolated read path layered above PostgreSQL. Three of four layers are deterministic — mathematically guaranteeing tenant containment, RBAC enforcement, and POPIA compliance even with the AI stopped.</p>
+    </div>
+
+    <div class="g4">
+      <div class="card" style="border-top:3px solid #3b82f6">
+        <div style="font-size:24px;margin-bottom:6px">🔐</div>
+        <h4>Layer 1 · Scope &amp; RBAC Gate</h4>
+        <p>Default-deny via <code>tenant_filter()</code> <strong>and</strong> <code>can_access_report()</code>. Freezes <code>scope_hash</code>. The model structurally cannot receive cross-department data or unauthorized report types.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #06b6d4">
+        <div style="font-size:24px;margin-bottom:6px">📦</div>
+        <h4>Layer 2 · Fact Assembly</h4>
+        <p>Pure SQL extraction into typed canonical fact packs. Labels every fact as <code>TENANT_SCOPED</code>, <code>ESTATE_WIDE</code>, or <code>DERIVED</code>. No free-text citizen data enters the prompt.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #8b5cf6">
+        <div style="font-size:24px;margin-bottom:6px">🧠</div>
+        <h4>Layer 3 · AIMI Provider (Only AI Layer)</h4>
+        <p>External campaign attribution (AVP-3) and risk-delta causal explanation (AVP-8). Receives public CVE/MITRE IDs only. No DB handle, no query tools, no citizen data.</p>
+      </div>
+      <div class="card" style="border-top:3px solid #10b981">
+        <div style="font-size:24px;margin-bottom:6px">✅</div>
+        <h4>Layer 4 · Deterministic Verification</h4>
+        <p>100% numeral fidelity check against the fact pack. Evaluates output against the <strong>14-role claim class matrix</strong>. Strips unauthorized claims. Requires human sign-off before publication.</p>
+        <button onclick="openAiModal()" class="btn-card-act" style="background:#8b5cf6">🎯 View 14-Role Claim Matrix</button>
+      </div>
+    </div>
+
+    <div style="margin-top:18px;padding:14px 20px;background:var(--card);border:1px solid var(--line);border-radius:10px;font-size:13px;color:var(--mid);line-height:1.6">
+      <b style="color:var(--ink)">Zero Raw Logs to AI (POPIA NFR-AI-11):</b> South African citizen IDs, employee logins, source IPs, and raw SQL query strings are structurally blocked from egress by <code>redaction.py</code>. If the AIMI provider is offline, a circuit breaker automatically serves the authoritative deterministic report — zero downtime.
+    </div>
+  </section>
+
+  <!-- 14-Role RBAC Access Matrix -->
+  <section class="show-sec">
+    <div class="sec-head">
+      <div class="eyebrow"><i></i>14-Role RBAC Access Matrix · grounded in auth.py</div>
+      <h3>Every role sees a different slice of the same truth</h3>
+      <p>14 platform roles across a 5-tier government hierarchy. The matrix below is the actual access contract from <code>backend/app/api/auth.py</code>. Click any row to execute on the live platform.</p>
+    </div>
+
+    <div class="matrix-wrap">
+      <table class="mat">
+        <thead>
+          <tr>
+            <th style="text-align:left">Role</th>
+            <th style="text-align:left">Tenant Scope</th>
+            <th>Alerts</th>
+            <th>Vulns</th>
+            <th>Access Logs</th>
+            <th>Compliance</th>
+            <th>Infra</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${MATRIX_ROWS.map(group => `
+            <tr class="tier-hdr"><td colspan="8">${group.g}</td></tr>
+            ${group.items.map(r => `
+              <tr class="mrow" onclick="window.open('http://localhost:3001/?demo_login=${r.roleKey}&goto=/national/exec','_blank')">
+                <td style="text-align:left;font-weight:600"><b>${r.role}</b> <span class="mono" style="color:var(--dim);font-size:11px">(${r.tag})</span></td>
+                <td style="text-align:left;color:var(--mid);font-size:12px">${r.scope}</td>
+                ${r.c.map(v => `<td><span class="${v ? 'dot-on' : 'dot-off'}"></span></td>`).join("")}
+                <td><span style="font-size:11px;color:var(--link);font-weight:700">⚡ Demo ↗</span></td>
+              </tr>
+            `).join("")}
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Platform Capabilities · 8 Guarantees -->
+  <section class="show-sec">
+    <div class="sec-head">
+      <div class="eyebrow"><i></i>Platform capabilities · detailed</div>
+      <h3>Eight engineered guarantees, not marketing promises</h3>
+      <p>Every feature below is a shipped, tested, observable behaviour — with the module filename and auth contract that enforces it.</p>
+    </div>
+
+    <div class="g4">
+      <div class="card"><div style="font-size:22px;margin-bottom:6px">◈</div><h4>One fused risk score</h4><p>AppScan, Imperva DAM, Imperva WAF, API exposure, and compliance controls are blended into a single transparent 0–100 score per application.</p></div>
+      <div class="card"><div style="font-size:22px;margin-bottom:6px">🧠</div><h4>Grounded AI Intelligence</h4><p>A 4-layer AI control model sits above the warehouse. Layers 1, 2 &amp; 4 are deterministic. Zero raw logs reach the model.</p></div>
+      <div class="card"><div style="font-size:22px;margin-bottom:6px">▤</div><h4>Action-level accountability</h4><p>Every acknowledge, resolve, and dead-letter reprocess is recorded with who and when — giving compliance a verifiable trail.</p></div>
+      <div class="card"><div style="font-size:22px;margin-bottom:6px">◔</div><h4>Dual-axis RBAC + Tenancy</h4><p>14 platform roles enforced across a 5-tier government hierarchy. Tenancy controls department; RBAC controls AI claim classes.</p></div>
+      <div class="card"><div style="font-size:22px;margin-bottom:6px">⚙</div><h4>Config-driven, not code-driven</h4><p>New sources and detection rules are added through YAML field mappers and alert rules — onboarding never requires a redeploy.</p></div>
+      <div class="card"><div style="font-size:22px;margin-bottom:6px">⇄</div><h4>Built to never miss a signal</h4><p>Circuit breakers, token-bucket rate limiting, retry with backoff, and a dead-letter queue with one-click reprocess keep the pipeline resilient.</p></div>
+      <div class="card"><div style="font-size:22px;margin-bottom:6px">↯</div><h4>Dispatch where your team works</h4><p>High and critical alerts route automatically to email, Microsoft Teams, and PagerDuty — enriched with app owner and priority.</p></div>
+      <div class="card"><div style="font-size:22px;margin-bottom:6px">🔒</div><h4>POPIA NFR-AI-11 Enforced</h4><p>Citizen IDs, source IPs, employee logins, and raw SQL queries are structurally barred from leaving the platform via redaction.py.</p></div>
+    </div>
+  </section>`;
+}
+
+function renderDataPlane(){
+  const curT = S.dpt || "t4";
+  const activeTierObj = DP_TIERS.find(x => x.id === curT) || DP_TIERS[0];
+
+  const tierButtons = DP_TIERS.map(t => {
+    const active = t.id === curT;
+    return `<button class="chip ${active ? 'on' : ''}" onclick="S.dpt='${t.id}';render()" style="padding:6px 14px;border-radius:99px;font:600 12px 'JetBrains Mono',monospace;border:1px solid var(--line);background:${active ? 'var(--ink)' : 'var(--card)'};color:${active ? 'var(--bg)' : 'var(--ink)'};cursor:pointer">${t.badge}</button>`;
+  }).join(" ");
+
+  const cockpitCards = DP_DATA.map(c => {
+    const activeSub = c.subs[curT];
+    const oemChips = c.oems.map(o => `<span style="background:${c.bg};color:${c.color};padding:3px 8px;border-radius:6px;border:1px solid ${c.color}33;font:700 10.5px 'JetBrains Mono'">${o}</span>`).join(" ");
+    const kpiBoxes = c.kpis.map(k => `
+      <div style="background:var(--card-2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;text-align:center">
+        <div style="font:700 15px 'Space Grotesk',sans-serif;color:var(--ink)">${k.v}</div>
+        <div style="font:500 10.5px 'JetBrains Mono',monospace;color:var(--dim);text-transform:uppercase">${k.l}</div>
+        <div style="font-size:11px;color:${c.color};font-weight:600">${k.t}</div>
+      </div>
+    `).join("");
+
+    return `<div class="card" style="border-top:3px solid ${c.color}">
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:22px">${c.icon}</span>
+            <span style="font:700 12px 'JetBrains Mono';color:${c.color}">${c.tag} COCKPIT</span>
+          </div>
+          <code style="font-size:11px;background:var(--card-2);padding:2px 7px;border-radius:6px;border:1px solid var(--line)">${c.role}</code>
+        </div>
+
+        <h4 style="font-size:17px;margin:4px 0">${c.name}</h4>
+        <div style="font-size:12px;color:var(--dim);margin-bottom:12px">👤 ${c.persona}</div>
+
+        <div style="background:${c.bg};border:1px solid ${c.color}33;border-left:3px solid ${c.color};border-radius:8px;padding:10px 12px;margin-bottom:14px">
+          <div style="font:600 10.5px 'JetBrains Mono',monospace;text-transform:uppercase;color:${c.color};margin-bottom:4px">
+            ${activeTierObj.badge} Active Horizon
+          </div>
+          <div style="font-size:13px;line-height:1.45;color:var(--ink);font-weight:500">
+            "${activeSub}"
+          </div>
+        </div>
+
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+          ${oemChips}
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px">
+          ${kpiBoxes}
+        </div>
+
+        <div style="font:600 11px 'JetBrains Mono',monospace;text-transform:uppercase;color:var(--dim);margin-bottom:6px">Operational Telemetry</div>
+        <ul style="margin:0;padding-left:18px;font-size:12.5px;color:var(--mid);line-height:1.5">
+          ${c.highlights.map(h => `<li>${h}</li>`).join("")}
+        </ul>
+      </div>
+
+      <div>
+        <div style="margin-top:16px;padding-top:12px;border-top:1px dashed var(--line);font-size:11.5px;color:var(--dim);display:flex;align-items:center;justify-content:space-between">
+          <span>Provisioned by:</span>
+          <b style="color:var(--ink)">${c.prov}</b>
+        </div>
+        <a href="http://localhost:3001/?demo_login=${c.liveRole}&goto=${c.goto}" target="_blank" class="btn-card-act" style="background:${c.color}">
+          ⚡ Execute Live Telemetry (${c.tag} Cockpit) ↗
+        </a>
+      </div>
+    </div>`;
+  }).join("");
+
+  return `<div class="lead-box">
+    <div class="eyebrow"><i></i>Data Plane Architecture · 6 Cockpits</div>
+    <h2>The Data Plane. Six operational cockpits, one consolidated truth.</h2>
+    <p class="lede">While the Control Plane governs administrative boundaries, the Data Plane is where live security telemetry is ingested, correlated, and acted upon across South Africa’s sovereign digital estate (~173 National &amp; Provincial Departments). <b>Administrative superadmins never inspect live telemetry, and Data Plane cockpits have zero user provisioning authority.</b></p>
+  </div>
+
+  <!-- Interactive Horizon Switcher -->
+  <div style="background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px;margin-bottom:24px;box-shadow:var(--sh);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font:600 11.5px 'JetBrains Mono',monospace;letter-spacing:.06em;text-transform:uppercase;color:var(--dim)">Simulate Active Horizon:</span>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${tierButtons}
+      </div>
+    </div>
+    <div style="font-size:12.5px;color:var(--mid)">
+      Active Horizon: <b style="color:var(--ink)">${activeTierObj.name}</b>
+    </div>
+  </div>
+
+  <div class="g3">
+    ${cockpitCards}
+  </div>`;
+}
+
+function renderTree(){
+  const curT = S.t || "t4";
+  const activeTier = TIERS_DATA.find(x => x.id === curT) || TIERS_DATA[1];
+
+  const tierLaunchMap = {
+    t5: { role: 'operator', path: '/sita/admin', label: 'Platform Developer Console' },
+    t4: { role: 'admin', path: '/sita/admin', label: 'SITA Superadmin #1 Console' },
+    t3: { role: 'transversal-admin', path: '/national/admin', label: 'National Security Estate Console' },
+    t2: { role: 'deptadmin-ha', path: '/dept/admin', label: 'DHA Department Superadmin Console' },
+    t1: { role: 'branchadmin-ha', path: '/branch/admin', label: 'DHA Branch Admin Console' }
+  };
+
+  return `<div class="lead-box">
+    <div class="eyebrow"><i></i>Control Plane Hierarchy · 5 Tiers</div>
+    <h2>Authority flows one way: down. Administrative boundaries are absolute.</h2>
+    <p class="lede">The Control Plane governs identity boundaries and administrative delegation. Select a tier below to inspect its provisioning scope, delegation ceiling, and air-gapped non-surveillance guarantees.</p>
+  </div>
+
+  <div class="tree-layout">
+    <div class="tree-list">
+      ${TIERS_DATA.map(t => `
+        <div class="tn-btn ${t.id === curT ? 'sel' : ''}" style="--c:${COL[t.id]}" onclick="S.t='${t.id}';render()">
+          <div class="tn-badge" style="background:${COL[t.id]}">${t.n}</div>
+          <div>
+            <div style="font:700 13px 'Space Grotesk'">${t.name}</div>
+            <div style="font:500 11px 'JetBrains Mono';color:var(--dim)">${t.short}</div>
+          </div>
+        </div>
+      `).join("")}
+    </div>
+
+    <div class="panel-detail" style="--c:${COL[activeTier.id]}">
+      <div style="font:700 11px 'JetBrains Mono';color:${COL[activeTier.id]};text-transform:uppercase;margin-bottom:6px">TIER ${activeTier.n} · ${activeTier.short}</div>
+      <h3 style="font-size:24px;margin-bottom:8px">${activeTier.name}</h3>
+      <p style="font-size:14px;color:var(--mid);margin-bottom:18px">${activeTier.scope}</p>
+
+      <div style="font:700 12px 'Space Grotesk';text-transform:uppercase;color:var(--ink);margin-bottom:8px">Primary Statutory Responsibilities</div>
+      <ul style="margin:0 0 18px;padding-left:18px;font-size:13px;color:var(--mid);line-height:1.6">
+        ${activeTier.does.map(d => `<li>${d}</li>`).join("")}
+      </ul>
+
+      <div style="background:var(--card-2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:18px">
+        <div style="font:700 11px 'JetBrains Mono';color:var(--flare-2);text-transform:uppercase;margin-bottom:4px">Delegation Boundary</div>
+        <div style="font-size:13px;color:var(--ink)">${activeTier.bound}</div>
+      </div>
+
+      <div class="g2" style="margin-bottom:20px">
+        <div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:12px">
+          <div style="font:700 11px 'JetBrains Mono';color:var(--ok);margin-bottom:4px">✓ CAN PROVISION</div>
+          <div style="font-size:12.5px">${activeTier.can.join(" · ")}</div>
+        </div>
+        <div style="background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:12px">
+          <div style="font:700 11px 'JetBrains Mono';color:var(--red);margin-bottom:4px">✕ CANNOT DO</div>
+          <div style="font-size:12.5px">${activeTier.cant}</div>
+        </div>
+      </div>
+
+      <a href="http://localhost:3001/?demo_login=${tierLaunchMap[activeTier.id].role}&goto=${tierLaunchMap[activeTier.id].path}" target="_blank" class="btn-card-act" style="background:${COL[activeTier.id]};padding:12px;font-size:13px">
+        ⚡ Execute on Live System (${tierLaunchMap[activeTier.id].label}) ↗
+      </a>
+    </div>
+  </div>`;
+}
+
+function renderTenants(){
+  return `<div class="lead-box">
+    <div class="eyebrow"><i></i>Tenancy Model · ~173 Organs of State</div>
+    <h2>National &amp; Provincial Departments (PFMA Schedule 1 &amp; 2)</h2>
+    <p class="lede">In accordance with the State Information Technology Agency Act (Act 88 of 1998) and PFMA statutory definitions, organs of state operate as sovereign IT tenants. Multi-tenant isolation ensures no cross-department leakage.</p>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <h4>🏛️ National Departments (~45)</h4>
+      <p style="margin-bottom:14px">Direct national departments led by Ministers and Directors-General.</p>
+      <div style="font-size:12.5px;color:var(--mid);line-height:1.6">
+        • <b>Department of Home Affairs (DHA):</b> Civic registers, national population database, border control.<br>
+        • <b>National Treasury:</b> BAS, LOGIS, PERSAL payroll gateways.<br>
+        • <b>South African Police Service (SAPS):</b> National crime intelligence.<br>
+        • <b>Department of Health:</b> National health infrastructure.
+      </div>
+    </div>
+    <div class="card">
+      <h4>📍 Provincial Departments (~128)</h4>
+      <p style="margin-bottom:14px">Departments across the 9 provinces, grouped under provincial government entities.</p>
+      <div style="font-size:12.5px;color:var(--mid);line-height:1.6">
+        • <b>Gauteng (12 Departments):</b> Health, Education, Roads &amp; Transport.<br>
+        • <b>Western Cape (14 Departments):</b> Health, Education, Premier.<br>
+        • <b>KwaZulu-Natal (14 Departments):</b> Transport, Cooperative Governance.<br>
+        • <b>Eastern Cape, Limpopo, Mpumalanga, Free State, North West, Northern Cape.</b>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderRbac(){
+  return `<div class="lead-box">
+    <div class="eyebrow"><i></i>RBAC Provisioning Cascade</div>
+    <h2>Who Provisions Whom: Cascading Least Privilege</h2>
+    <p class="lede">Administrative roles at Tier 4 provision Tier 3, Tier 3 provisions Tier 2, and Tier 2 provisions Tier 1. A tier can never grant a role above its subtree node.</p>
+  </div>
+  <div class="g3">
+    <div class="card" style="border-top:3px solid var(--amber)">
+      <div class="card-n">TIER 4 PROVISIONING</div>
+      <h4>SITA Command Center</h4>
+      <p>Provisions National Gov Transversal Superadmin #2 and estate-wide security cockpits (Exec, Compliance, SRE). Cannot access individual department user lists.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--ok)">
+      <div class="card-n">TIER 2 PROVISIONING</div>
+      <h4>Department Superadmin</h4>
+      <p>Provisions DHA Branch Admins and operational specialists (DHA SOC, DHA AppSec, DHA DBSec). Jailed strictly to Home Affairs.</p>
+    </div>
+    <div class="card" style="border-top:3px solid var(--flare-1)">
+      <div class="card-n">TIER 1 PROVISIONING</div>
+      <h4>Branch Admin</h4>
+      <p>Provisions branch-scoped AppSec specialists and local analysts. Cannot grant department-wide access.</p>
+    </div>
+  </div>`;
+}
+
+function renderWalkthrough(){
+  return `<div class="lead-box">
+    <div class="eyebrow"><i></i>Step-by-Step Live Walkthrough</div>
+    <h2>Demonstrating the Platform from Scratch to Compliance</h2>
+    <p class="lede">Follow this end-to-end presentation runbook to showcase the platform's full capabilities to executives and technical evaluators.</p>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <h4>Act 1: Zero-Trust Landing &amp; Public Posture</h4>
+      <p>Showcase the public landing page with unauthenticated aggregated health indices and OWASP headers. Zero telemetry exposure.</p>
+      <a href="http://localhost:3001/" target="_blank" class="btn-card-act">⚡ Open Public Landing Page ↗</a>
+    </div>
+    <div class="card">
+      <h4>Act 2: Control Plane Delegation &amp; PERSAL Check</h4>
+      <p>Sign in as SITA Superadmin. Provision Transversal Superadmin #2 with real National Treasury PERSAL ID verification.</p>
+      <a href="http://localhost:3001/?demo_login=admin&goto=/sita/admin" target="_blank" class="btn-card-act">⚡ Launch SITA Console (/sita/admin) ↗</a>
+    </div>
+    <div class="card">
+      <h4>Act 3: Data Plane Cockpits &amp; OEM Fusion</h4>
+      <p>Demonstrate Executive, SOC, AppSec, and DbSec cockpits consuming unified AppScan, Imperva WAF, and Thales DAM feeds.</p>
+      <a href="http://localhost:3001/?demo_login=exec&goto=/national/exec" target="_blank" class="btn-card-act">⚡ Launch Executive Cockpit ↗</a>
+    </div>
+    <div class="card">
+      <h4>Act 4: Asymmetric AGSA Compliance Attestation</h4>
+      <p>Generate an Auditor-General compliance export digitally signed with asymmetric ECDSA NIST P-256 PKI.</p>
+      <a href="http://localhost:3001/?demo_login=compliance&goto=/national/compliance" target="_blank" class="btn-card-act">⚡ Launch Compliance Cockpit ↗</a>
+    </div>
+  </div>`;
+}
+
+function renderGovernance(){
+  return `<div class="lead-box">
+    <div class="eyebrow"><i></i>Governance in Action</div>
+    <h2>SITA SAP HCM &amp; National Treasury PERSAL Verification</h2>
+    <p class="lede">Every new administrator created in the Control Plane must bind to an authoritative government Person ID from SITA SAP HCM (SITA employees) or National Treasury PERSAL (public servants) before activation.</p>
+  </div>
+  <div class="card" style="margin-bottom:20px">
+    <h4>Live Identity Verification Flow</h4>
+    <div style="font-size:13px;color:var(--mid);margin:8px 0 16px;line-height:1.6">
+      1. Administrator enters employee PERSAL or SITA ID.<br>
+      2. Backend connects to authoritative HR gateway (REST/SOAP connector with mutual TLS).<br>
+      3. Verifies active employment status, post designation, and accounting authority.<br>
+      4. Auto-binds user record with tamper-proof <code>person_id</code>.
+    </div>
+    <a href="http://localhost:3001/?demo_login=deptadmin-ha&goto=/dept/admin" target="_blank" class="btn-card-act" style="max-width:320px">
+      ⚡ Test Live PERSAL Lookup in Admin Console ↗
+    </a>
+  </div>`;
+}
+
+function renderMatrix(){
+  return `<div class="lead-box">
+    <div class="eyebrow"><i></i>Summary Matrix</div>
+    <h2>Complete Cross-Tier Authority &amp; Boundary Matrix</h2>
+    <p class="lede">A consolidated summary of all 5 tiers, their granted roles, target scope, and forbidden boundaries.</p>
+  </div>
+  <div class="matrix-wrap">
+    <table class="mat">
+      <thead>
+        <tr>
+          <th style="text-align:left">Tier</th>
+          <th style="text-align:left">Role Key</th>
+          <th style="text-align:left">Target Scope</th>
+          <th style="text-align:left">Can Provision / Grant</th>
+          <th style="text-align:left">Cannot Do</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${TIERS_DATA.map(t => `
+          <tr class="mrow" onclick="S.t='${t.id}';setV('tree')">
+            <td style="text-align:left;font-weight:700;color:${COL[t.id]}">Tier ${t.n}</td>
+            <td style="text-align:left"><code>${t.keys.join(" / ")}</code></td>
+            <td style="text-align:left;font-weight:600">${t.name}</td>
+            <td style="text-align:left;font-size:12px">${t.can.join(", ")}</td>
+            <td style="text-align:left;font-size:12px;color:var(--red)">${t.cant}</td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function render(){
+  const main = document.getElementById("main-view");
+  if(S.v === "ov") main.innerHTML = renderOverview();
+  else if(S.v === "dp") main.innerHTML = renderDataPlane();
+  else if(S.v === "tree") main.innerHTML = renderTree();
+  else if(S.v === "st") main.innerHTML = renderTenants();
+  else if(S.v === "rb") main.innerHTML = renderRbac();
+  else if(S.v === "wk") main.innerHTML = renderWalkthrough();
+  else if(S.v === "gv") main.innerHTML = renderGovernance();
+  else if(S.v === "mx") main.innerHTML = renderMatrix();
+}
+
+render();
+</script>
+</body>
+</html>

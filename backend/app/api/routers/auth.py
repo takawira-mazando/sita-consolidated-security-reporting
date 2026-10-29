@@ -35,31 +35,38 @@ ALL_ROLES = ["exec", "soc", "appsec", "dbsec", "compliance", "sre"]
 # the whole estate (empty scope); department roles are scoped to their
 # assigned departments (optionally narrowed to branches).
 DEMO_ACCOUNTS = [
-    # The seeded department/province scope below IS each account's tenancy
-    # entitlement: /demo-login issues it by default and any scope override
-    # must stay within it (scope_covers). Nationwide personas (exec,
-    # compliance, sre, transversal-admin) hold an empty scope = whole estate.
-    {"email": "exec@example.com", "password": "Sita#Exec2026!Strategic", "roles": ["exec"], "label": "Executive", "role": "exec", "department_ids": []},  # nosec B105
-    {"email": "soc@example.com", "password": "Sita#SocAnalyst2026!Triage", "roles": ["soc"], "label": "SOC Analyst", "role": "soc", "department_ids": ["home-affairs-digital"]},  # nosec B105
-    {"email": "appsec@example.com", "password": "Sita#AppSec2026!Remediation", "roles": ["appsec"], "label": "AppSec", "role": "appsec", "department_ids": ["home-affairs-digital", "treasury"]},  # nosec B105
-    {"email": "dbsec@example.com", "password": "Sita#DbSec2026!Guardrails", "roles": ["dbsec"], "label": "DB Security", "role": "dbsec", "department_ids": ["home-affairs-digital", "dpsa-hr"]},  # nosec B105
-    {"email": "compliance@example.com", "password": "Sita#Compliance2026!Audit", "roles": ["compliance"], "label": "Compliance", "role": "compliance", "department_ids": []},  # nosec B105
-    {"email": "sre@example.com", "password": "Sita#OpsSre2026!Infra", "roles": ["sre"], "label": "Service Ops", "role": "sre", "department_ids": []},  # nosec B105
-    {"email": "deptadmin@example.com", "password": "Sita#DeptAdmin2026!Control", "roles": ["dept-admin"], "label": "Dept Admin", "role": "dept-admin", "department_ids": ["treasury"]},  # nosec B105
-    {"email": "branchadmin@example.com", "password": "Sita#BranchAdmin2026!Field", "roles": ["branch-admin"], "label": "Branch Admin", "role": "branch-admin", "department_ids": ["treasury"]},  # nosec B105
-    {"email": "transversal@example.com", "password": "Sita#Transversal2026!Estate", "roles": ["transversal-admin"], "label": "Transversal Admin", "role": "transversal-admin", "department_ids": []},  # nosec B105
-    {"email": "provincesoc@example.com", "password": "Sita#ProvSoc2026!Regional", "roles": ["province-soc-lead"], "label": "Provincial SOC Lead", "role": "province-soc-lead", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
-    {"email": "provdeptadmin@example.com", "password": "Sita#ProvAdmin2026!Regional", "roles": ["province-dept-admin"], "label": "Provincial Dept Admin", "role": "provdeptadmin", "department_ids": [], "province_ids": ["gp"]},  # nosec B105
-    {"email": "localappsec@example.com", "password": "Sita#LocalAppSec2026!Field", "roles": ["local-appsec"], "label": "Local AppSec", "role": "localappsec", "department_ids": ["gp-health"], "province_ids": ["gp"]},  # nosec B105
-    {"email": "admin@example.com", "password": "Sita#Admin2026!Enterprise", "roles": ["admin"] + ALL_ROLES, "label": "Admin", "role": "admin", "department_ids": []},  # nosec B105
-    {"email": "operator@example.com", "password": "Sita#Operator2026!Platform", "roles": ["operator", "admin"] + ALL_ROLES, "label": "Platform Operator", "role": "operator", "department_ids": []},  # nosec B105
+    # ── Tier 5: Platform Creator — System Operator (Developer / SITA IT) ──────
+    # The system's root creator role. Creates the SITA Superadmin (admin) and peer operators only.
+    {"email": "operator@example.com", "password": "Sita#Operator2026!Platform", "roles": ["operator"], "label": "Platform Creator / Developer (operator@)", "role": "operator", "department_ids": []},  # nosec B105
 
-    # Home Affairs department-scoped demo accounts
-    {"email": "soc-ha@example.com", "password": "Sita#SocAnalyst2026!Triage", "roles": ["soc"], "label": "SOC Analyst (Home Affairs)", "role": "soc-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
-    {"email": "appsec-ha@example.com", "password": "Sita#AppSec2026!Remediation", "roles": ["appsec"], "label": "AppSec (Home Affairs)", "role": "appsec-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
-    {"email": "dbsec-ha@example.com", "password": "Sita#DbSec2026!Guardrails", "roles": ["dbsec"], "label": "DB Security (Home Affairs)", "role": "dbsec-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
-    {"email": "deptadmin-ha@example.com", "password": "Sita#DeptAdmin2026!Control", "roles": ["dept-admin"], "label": "Dept Admin (Home Affairs)", "role": "deptadmin-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
-    {"email": "branchadmin-ha@example.com", "password": "Sita#BranchAdmin2026!Field", "roles": ["branch-admin"], "label": "Branch Admin (Home Affairs)", "role": "branchadmin-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    # ── Tier 4: SITA Command Center — Transversal Superadmin #1 ──────────────
+    # Created by the Developer (operator). Our primary SITA client contact.
+    # Provisions National Gov Transversal Superadmin (#2) & national-tier security cockpit roles.
+    {"email": "admin@example.com", "password": "Sita#Admin2026!Enterprise", "roles": ["admin"], "label": "SITA Superadmin #1 · SITA Command Center (admin@)", "role": "admin", "department_ids": []},  # nosec B105
+
+    # ── Tier 3: National Security Estate — Transversal Superadmin #2 ─────────
+    # Created by SITA Superadmin #1 (admin@). Provisions Department Superadmins across organs of state.
+    {"email": "transversal@example.com", "password": "Sita#Transversal2026!Estate", "roles": ["transversal-admin"], "label": "National Gov Transversal Superadmin #2 (transversal@)", "role": "transversal-admin", "department_ids": []},  # nosec B105
+
+    # ── Tier 3: National Security Estate — Data Plane Cockpit Roles ────────────
+    # Granted by SITA Superadmin #1 or National Gov Transversal Superadmin #2.
+    {"email": "exec@example.com", "password": "Sita#Exec2026!Strategic", "roles": ["exec"], "label": "Executive / National CISO (exec@)", "role": "exec", "department_ids": []},  # nosec B105
+    {"email": "compliance@example.com", "password": "Sita#Compliance2026!Audit", "roles": ["compliance"], "label": "Compliance Officer — POPIA / ISO 27001 (compliance@)", "role": "compliance", "department_ids": []},  # nosec B105
+    {"email": "sre@example.com", "password": "Sita#OpsSre2026!Infra", "roles": ["sre"], "label": "Service Reliability Engineer — SRE (sre@)", "role": "sre", "department_ids": []},  # nosec B105
+
+    # ── Tier 2 & Tier 1: DHA DDG Operational Branches & Dept Superadmin ───────
+    {"email": "soc-ha@example.com", "password": "Sita#SocAnalyst2026!Triage", "roles": ["soc"], "label": "SOC Security Analyst — DHA (soc-ha@)", "role": "soc-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "appsec-ha@example.com", "password": "Sita#AppSec2026!Remediation", "roles": ["appsec"], "label": "AppSec Engineer — DHA (appsec-ha@)", "role": "appsec-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "dbsec-ha@example.com", "password": "Sita#DbSec2026!Guardrails", "roles": ["dbsec"], "label": "DB Security Specialist — DHA (dbsec-ha@)", "role": "dbsec-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "deptadmin-ha@example.com", "password": "Sita#DeptAdmin2026!Control", "roles": ["dept-admin"], "label": "DHA Department Superadmin (deptadmin-ha@)", "role": "deptadmin-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+    {"email": "branchadmin-ha@example.com", "password": "Sita#BranchAdmin2026!Field", "roles": ["branch-admin"], "label": "DHA Branch Admin (branchadmin-ha@)", "role": "branchadmin-ha", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-civic", "dha-digital", "dha-immigration", "dha-operations", "dha-hrmd", "dha-ccss", "dha-finance", "dha-planning"]},  # nosec B105
+
+    # General alias shims mapped directly to DHA PoC testbed
+    {"email": "soc@example.com", "password": "Sita#SocAnalyst2026!Triage", "roles": ["soc"], "label": "SOC Security Analyst — DHA (soc@)", "role": "soc", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-digital"]},  # nosec B105
+    {"email": "appsec@example.com", "password": "Sita#AppSec2026!Remediation", "roles": ["appsec"], "label": "AppSec Engineer — DHA (appsec@)", "role": "appsec", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-digital"]},  # nosec B105
+    {"email": "dbsec@example.com", "password": "Sita#DbSec2026!Guardrails", "roles": ["dbsec"], "label": "DB Security Specialist — DHA (dbsec@)", "role": "dbsec", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-digital"]},  # nosec B105
+    {"email": "deptadmin@example.com", "password": "Sita#DeptAdmin2026!Control", "roles": ["dept-admin"], "label": "DHA Department Superadmin (deptadmin@)", "role": "dept-admin", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-digital"]},  # nosec B105
+    {"email": "branchadmin@example.com", "password": "Sita#BranchAdmin2026!Field", "roles": ["branch-admin"], "label": "DHA Branch Admin (branchadmin@)", "role": "branch-admin", "department_ids": ["home-affairs-digital"], "branch_ids": ["dha-digital"]},  # nosec B105
 ]
 
 LOGIN_WINDOW_SECONDS = 60

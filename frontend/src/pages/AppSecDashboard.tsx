@@ -13,20 +13,20 @@ import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
   sita: {
-    title: 'Application Security — SITA Command Center',
-    subtitle: 'Overarching · Republic-wide vulnerability exposure, transversal CVE triage across all organs of state',
+    title: 'Application Security — SITA Command Center (Tier 4)',
+    subtitle: 'Overarching · Transversal CVE triage & vulnerability exposure across ~173 National & Provincial Departments (PFMA Organs of State)',
   },
   national: {
-    title: 'Application Security — National Estate',
-    subtitle: 'Strategic · Top 20 vulnerabilities across all departments — estate posture',
+    title: 'Application Security — National Security Estate (Tier 3)',
+    subtitle: 'Strategic · Top vulnerability findings across all National & Provincial Departments — estate-wide posture & severity distribution',
   },
   dept: {
-    title: 'Application Security — Department',
-    subtitle: 'Tactical · Department vulnerability list, severity distribution and API exposure',
+    title: 'Application Security — Department (Tier 2)',
+    subtitle: 'Tactical · Department vulnerability list, severity distribution and API exposure within departmental tenancy',
   },
   branch: {
-    title: 'Application Security — Branch',
-    subtitle: 'Granular · Branch application vulnerabilities and actionable remediation tasks',
+    title: 'Application Security — Branch (Tier 1)',
+    subtitle: 'Granular · Branch application vulnerabilities, DDG-unit risk and actionable remediation backlog',
   },
 };
 

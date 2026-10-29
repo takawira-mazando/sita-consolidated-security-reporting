@@ -3,6 +3,7 @@ import LoginPage from './LoginPage';
 import { useAuth } from '../hooks/useAuth';
 import { useDemoMode } from '../context/DemoContext';
 import { fetchSummary, PublicSummary } from '../api/auth';
+import DemoDirectorModal from '../components/layout/DemoDirectorModal';
 import '../styles/home.css';
 
 export interface MatrixRow {
@@ -55,7 +56,7 @@ const MATRIX_ROWS: MatrixRow[] = [
   {
     role: 'SOC Analyst',
     tag: 'soc@',
-    loginRole: 'soc',
+    loginRole: 'soc-ha',
     scope: 'Assigned departments/branches',
     // auth.py: findings, alerts_read, alerts_write, dashboard
     alerts: true, vulns: true, logs: false, compliance: false, infra: false,
@@ -63,7 +64,7 @@ const MATRIX_ROWS: MatrixRow[] = [
   {
     role: 'AppSec Engineer',
     tag: 'appsec@',
-    loginRole: 'appsec',
+    loginRole: 'appsec-ha',
     scope: 'Assigned departments/branches',
     // auth.py: risks, findings, dashboard
     alerts: false, vulns: true, logs: false, compliance: false, infra: false,
@@ -71,7 +72,7 @@ const MATRIX_ROWS: MatrixRow[] = [
   {
     role: 'DB Security (DbSec)',
     tag: 'dbsec@',
-    loginRole: 'dbsec',
+    loginRole: 'dbsec-ha',
     scope: 'Assigned departments/branches',
     // auth.py: risks, findings, alerts_read, dashboard
     alerts: true, vulns: true, logs: true, compliance: false, infra: false,
@@ -97,48 +98,44 @@ const MATRIX_ROWS: MatrixRow[] = [
     role: 'Provincial Dept Admin',
     tag: 'provdeptadmin@',
     loginRole: 'province-dept-admin',
-    scope: 'Province department',
-    // auth.py: admin_read, admin_write, dashboard
-    alerts: false, vulns: false, logs: false, compliance: false, infra: true,
+    scope: 'Provincial Department (Tier 2 Control Plane)',
+    alerts: false, vulns: false, logs: false, compliance: false, infra: false,
   },
-  // ── Administrative Tiers ──────────────────────────────────────────────────
+  // ── Administrative Tiers (Pure Control Plane — Delegated Provisioning) ──
   {
     role: 'Branch Admin',
     tag: 'branchadmin@',
-    loginRole: 'branch-admin',
-    scope: 'Tier 1 · single DDG branch',
-    // auth.py: admin_read, admin_write, dashboard
-    alerts: false, vulns: false, logs: false, compliance: false, infra: true,
+    loginRole: 'branchadmin-ha',
+    scope: 'Tier 1 · DDG operational branch (DHA)',
+    alerts: false, vulns: false, logs: false, compliance: false, infra: false,
   },
   {
-    role: 'Department Admin',
+    role: 'Department Superadmin',
     tag: 'deptadmin@',
-    loginRole: 'dept-admin',
-    scope: 'Tier 2 · one department',
-    // auth.py: admin_read, admin_write, dashboard
-    alerts: false, vulns: false, logs: false, compliance: false, infra: true,
+    loginRole: 'deptadmin-ha',
+    scope: 'Tier 2 · Department of Home Affairs (DHA)',
+    alerts: false, vulns: false, logs: false, compliance: false, infra: false,
   },
   {
-    role: 'Transversal Admin',
+    role: 'National Gov Transversal Superadmin #2',
     tag: 'transversal@',
     loginRole: 'transversal-admin',
-    scope: 'Tier 3 · multi-dept superadmin',
-    // auth.py: admin_read, admin_write, dashboard
-    alerts: false, vulns: false, logs: false, compliance: false, infra: true,
+    scope: 'Tier 3 · Sovereign multi-department estate',
+    alerts: false, vulns: false, logs: false, compliance: false, infra: false,
   },
   {
-    role: 'SITA Superadmin',
+    role: 'SITA Superadmin #1',
     tag: 'admin@',
     loginRole: 'admin',
-    scope: 'Tier 4 · whole estate (*)',
-    alerts: true, vulns: true, logs: true, compliance: true, infra: true,
+    scope: 'Tier 4 · SITA Command Center (primary contact)',
+    alerts: false, vulns: false, logs: false, compliance: false, infra: false,
   },
   {
-    role: 'Platform Operator',
+    role: 'Platform Provider / Developer',
     tag: 'operator@',
     loginRole: 'operator',
-    scope: 'Tier 5 · MSP bootstrap (*)',
-    alerts: true, vulns: true, logs: true, compliance: true, infra: true,
+    scope: 'Tier 5 · Platform root developer / creator',
+    alerts: false, vulns: false, logs: false, compliance: false, infra: false,
   },
 ];
 
@@ -256,6 +253,7 @@ const NAV_SECTIONS = [
 ] as const;
 
 const RESOURCE_LINKS = [
+  { href: '/standalone_demo.html', label: 'Standalone Showcase', icon: '⚡', accent: 'amber' },
   { href: '/presentation.html', label: 'Executive Deck', icon: '📊', accent: 'amber' },
   { href: '/handover_presentation.html', label: 'Handover Deck', icon: '🤝', accent: 'emerald' },
   { href: '/architecture.html', label: 'Architecture', icon: '🏛️', accent: 'blue' },
@@ -324,6 +322,7 @@ export default function HomePage() {
   const { loginDemo, demoAccounts } = useAuth();
   const { demoMode, toggleDemoMode } = useDemoMode();
   const [modalOpen, setModalOpen] = useState(false);
+  const [directorOpen, setDirectorOpen] = useState(false);
   const [aiMatrixOpen, setAiMatrixOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => document.body.dataset.theme !== 'light');
   const [summary, setSummary] = useState<PublicSummary | null>(null);
@@ -332,6 +331,11 @@ export default function HomePage() {
   const [activeSection, setActiveSection] = useState<string>('');
   const [selectedPerspective, setSelectedPerspective] = useState<string>('exec');
   const resourcesRef = useRef<HTMLDivElement | null>(null);
+
+  const openDemoCoPilot = () => {
+    setDirectorOpen(true);
+    window.dispatchEvent(new CustomEvent('sita_open_demo_guide'));
+  };
 
   const activePerspective = ROLE_PERSPECTIVES.find((p) => p.roleId === selectedPerspective) ?? ROLE_PERSPECTIVES[0];
 
@@ -444,9 +448,32 @@ export default function HomePage() {
   };
 
   const loginAsRole = async (role: string) => {
-    if (!demoAccounts.some((a) => a.role === role)) return;
     document.body.style.overflow = '';
-    await loginDemo(role);
+    const effectiveRole = role === 'transversal' ? 'transversal-admin' : role;
+    const res = await loginDemo(effectiveRole);
+    if (res.ok) {
+      const routeMap: Record<string, string> = {
+        'exec': '/national/exec',
+        'compliance': '/national/compliance',
+        'sre': '/national/sre',
+        'soc': '/dept/soc',
+        'soc-ha': '/dept/soc',
+        'appsec': '/dept/appsec',
+        'appsec-ha': '/dept/appsec',
+        'dbsec': '/dept/dbsec',
+        'dbsec-ha': '/dept/dbsec',
+        'local-appsec': '/branch/appsec',
+        'province-soc-lead': '/dept/soc',
+        'province-dept-admin': '/dept/admin',
+        'branchadmin-ha': '/branch/admin',
+        'deptadmin-ha': '/dept/admin',
+        'transversal-admin': '/national/admin',
+        'admin': '/sita/admin',
+        'operator': '/sita/admin',
+      };
+      const target = routeMap[effectiveRole] || '/national/exec';
+      window.location.href = target;
+    }
   };
 
   return (
@@ -501,7 +528,26 @@ export default function HomePage() {
               )}
             </div>
           </nav>
-          <div className="home-actions">
+          <div className="home-actions" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button
+              className="btn btn-flare"
+              style={{
+                background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
+                color: '#fff',
+                border: 'none',
+                fontWeight: 700,
+                fontSize: '12.5px',
+                padding: '7px 16px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                boxShadow: '0 4px 14px rgba(124, 58, 237, 0.35)',
+              }}
+              onClick={openDemoCoPilot}
+              title="Open SITA PoC Demo Co-Pilot & Flow Director"
+            >
+              <span>⚡</span> SITA PoC Demo Co-Pilot
+            </button>
             <button className="theme-toggle" onClick={toggleTheme}>
               {isDark ? '☀ Light' : '🌙 Dark'}
             </button>
@@ -524,17 +570,26 @@ export default function HomePage() {
             <p className="lede">
               This solution fuses AppScan, Imperva DAM &amp; WAF, and compliance telemetry into an auditable 0–100 risk score — delivering role-tailored security intelligence while deterministically enforcing POPIA and claim-level RBAC across all 5 government tiers.
             </p>
-            <div className="cta-row" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
-              <button className="btn btn-flare" onClick={openModal}>Sign In to Explore</button>
-              <a href="/presentation.html" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <span>📊</span> Executive Deck ↗
-              </a>
-              <a href="/handover_presentation.html" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', borderColor: 'rgba(16, 185, 129, 0.4)', color: 'var(--emerald, #10b981)' }}>
-                <span>🤝</span> Handover Deck ↗
-              </a>
-              <a href="/architecture.html" target="_blank" rel="noopener noreferrer" className="btn btn-outline" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                <span>🏛️</span> Architecture ↗
-              </a>
+            <div className="cta-row" style={{ flexWrap: 'wrap', gap: '0.75rem', marginTop: '1.5rem' }}>
+              <button
+                className="btn btn-flare"
+                style={{
+                  background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)',
+                  color: '#fff',
+                  border: 'none',
+                  fontWeight: 700,
+                  fontSize: '13.5px',
+                  padding: '11px 22px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  boxShadow: '0 4px 16px rgba(124, 58, 237, 0.4)',
+                }}
+                onClick={openDemoCoPilot}
+              >
+                <span>⚡</span> SITA PoC Demo Co-Pilot
+              </button>
+              <button className="btn btn-outline" onClick={openModal}>Sign In to Explore</button>
             </div>
           </div>
 
@@ -629,9 +684,8 @@ export default function HomePage() {
       <section className="problem-section" id="capabilities">
         <div className="container">
           <div className="section-head" style={{ maxWidth: '800px' }}>
-            <div className="eyebrow"><span className="dot"></span>Platform capabilities · what it actually does</div>
+            <div className="eyebrow"><span className="dot"></span>Platform capabilities</div>
             <h2>One platform. Six security domains. Zero manual reconciliation.</h2>
-            <p>This solution unifies four disconnected OEM consoles into a single normalised feed — adding a grounded AI briefing layer, dual-axis RBAC, and a POPIA-compliant data egress model on top.</p>
           </div>
           <div className="problem-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
             <div className="problem-card" style={{ borderTop: '3px solid #1082ff' }}>
@@ -665,9 +719,8 @@ export default function HomePage() {
       <section className="preview-section" id="preview">
         <div className="container">
           <div className="section-head">
-            <div className="eyebrow"><span className="dot"></span>Transparent risk scoring · live from the warehouse</div>
+            <div className="eyebrow"><span className="dot"></span>Risk scoring · live from the warehouse</div>
             <h2>Four sources. One score. Every weight visible.</h2>
-            <p>AppScan findings, Imperva WAF violations, API exposure, and compliance penalties are blended into a single weighted 0–100 risk score per application — recomputed every 5 minutes. Every component is auditable: no black-box vendor formula.</p>
           </div>
           <div className="fusion-wrap">
             <div className="fusion-main">
@@ -691,15 +744,28 @@ export default function HomePage() {
               <div className="fusion-bucket"><span className="b-chip b-critical">Critical</span><span>needs attention now</span></div>
               <div className="fusion-bucket"><span className="b-chip b-monitored">Monitored</span><span>elevated but being watched</span></div>
               <div className="fusion-bucket"><span className="b-chip b-safe">Safe</span><span>within acceptable posture</span></div>
-              <div className="fusion-side-t" style={{ marginTop: 22 }}>Sources feeding the score</div>
-              <div className="fusion-src-list">
-                {SOURCES.map((s) => (
-                  <div key={s.name} className="fusion-src">
-                    <span className="fusion-src-dot" />
-                    <div>
-                      <div className="fusion-src-name">{s.name}</div>
-                      <div className="fusion-src-kind">{s.kind}</div>
-                    </div>
+              <div style={{ marginTop: '16px', padding: '10px 12px', background: 'rgba(16, 130, 255, 0.06)', border: '1px solid rgba(16, 130, 255, 0.2)', borderRadius: '8px', fontSize: '11.5px', color: 'var(--mid)', lineHeight: 1.5 }}>
+                <div style={{ fontWeight: 700, color: 'var(--hi)', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <span>⏱️</span> Dynamic 5-Min Recalculation
+                </div>
+                Scores are blended from warehouse OEM telemetry — zero black-box heuristics.
+              </div>
+            </div>
+          </div>
+
+          {/* Sources Feeding Score: Horizontal Flowing Marquee (Right-to-Left) */}
+          <div className="sources-marquee-container">
+            <div className="sources-marquee-label">
+              <span className="live-dot" />
+              <span>Sources Feeding Score</span>
+            </div>
+            <div className="sources-marquee-viewport">
+              <div className="sources-marquee-track">
+                {[...SOURCES, ...SOURCES].map((s, idx) => (
+                  <div key={`${s.name}-${idx}`} className="sources-marquee-chip">
+                    <span className="chip-dot" />
+                    <span className="chip-name">{s.name}</span>
+                    <span className="chip-kind">{s.kind}</span>
                   </div>
                 ))}
               </div>
@@ -711,9 +777,8 @@ export default function HomePage() {
       <section className="tenancy-graphic-section" id="tenancy">
         <div className="container">
           <div className="section-head">
-            <div className="eyebrow"><span className="dot"></span>Government Multi-Tenancy Architecture</div>
-            <h2>How This Solution Manages Security Intelligence Across Organs of State</h2>
-            <p>A 4-tier delegated hierarchy designed for the Republic of South Africa — guaranteeing strict data isolation, provincial peer blinding, and seamless managed service governance.</p>
+            <div className="eyebrow"><span className="dot"></span>Government Multi-Tenancy · ~173 National &amp; Provincial Departments</div>
+            <h2>Security Intelligence Across All Organs of State</h2>
           </div>
 
           <div className="tenancy-diagram-box">
@@ -752,7 +817,7 @@ export default function HomePage() {
                 <div className="col-header">
                   <span className="col-icon">🏛️</span>
                   <div>
-                    <h4>156 National Departments</h4>
+                    <h4>~45 National Departments</h4>
                     <p>National Organs of State (DHA, Treasury, SAPS, Health, DPSA, DOJ...)</p>
                   </div>
                 </div>
@@ -796,7 +861,7 @@ export default function HomePage() {
                 <div className="col-header">
                   <span className="col-icon">📍</span>
                   <div>
-                    <h4>9 Provinces & 113 Provincial Departments</h4>
+                    <h4>~128 Provincial Departments (across 9 Provinces)</h4>
                     <p>Gauteng, Western Cape, KZN, Eastern Cape, Limpopo, Mpumalanga...</p>
                   </div>
                 </div>
@@ -904,7 +969,6 @@ export default function HomePage() {
           <div className="section-head">
             <div className="eyebrow"><span className="dot"></span>Event-driven data pipeline · 5 stages</div>
             <h2>From raw OEM signal to actionable decision — automatically</h2>
-            <p>An independently scalable, circuit-breaker-protected pipeline. Every stage is observable: connector health, dead-letter queue depth, and reprocess counters are surfaced live on the SRE dashboard.</p>
           </div>
           <div className="pipeline-grid">
             {PIPELINE_STAGES.map((stage) => (
@@ -918,41 +982,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="estate-section" id="governance" style={{ borderTop: '1px solid var(--line)' }}>
-        <div className="container">
-          <div className="section-head">
-            <div className="eyebrow"><span className="dot" style={{ background: '#10b981' }}></span>Zero-Leak Telemetry Architecture</div>
-            <h2>Why Raw Telemetry Is Gated by Tenancy &amp; the 14-Role Matrix</h2>
-            <p>In accordance with POPIA Section 22 and South African sovereign data sovereignty standards, all findings, database inventories, and vulnerability traces are locked behind authenticated, dual-axis tenant filters. Zero raw telemetry is exposed publicly.</p>
-          </div>
-          <div className="estate-grid">
-            <div className="estate-card" style={{ borderTop: '3px solid #1082ff' }}>
-              <div className="estate-card-t">Dual-Axis Scope Enforcement</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--hi)', margin: '10px 0 8px' }}>tenant_filter() at SQL Layer</div>
-              <p style={{ fontSize: '13px', color: 'var(--mid)', lineHeight: 1.5 }}>Every single database query is bound to the authenticated actor's <code>department_id</code> and <code>branch_id</code>. Cross-tenant reads are prevented at the Postgres query planner level.</p>
-              <div className="estate-sub" style={{ marginTop: '12px' }}>🔒 Default-deny data isolation</div>
-            </div>
-            <div className="estate-card" style={{ borderTop: '3px solid #009bd4' }}>
-              <div className="estate-card-t">14-Role Claim Class Gating</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--hi)', margin: '10px 0 8px' }}>Layer 4 Output Scrubber</div>
-              <p style={{ fontSize: '13px', color: 'var(--mid)', lineHeight: 1.5 }}>Even when AI models generate reports, Layer 4 evaluates every output claim. Low-level CVE IDs and code sinks are scrubbed for executives; POPIA penalties are scrubbed for SOC analysts.</p>
-              <div className="estate-sub" style={{ marginTop: '12px' }}>🎯 7 claim classes enforced</div>
-            </div>
-            <div className="estate-card" style={{ borderTop: '3px solid #a78bfa' }}>
-              <div className="estate-card-t">Provincial Peer Blinding</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--hi)', margin: '10px 0 8px' }}>9 Sovereign Provinces</div>
-              <p style={{ fontSize: '13px', color: 'var(--mid)', lineHeight: 1.5 }}>Provincial SOC Leads (e.g. Gauteng) view aggregated benchmarks against national percentiles while all peer province findings, server names, and citizen data remain strictly blinded.</p>
-              <div className="estate-sub" style={{ marginTop: '12px' }}>📍 Lateral leak prevention</div>
-            </div>
-            <div className="estate-card" style={{ borderTop: '3px solid #10b981' }}>
-              <div className="estate-card-t">Cryptographic Audit Attestation</div>
-              <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--hi)', margin: '10px 0 8px' }}>ECDSA NIST P-256 PKI Signing</div>
-              <p style={{ fontSize: '13px', color: 'var(--mid)', lineHeight: 1.5 }}>Compliance exports for the Auditor-General (AGSA) are signed with asymmetric ECDSA NIST P-256 (SECP256R1). Proves origin provenance, detects insider tampering, and enables air-gapped OpenSSL verification.</p>
-              <div className="estate-sub" style={{ marginTop: '12px' }}>📜 AGSA &amp; ISO 27001 ready</div>
-            </div>
-          </div>
-        </div>
-      </section>
+
 
       {/* ── AI Intelligence Layer Section ───────────────────────────────── */}
       <section className="features" id="ai-layer" style={{ borderTop: '1px solid var(--line)' }}>
@@ -960,7 +990,6 @@ export default function HomePage() {
           <div className="section-head">
             <div className="eyebrow"><span className="dot" style={{ background: '#a78bfa' }}></span>Grounded AI Intelligence Layer</div>
             <h2>The 4-Layer AI Control Model: Only Layer 3 Holds a Model</h2>
-            <p>A strictly isolated read path layered above PostgreSQL. Three of four layers are deterministic — mathematically guaranteeing tenant containment, RBAC enforcement, and POPIA compliance even with the AI stopped.</p>
           </div>
           <div className="feat-grid" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             <div className="feat-card" style={{ borderTop: '3px solid #1082ff' }}>
@@ -1002,9 +1031,9 @@ export default function HomePage() {
       <section className="matrix-section" id="matrix">
         <div className="container">
           <div className="section-head" style={{ maxWidth: '820px' }}>
-            <div className="eyebrow"><span className="dot"></span>14-Role RBAC Access Matrix · grounded in auth.py</div>
+            <div className="eyebrow"><span className="dot"></span>14-Role RBAC · grounded in auth.py</div>
             <h2>Every role sees a different slice of the same truth</h2>
-            <p>14 platform roles across a 5-tier government hierarchy. Click any row to demo that role's dashboard. The matrix below is the <em>actual</em> access contract from <code>backend/app/api/auth.py</code> — not a marketing chart. Each row is a clickable live demo persona.</p>
+            <p>Click any row to demo that role's live dashboard. Sourced directly from <code>backend/app/api/auth.py</code> — not a marketing chart.</p>
           </div>
           <div className="matrix-wrap">
             <table className="matrix">
@@ -1100,24 +1129,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="features" id="security">
-        <div className="container">
-          <div className="section-head" style={{ maxWidth: '760px' }}>
-            <div className="eyebrow"><span className="dot"></span>Platform capabilities · detailed</div>
-            <h2>Eight engineered guarantees, not marketing promises</h2>
-            <p>Every feature below is a shipped, tested, observable behaviour — with the module filename and auth contract that enforces it. See the presentation decks for the full architecture narrative.</p>
-          </div>
-          <div className="feat-grid">
-            {FEATURES.map((feature) => (
-              <div className="feat-card" key={feature.title}>
-                <div className="fico">{feature.icon}</div>
-                <h3>{feature.title}</h3>
-                <p>{feature.body}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+
 
       <footer>
         <div className="container">
@@ -1127,6 +1139,8 @@ export default function HomePage() {
       </footer>
 
       {modalOpen && <LoginPage onClose={closeModal} />}
+
+      <DemoDirectorModal isOpen={directorOpen} onClose={() => setDirectorOpen(false)} />
 
       {/* ── 14-Role AI Claim Class Matrix Modal ──────────────────────────── */}
       {aiMatrixOpen && (
@@ -1144,35 +1158,47 @@ export default function HomePage() {
               <button onClick={() => setAiMatrixOpen(false)} style={{ background: 'var(--panel-2)', border: '1px solid var(--line)', borderRadius: '8px', color: 'var(--hi)', fontSize: '18px', cursor: 'pointer', padding: '6px 12px', flexShrink: 0 }}>✕</button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '24px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '24px' }}>
               {[
-                { group: '🏛️ National Strategic', color: '#1082ff', roles: [
-                  { role: 'exec', label: 'Executive / Director-General / CISO', desc: 'Strategic risk posture, risk scores, compliance summary, alert overview, findings summary' },
-                  { role: 'compliance', label: 'Compliance Officer / AGSA Liaison', desc: 'POPIA s.22 breach analysis, ISO 27001 control gaps, MIOS scores, AGSA ECDSA NIST P-256 PKI signatures' },
-                  { role: 'sre', label: 'Site Reliability Engineer', desc: 'Infrastructure uptime, API connector health, rate limits, dead-letter queue status' },
+                { group: '🏛️ Tier 5 & 4 · SITA Command Center', color: '#ef4444', roles: [
+                  { role: 'operator', tier: 'Tier 5', label: 'Platform MSP Operator', scope: 'Platform Provider Root', desc: 'Bootstrap operator — creates SITA superuser and peer operator accounts only. Zero application data access.' },
+                  { role: 'admin', tier: 'Tier 4', label: 'SITA Platform Superadmin', scope: 'National Estate Root', desc: 'Full estate authority — provisions transversal & departmental tiers, manages national deployments across ~173 organs of state.' },
                 ]},
-                { group: '🛡️ Specialized Security Ops', color: '#009bd4', roles: [
-                  { role: 'soc', label: 'SOC Analyst', desc: 'DAM alert clusters, MITRE ATT&CK technique tags (T1190), intrusion timestamps, D3FEND countermeasures' },
-                  { role: 'appsec', label: 'AppSec Engineer', desc: 'OWASP Top 10, CWE traces, AppScan SAST/DAST telemetry, CVE IDs, remediation diffs' },
-                  { role: 'dbsec', label: 'DbSec Administrator', desc: 'SQL injection clusters, Cassandra/PostgreSQL DAM alerts, POPIA breach window estimates' },
-                  { role: 'local-appsec', label: 'Local AppSec (branch-level)', desc: 'Branch-scoped vulnerability posture, CWE traces, remediation diffs' },
+                { group: '🌐 Tier 3 · National Security Estate', color: '#1082ff', roles: [
+                  { role: 'transversal-admin', tier: 'Tier 3', label: 'Transversal Superadmin', scope: 'Cross-Department Scope', desc: 'Cross-department governance across assigned client organs of state; provisions Department Superadmins.' },
+                  { role: 'exec', tier: 'Tier 3', label: 'Executive / DG / CISO', scope: 'National Whole Estate', desc: 'Strategic risk posture, risk scores, compliance summary, alert overview, findings summary (sinks & CVEs scrubbed).' },
+                  { role: 'compliance', tier: 'Tier 3', label: 'Compliance & AGSA Liaison', scope: 'National Whole Estate', desc: 'POPIA s.22 breach analysis, ISO 27001 control gaps, MIOS scores, AGSA ECDSA NIST P-256 PKI signatures.' },
+                  { role: 'sre', tier: 'Tier 3', label: 'Site Reliability Engineer', scope: 'National Whole Estate', desc: 'Platform uptime, API connector health, token-bucket rate limits, dead-letter queue status.' },
                 ]},
-                { group: '📍 Provincial · Administrative', color: '#a78bfa', roles: [
-                  { role: 'province-soc-lead', label: 'Provincial SOC Lead', desc: 'Provincial posture monitoring, anonymized national peer benchmark (no peer PII or raw findings)' },
-                  { role: 'province-dept-admin', label: 'Provincial Dept Admin', desc: 'Admin panel, user provisioning (no security intelligence reports)' },
-                  { role: 'branch-admin', label: 'Branch Admin (Tier 1)', desc: 'Branch admin panel, user provisioning, subtree-locked (e.g. dha-digital only)' },
-                  { role: 'dept-admin', label: 'Department Admin (Tier 2)', desc: 'Dept admin panel, connector config, user provisioning for assigned departments' },
-                  { role: 'transversal-admin', label: 'Transversal Superadmin (Tier 3)', desc: 'Cross-department admin spanning multiple assigned client organs of state' },
-                  { role: 'admin', label: 'SITA Superadmin (Tier 4)', desc: 'Full estate authority — provisions all tiers, manages national deployments' },
-                  { role: 'operator', label: 'Platform MSP Operator (Tier 5)', desc: 'Bootstrap operator — creates SITA superuser and peer operator accounts only' },
+                { group: '🏢 Tier 2 · Department & Provincial', color: '#009bd4', roles: [
+                  { role: 'dept-admin', tier: 'Tier 2', label: 'Department Superadmin', scope: 'Department Scope (e.g. DHA)', desc: 'Department control plane, connector config, user provisioning for assigned department & branches.' },
+                  { role: 'province-dept-admin', tier: 'Tier 2', label: 'Provincial Dept Admin', scope: 'Provincial Scope (e.g. GP)', desc: 'Provincial department administration & localized user provisioning (no security intelligence reports).' },
+                  { role: 'province-soc-lead', tier: 'Tier 2', label: 'Provincial SOC Lead', scope: 'Provincial Scope', desc: 'Provincial posture monitoring, anonymized national peer benchmark (no peer PII or raw findings).' },
+                ]},
+                { group: '📍 Tier 1 · Operational Branch Tier', color: '#00af66', roles: [
+                  { role: 'branch-admin', tier: 'Tier 1', label: 'Branch Superadmin', scope: 'Branch Subtree (DDG Unit)', desc: 'Branch admin panel, user provisioning, strictly subtree-locked (e.g. dha-digital only).' },
+                  { role: 'local-appsec', tier: 'Tier 1', label: 'Branch AppSec Specialist', scope: 'Branch Scope', desc: 'Branch-scoped vulnerability posture, CWE traces, localized remediation diffs.' },
+                  { role: 'soc', tier: 'Tier 1', label: 'SOC Security Analyst', scope: 'Branch / Dept Scope', desc: 'DAM alert clusters, MITRE ATT&CK technique tags (T1190), intrusion timestamps, D3FEND countermeasures.' },
+                  { role: 'appsec', tier: 'Tier 1', label: 'AppSec Engineer', scope: 'Branch / Dept Scope', desc: 'OWASP Top 10, CWE sink traces, AppScan SAST/DAST telemetry, CVE IDs, remediation diffs.' },
+                  { role: 'dbsec', tier: 'Tier 1', label: 'Database Security Specialist', scope: 'Branch / Dept Scope', desc: 'SQL injection clusters, Cassandra/PostgreSQL DAM alerts, POPIA breach window estimates.' },
                 ]},
               ].map(({ group, color, roles }) => (
                 <div key={group} style={{ background: 'var(--panel-2)', border: `1px solid ${color}33`, borderTop: `3px solid ${color}`, borderRadius: '12px', padding: '16px' }}>
-                  <div style={{ fontSize: '11px', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: '12px' }}>{group}</div>
+                  <div style={{ fontSize: '11px', fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '12px' }}>{group}</div>
                   {roles.map(r => (
                     <div key={r.role} style={{ marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px solid var(--line)' }}>
-                      <div style={{ fontSize: '12.5px', fontWeight: 700, color: 'var(--hi)', marginBottom: '2px' }}><code style={{ color, fontSize: '11px' }}>{r.role}</code> · {r.label}</div>
-                      <div style={{ fontSize: '11.5px', color: 'var(--mid)', lineHeight: 1.5 }}>{r.desc}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '6px', marginBottom: '2px' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--hi)' }}>
+                          <code style={{ color, fontSize: '11px' }}>{r.role}</code> · {r.label}
+                        </div>
+                        <span style={{ fontSize: '9.5px', fontWeight: 700, padding: '1px 5px', borderRadius: '4px', background: `${color}20`, color, fontFamily: 'JetBrains Mono, monospace', flexShrink: 0 }}>
+                          {r.tier}
+                        </span>
+                      </div>
+                      <div style={{ fontSize: '10.5px', color: 'var(--dim)', marginBottom: '2px' }}>
+                        <span style={{ color: 'var(--mid)', fontWeight: 600 }}>Scope:</span> {r.scope}
+                      </div>
+                      <div style={{ fontSize: '11.5px', color: 'var(--mid)', lineHeight: 1.45 }}>{r.desc}</div>
                     </div>
                   ))}
                 </div>

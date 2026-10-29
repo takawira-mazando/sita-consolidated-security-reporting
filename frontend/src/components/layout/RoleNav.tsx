@@ -10,6 +10,7 @@ import {
   TenancyResponse,
 } from '../../api/auth';
 import { useDemoMode } from '../../context/DemoContext';
+import DemoDirectorModal from './DemoDirectorModal';
 
 interface RoleTab {
   role: string;
@@ -29,10 +30,10 @@ const ROLE_TABS: RoleTab[] = [
 ];
 
 const TIER_META: Record<TenancyTier, { label: string; icon: string; hint: string }> = {
-  sita:     { label: 'SITA Command Center', icon: '🇿🇦', hint: 'Overarching · Transversal Estate Control' },
-  national: { label: 'National',           icon: '🏛',  hint: 'Strategic · Estate-wide' },
-  dept:     { label: 'Department',         icon: '🏢',  hint: 'Tactical · Dept/Provincial' },
-  branch:   { label: 'Branch',             icon: '📍',  hint: 'Granular · Branch-level' },
+  sita:     { label: 'SITA Command Center (Tier 4)', icon: '🇿🇦', hint: 'Tier 4 Control Plane · SITA Superadmin #1 (admin@) — Mandated transversal infrastructure provider across 173 National & Provincial Departments. Provisions Transversal Superadmin #2 & National Data Plane Cockpits.' },
+  national: { label: 'National Estate (Tier 3)',      icon: '🏛',  hint: 'Tier 3 Control Plane · National Gov Transversal Superadmin #2 (transversal@) — Sovereign oversight across National & Provincial Departments. Provisions Department Superadmins (Tier 2).' },
+  dept:     { label: 'Department (Tier 2)',          icon: '🏢',  hint: 'Tier 2 Control Plane · Department Superadmin — Home Affairs PFMA Accounting Entity. Provisions Branch Admins (Tier 1) & Department Security Specialists.' },
+  branch:   { label: 'Branch (Tier 1)',              icon: '📍',  hint: 'Tier 1 Control Plane · Branch Admin — DDG Operational Branch (DHA Immigration). Provisions branch-scoped AppSec, SOC & DBSec specialists.' },
 };
 
 const ACCOUNT_DEFAULT = '__account_default__';
@@ -45,6 +46,7 @@ export default function RoleNav() {
   const location = useLocation();
 
   const [aiMenuOpen, setAiMenuOpen] = useState(false);
+  const [directorOpen, setDirectorOpen] = useState(false);
   const [switchOpen, setSwitchOpen] = useState(false);
   const [switchError, setSwitchError] = useState('');
   const [tenancy, setTenancy] = useState<TenancyResponse | null>(null);
@@ -109,10 +111,10 @@ export default function RoleNav() {
   const switchTierTo = (tier: TenancyTier) => {
     setActiveTier(tier);
     localStorage.setItem(TIER_STORAGE_KEY, tier);
-    // Navigate to the first available dashboard in the new tier
+    // Admin-only tiers land on /admin; operational tiers land on first dashboard tab
     const tierDashes = access[tier];
-    const tierAdmins = access.adminTiers.includes(tier);
-    const target = tierDashes[0] ?? (tierAdmins ? 'admin' : null);
+    const isAdminOnly = tierDashes.length === 0 && access.adminTiers.includes(tier);
+    const target = isAdminOnly ? 'admin' : (tierDashes[0] ?? (access.adminTiers.includes(tier) ? 'admin' : null));
     if (target) navigate(`/${tier}/${target}`);
   };
 
@@ -128,18 +130,27 @@ export default function RoleNav() {
 
   const userName = user?.email?.split('@')[0] || 'user';
   const deptIds = user?.department_ids || [];
-  const provinceStr = user?.province_name ? `${user.province_name} » ` : '';
   const branchStr = user?.branch_names?.length
     ? ` » ${user.branch_names[0]}${user.branch_names.length > 1 ? ' (+' + (user.branch_names.length - 1) + ')' : ''}`
     : '';
-  const scopeLabel = deptIds.length
-    ? `${provinceStr}${user?.department_name || deptIds[0]}${branchStr}`
-    : user?.province_ids?.length
-    ? `${provinceStr}${filteredTenancy?.departments.length || 0} departments`
-    : 'National Estate';
+
+  // Strict 4-Tier SITA Tenancy Scoping:
+  // Tier 4: SITA Command Center, Tier 3: National Security Estate, Tier 2: Department (DHA Testbed), Tier 1: Branch
+  let scopeLabel = 'National Security Estate';
+  if (deptIds.length) {
+    const dName = user?.department_name || (deptIds[0] === 'home-affairs-digital' ? 'Department of Home Affairs' : deptIds[0]);
+    scopeLabel = `${dName}${branchStr}`;
+  } else if (user?.roles?.some((r) => ['admin', 'operator'].includes(r))) {
+    scopeLabel = 'SITA National Security Command Center';
+  } else if (user?.roles?.includes('transversal-admin')) {
+    scopeLabel = 'National Security Estate (Transversal)';
+  } else {
+    scopeLabel = 'National Security Estate';
+  }
+
   const scopeTitle = deptIds.length
-    ? `Tenant scope: ${deptIds.length} department(s)${(user?.branch_names || []).length ? ` · ${(user?.branch_names || []).join(', ')}` : ''}`
-    : 'Tenant scope: national (all departments)';
+    ? `Tenant scope: ${scopeLabel}`
+    : 'Tenant scope: SITA Whole-of-Government Estate';
   const extraDepts = deptIds.length > 1 ? `+${deptIds.length - 1}` : null;
 
   const doSwitch = async (scopeOverride?: { department_id: string | null; branch_id: string | null; province_id?: string | null }) => {
@@ -216,11 +227,11 @@ export default function RoleNav() {
                     zIndex: 1000,
                     marginTop: 4,
                     minWidth: 260,
-                    background: 'rgba(15, 23, 42, 0.96)',
-                    border: '1px solid rgba(99, 102, 241, 0.45)',
+                    background: 'var(--ai-card-bg)',
+                    border: '1px solid var(--ai-card-border)',
                     borderRadius: 12,
                     padding: '8px 0',
-                    boxShadow: '0 12px 36px rgba(0, 0, 0, 0.7), 0 0 20px rgba(99, 102, 241, 0.25)',
+                    boxShadow: 'var(--ai-card-shadow)',
                     backdropFilter: 'blur(16px)',
                     animation: 'aiFlashFadeIn 0.2s ease',
                   }}
@@ -232,7 +243,7 @@ export default function RoleNav() {
                       fontWeight: 800,
                       color: '#818cf8',
                       letterSpacing: '0.08em',
-                      borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderBottom: '1px solid var(--ai-subcard-border)',
                       marginBottom: 4,
                     }}
                   >
@@ -258,7 +269,7 @@ export default function RoleNav() {
                         padding: '7px 14px',
                         background: 'transparent',
                         border: 'none',
-                        color: '#f8fafc',
+                        color: 'var(--text-primary)',
                         fontSize: 12,
                         textAlign: 'left',
                         cursor: 'pointer',
@@ -315,6 +326,15 @@ export default function RoleNav() {
           title={demoMode ? 'Exit Demo Mode (uses test data)' : 'Enter Demo Mode (uses test data)'}
         >
           {demoMode ? '🧪 Demo: ON' : '🧪 Demo'}
+        </button>
+        <button
+          id="btn-demo-director"
+          className="demo-toggle"
+          style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)', color: '#fff', border: 'none', fontWeight: 700 }}
+          onClick={() => setDirectorOpen(true)}
+          title="Open Live Demonstration Director"
+        >
+          ⚡ Execute Demo
         </button>
         {demoMode && (
           <span className="demo-badge" title="Running in demo mode with seeded test data">DEMO</span>
@@ -410,6 +430,8 @@ export default function RoleNav() {
         <span className="nav-user">{userName}</span>
         <button className="logout-btn" onClick={handleLogout}>Sign Out</button>
       </div>
+
+      <DemoDirectorModal isOpen={directorOpen} onClose={() => setDirectorOpen(false)} />
     </nav>
   );
 }

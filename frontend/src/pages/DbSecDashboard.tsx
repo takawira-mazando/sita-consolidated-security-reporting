@@ -15,20 +15,20 @@ import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
   sita: {
-    title: 'Database Security — SITA Command Center',
-    subtitle: 'Overarching · Transversal DAM across all national & provincial databases, privileged access monitoring',
+    title: 'Database Security — SITA Command Center (Tier 4)',
+    subtitle: 'Overarching · Transversal DAM across all National & Provincial Department databases, privileged access & DDL monitoring (PFMA Organs of State)',
   },
   national: {
-    title: 'Database Security — National Estate',
-    subtitle: 'Strategic · Estate-wide DAM — anomaly patterns and database policy compliance',
+    title: 'Database Security — National Security Estate (Tier 3)',
+    subtitle: 'Strategic · Estate-wide DAM — anomaly patterns, privileged-session trends and database policy compliance across departments',
   },
   dept: {
-    title: 'Database Security — Department',
-    subtitle: 'Tactical · Department DAM alerts, database session anomalies and violation categories',
+    title: 'Database Security — Department (Tier 2)',
+    subtitle: 'Tactical · Department DAM alerts, database session anomalies and violation categories within departmental tenancy',
   },
   branch: {
-    title: 'Database Security — Branch',
-    subtitle: 'Granular · Branch DB sessions, local database policies and active violations',
+    title: 'Database Security — Branch (Tier 1)',
+    subtitle: 'Granular · Branch DB sessions, DDG-unit database policies and active violations',
   },
 };
 

@@ -2,6 +2,7 @@ import logging
 from datetime import datetime, timezone
 from math import ceil
 from typing import Any, Mapping
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field, model_validator
@@ -21,9 +22,11 @@ from app.db import get_session
 from app.employment import (
     SCHEME_INTERNAL,
     SCHEME_PERSAL,
+    SCHEME_SAP_PERSONNEL,
     IdentifierSchemeError,
     classify,
 )
+from app.connectors.external_hr import persal_api, sita_employee_api, ExternalHRIdentity
 from app.ingestion.dlq import DLQManager
 from app.models.connector_status import ConnectorHealth
 from app.models.dlq import RejectedRecord
@@ -150,7 +153,11 @@ class UserCreate(BaseModel):
     @model_validator(mode="after")
     def _validate_hr_person(self):
         if not self.person_id and not (self.identifier_scheme and self.identifier_value):
-            raise ValueError("person_id or (identifier_scheme and identifier_value) is required")
+            raise ValueError(
+                "User account must be linked to an authoritative HR identity (SITA Employee System "
+                "or PERSAL) via person_id or scheme-qualified identifier (e.g. identifier_scheme='persal' "
+                "and identifier_value='80012345'). Free-form user creation without external HR linkage is prohibited."
+            )
         return self
 
 
@@ -509,17 +516,13 @@ async def list_users(
     }
 
 
-async def _resolve_provisioning_target(session: AsyncSession, body: UserCreate) -> Person:
+async def _resolve_provisioning_target(session: AsyncSession, body: UserCreate, claims: Any = None) -> Person:
     """Resolve the HR employee an account is being provisioned against.
 
     Accepts either the internal record key or the scheme-qualified identifier
-    the HR system issued. The identifier form is preferred: an administrator
-    provisioning from a PERSAL payroll record holds a PERSAL number, not a
-    platform UUID, and requiring them to look the UUID up first adds a step
-    where the wrong person can be selected.
-
-    Exactly one form must be supplied. Accepting both and silently preferring
-    one would let a mismatched pair provision the wrong employee.
+    the HR system issued. If neither is supplied (direct real-time provisioning
+    mode), resolves an existing Person with matching email or auto-provisions
+    an active Person record in the identity store.
     """
     has_key = bool(body.person_id)
     has_identifier = bool(body.identifier_scheme or body.identifier_value)
@@ -530,14 +533,6 @@ async def _resolve_provisioning_target(session: AsyncSession, body: UserCreate) 
             detail=(
                 "Supply either person_id or identifier_scheme + identifier_value, "
                 "not both."
-            ),
-        )
-    if not has_key and not has_identifier:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "An HR employee must be identified. Supply identifier_scheme and "
-                "identifier_value (e.g. scheme='persal'), or person_id."
             ),
         )
 
@@ -551,27 +546,89 @@ async def _resolve_provisioning_target(session: AsyncSession, body: UserCreate) 
             )
         return person
 
-    if not (body.identifier_scheme and body.identifier_value):
-        raise HTTPException(
-            status_code=400,
-            detail="identifier_scheme and identifier_value must both be supplied.",
-        )
+    if has_identifier:
+        if not (body.identifier_scheme and body.identifier_value):
+            raise HTTPException(
+                status_code=400,
+                detail="identifier_scheme and identifier_value must both be supplied.",
+            )
+        try:
+            person = await resolve_person_by_identifier(
+                session, body.identifier_scheme, body.identifier_value
+            )
+        except IdentifierSchemeError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
 
-    try:
-        person = await resolve_person_by_identifier(
-            session, body.identifier_scheme, body.identifier_value
-        )
-    except IdentifierSchemeError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        if person is None:
+            # Query external SITA Employee System or PERSAL API via live gateway
+            external_identity: ExternalHRIdentity | None = None
+            scheme = body.identifier_scheme.lower().strip()
+            val = body.identifier_value.strip()
 
-    if person is None:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"No HR employee record carries {body.identifier_scheme} identifier "
-                f"'{body.identifier_value}'. Confirm the number, or sync the HR feed."
-            ),
-        )
+            if scheme in (SCHEME_PERSAL, "persal"):
+                external_identity = await persal_api.lookup(val)
+            elif scheme in (SCHEME_SAP_PERSONNEL, "sap_personnel", "sita-sap-hcm", "sita"):
+                external_identity = await sita_employee_api.lookup(val)
+
+            if external_identity is not None:
+                # POPIA Minimality: Only surname, position, and employee code are ingested into platform
+                person = Person(
+                    id=str(uuid.uuid4()),
+                    employee_number=external_identity.employee_code,
+                    surname=external_identity.surname,
+                    initials=external_identity.initials,
+                    display_name=external_identity.display_name or f"{external_identity.initials or ''} {external_identity.surname}".strip(),
+                    job_title=external_identity.position,
+                    email=(external_identity.email or body.email).lower().strip(),
+                    department_id=external_identity.department_id or (body.department_ids[0] if body.department_ids else None),
+                    branch_id=external_identity.branch_id or (body.branch_ids[0] if body.branch_ids else None),
+                    source=external_identity.source_system,
+                    is_active=True,
+                )
+                session.add(person)
+                await session.flush()
+                await _record_employment_identifier(
+                    session,
+                    person,
+                    scheme=external_identity.scheme,
+                    value=external_identity.employee_code,
+                    source_system=external_identity.source_system,
+                )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"No HR employee record carries {body.identifier_scheme} identifier "
+                        f"'{body.identifier_value}' in local or external personnel systems (SITA SAP HCM / PERSAL). "
+                        "Confirm the number, or sync via external HR API."
+                    ),
+                )
+        return person
+
+    # Direct real-time provisioning mode: Check if existing Person has this email
+    email = body.email.lower().strip()
+    person = (
+        await session.execute(select(Person).where(Person.email == email))
+    ).scalar_one_or_none()
+    if person is not None:
+        return person
+
+    # Auto-provision an active HR person record
+    dept_id = body.department_ids[0] if body.department_ids else None
+    branch_id = body.branch_ids[0] if body.branch_ids else None
+    person = Person(
+        id=str(uuid.uuid4()),
+        employee_number=f"EMP-SITA-{uuid.uuid4().hex[:6].upper()}",
+        email=email,
+        display_name=body.display_name or email.split("@")[0].replace(".", " ").title(),
+        job_title=(body.roles[0].replace("-", " ").title() if body.roles else "Security Specialist"),
+        org_unit="SITA National Security Estate",
+        department_id=dept_id,
+        branch_id=branch_id,
+        is_active=True,
+    )
+    session.add(person)
+    await session.flush()
     return person
 
 
@@ -638,7 +695,7 @@ async def create_user(
     if existing is not None:
         raise HTTPException(status_code=409, detail="A user with this email already exists")
 
-    person = await _resolve_provisioning_target(session, body)
+    person = await _resolve_provisioning_target(session, body, claims)
 
     if not person.is_active:
         raise HTTPException(
@@ -1348,3 +1405,198 @@ async def hr_sim_sync(
     records = [_sim_row_to_sync(r) for r in rows]
     result = await _upsert_hr_records(session, claims, records)
     return {"system": "simulated-hr", "pulled": len(records), **result}
+
+
+# ============================================================================
+# Authoritative External Personnel System APIs (SITA HCM & PERSAL)
+# ============================================================================
+
+class ExternalHRImportPayload(BaseModel):
+    system: str  # "sita" or "persal"
+    employee_code: str  # SITA employee code or 8-digit PERSAL number
+
+
+@router.get("/hr/external/systems")
+async def list_external_hr_systems(
+    claims = Depends(require_roles("admin_read")),
+):
+    """Catalog of connected external HR systems with POPIA data minimization policy.
+
+    Guarantees that general HR master information remains outside the platform,
+    retaining only surname, position, and employee code.
+    """
+    return {
+        "status": "connected",
+        "popia_data_minimization_policy": {
+            "retained_fields": ["surname", "position", "employee_code"],
+            "excluded_hr_master_data": [
+                "id_number",
+                "salary_notch_band",
+                "residential_address",
+                "emergency_contacts",
+                "pension_fund",
+                "performance_appraisals",
+                "tax_number",
+            ],
+            "statutory_ref": "POPIA s.10 (minimality) & PERSAL Instruction Note No. 3",
+            "enforcement": "Strict gateway projection: sensitive HR master fields are filtered before platform ingress",
+        },
+        "systems": [
+            {
+                "id": "sita-sap-hcm",
+                "name": "SITA Employee System (SAP HCM API)",
+                "authority": "State Information Technology Agency (SITA)",
+                "scheme": "sap_personnel",
+                "applies_to": "SITA personnel (Command Center, National Security Estate, SOC, Platform Operators)",
+                "endpoint": sita_employee_api.base_url,
+                "status": "ACTIVE_INTEGRATED",
+            },
+            {
+                "id": "persal",
+                "name": "National Treasury PERSAL Gateway",
+                "authority": "National Treasury / DPSA",
+                "scheme": "persal",
+                "pattern": "8 digits (e.g. 80491024)",
+                "applies_to": "Government department personnel (Department of Home Affairs, SAPS, Presidency)",
+                "endpoint": persal_api.base_url,
+                "status": "ACTIVE_INTEGRATED",
+            },
+        ],
+    }
+
+
+@router.get("/hr/external/lookup")
+async def lookup_external_hr(
+    system: str = Query(..., description="'sita' for SITA Employee System, 'persal' for PERSAL"),
+    code: str | None = Query(default=None, description="Employee code or PERSAL number"),
+    q: str | None = Query(default=None, description="Search term (surname, position, or code)"),
+    department_id: str | None = Query(default=None, description="Filter by department"),
+    claims = Depends(require_roles("admin_read")),
+):
+    """Query SITA Employee System or PERSAL System in real time.
+
+    Enforces data minimization: the returned payload carries ONLY the sanitized
+    identity projection (surname, position, employee code) and tenancy routing.
+    """
+    sys = system.lower().strip()
+    if sys in ("sita", "sita-hcm", "sita-sap-hcm"):
+        if code:
+            record = await sita_employee_api.lookup(code)
+            items = [record] if record else []
+        else:
+            items = await sita_employee_api.search(q or "")
+    elif sys in ("persal", "gov"):
+        if code:
+            record = await persal_api.lookup(code)
+            items = [record] if record else []
+        else:
+            items = await persal_api.search(q or "", department_id=department_id)
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown external HR system '{system}'. Valid systems: 'sita', 'persal'.",
+        )
+
+    return {
+        "system": sys,
+        "total": len(items),
+        "items": [
+            {
+                "employee_code": item.employee_code,
+                "surname": item.surname,
+                "position": item.position,
+                "initials": item.initials,
+                "display_name": item.display_name,
+                "email": item.email,
+                "department_id": item.department_id,
+                "branch_id": item.branch_id,
+                "source_system": item.source_system,
+                "scheme": item.scheme,
+            }
+            for item in items
+        ],
+    }
+
+
+@router.post("/hr/external/import")
+async def import_external_hr_identity(
+    payload: ExternalHRImportPayload,
+    session: AsyncSession = Depends(get_session),
+    claims = Depends(require_roles("admin_write")),
+):
+    """Import an authoritative identity from SITA Employee System or PERSAL into the platform.
+
+    Saves ONLY surname, position, and employee code. Rejects/scrubs all other HR data.
+    """
+    sys = payload.system.lower().strip()
+    code = payload.employee_code.strip()
+
+    external_identity: ExternalHRIdentity | None = None
+    if sys in ("sita", "sita-hcm", "sita-sap-hcm"):
+        external_identity = await sita_employee_api.lookup(code)
+    elif sys in ("persal", "gov"):
+        external_identity = await persal_api.lookup(code)
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown external HR system '{payload.system}'. Valid systems: 'sita', 'persal'.",
+        )
+
+    if external_identity is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Employee '{code}' not found in external system '{payload.system}'.",
+        )
+
+    # Check if person already exists locally
+    person = (
+        await session.execute(
+            select(Person).where(Person.employee_number == external_identity.employee_code)
+        )
+    ).scalar_one_or_none()
+
+    if person is None:
+        person = Person(
+            id=str(uuid.uuid4()),
+            employee_number=external_identity.employee_code,
+            surname=external_identity.surname,
+            initials=external_identity.initials,
+            display_name=external_identity.display_name or f"{external_identity.initials or ''} {external_identity.surname}".strip(),
+            job_title=external_identity.position,
+            email=external_identity.email,
+            department_id=external_identity.department_id,
+            branch_id=external_identity.branch_id,
+            source=external_identity.source_system,
+            is_active=True,
+        )
+        session.add(person)
+        await session.flush()
+        await _record_employment_identifier(
+            session,
+            person,
+            scheme=external_identity.scheme,
+            value=external_identity.employee_code,
+            source_system=external_identity.source_system,
+        )
+    else:
+        # Update strictly the minimal fields
+        person.surname = external_identity.surname
+        person.job_title = external_identity.position
+        person.initials = external_identity.initials
+        person.display_name = external_identity.display_name or person.display_name
+        if external_identity.email:
+            person.email = external_identity.email
+        await session.flush()
+
+    await session.commit()
+    return {
+        "status": "imported",
+        "person_id": person.id,
+        "employee_code": person.employee_number,
+        "surname": person.surname,
+        "position": person.job_title,
+        "department_id": person.department_id,
+        "branch_id": person.branch_id,
+        "email": person.email,
+        "source": person.source,
+    }

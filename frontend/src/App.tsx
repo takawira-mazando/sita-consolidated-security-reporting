@@ -1,5 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useState } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { useDemoMode } from './context/DemoContext';
 import RoleNav from './components/layout/RoleNav';
@@ -15,6 +15,7 @@ import DbSecDashboard from './pages/DbSecDashboard';
 import ComplianceDashboard from './pages/ComplianceDashboard';
 import SreDashboard from './pages/SreDashboard';
 import AiIntelPage from './pages/AiIntelPage';
+import DemoTourGuide from './components/layout/DemoTourGuide';
 
 // Dashboard key → component factory (receives tier)
 const DASH_COMPONENTS: Record<string, (tier: TenancyTier) => JSX.Element> = {
@@ -38,9 +39,29 @@ function DemoBanner({ demoMode, onDismiss }: { demoMode: boolean; onDismiss: () 
 }
 
 export default function App() {
-  const { user, isLoading, sessionNonce } = useAuth();
+  const { user, isLoading, sessionNonce, loginDemo } = useAuth();
   const { demoMode } = useDemoMode();
   const [showDemoBanner, setShowDemoBanner] = useState(demoMode);
+  const navigate = useNavigate();
+
+  // Instant execution handler for URL deep links: ?demo_login=<role>&goto=<path>
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const demoRole = params.get('demo_login');
+    const branch = params.get('branch');
+    const targetGoto = params.get('goto');
+    if (demoRole) {
+      const scope = branch ? { department_id: 'home-affairs-digital', branch_id: branch, province_id: null } : undefined;
+      loginDemo(demoRole, scope).then((res) => {
+        if (res.ok) {
+          window.history.replaceState({}, document.title, window.location.pathname);
+          if (targetGoto) {
+            navigate(targetGoto);
+          }
+        }
+      });
+    }
+  }, [loginDemo, navigate]);
 
   if (isLoading) {
     return <div className="loading-screen">Loading SITA Platform...</div>;
@@ -48,23 +69,33 @@ export default function App() {
 
   if (!user) {
     return (
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="*" element={<HomePage />} />
-      </Routes>
+      <>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<HomePage />} />
+        </Routes>
+        <DemoTourGuide />
+      </>
     );
   }
 
   const roles = user.roles?.length ? user.roles : ['exec'];
   const access = getTierAccess(roles);
 
-  // Determine the user's primary (first non-empty) tier and default dashboard
-  const primaryTier: TenancyTier =
-    (access.sita?.length && access.isSitaSuperadmin) ? 'sita' :
-    access.national.length ? 'national' :
-    access.dept.length     ? 'dept'     :
-    'branch';
-  const primaryDash = (access[primaryTier]?.[0]) || 'exec';
+  // Determine the user's primary (first non-empty) tier and default dashboard.
+  // Admin-only roles have no security dashboard keys; detect and route to /admin.
+  const primaryTier: TenancyTier = (() => {
+    if (access.sita?.length && access.isSitaSuperadmin) return 'sita';
+    if (access.national.length) return 'national';
+    if (access.dept.length) return 'dept';
+    if (access.branch.length) return 'branch';
+    // No dashboard tabs at all — find the highest admin tier
+    const adminOrder: TenancyTier[] = ['sita', 'national', 'dept', 'branch'];
+    return adminOrder.find((t) => access.adminTiers.includes(t)) ?? 'national';
+  })();
+  const tierDashboards = access[primaryTier] ?? [];
+  const isAdminOnly = tierDashboards.length === 0 && access.adminTiers.includes(primaryTier);
+  const primaryDash = isAdminOnly ? 'admin' : (tierDashboards[0] || 'exec');
 
   // Default landing: /<primaryTier>/<primaryDash>
   const defaultPath = `/${primaryTier}/${primaryDash}`;
@@ -108,6 +139,7 @@ export default function App() {
         <Route path="/" element={<Navigate to={defaultPath} />} />
         <Route path="*" element={<Navigate to={defaultPath} />} />
       </Routes>
+      <DemoTourGuide />
     </div>
   );
 }

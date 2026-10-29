@@ -32,17 +32,32 @@ const HA_BRANCHES = [
 ];
 
 export const FALLBACK_DEMO_ACCOUNTS: DemoAccount[] = [
-  // Nationwide & SITA Estate Personas (Full access across all dashboards)
-  { email: 'admin@example.com', label: 'Platform Superadmin (All Roles)', role: 'admin', department_ids: [], is_nationwide: true },
-  { email: 'exec@example.com', label: 'Executive (CISO / DG)', role: 'exec', department_ids: [], is_nationwide: true },
-  { email: 'compliance@example.com', label: 'Compliance Officer (POPIA/ISO)', role: 'compliance', department_ids: [], is_nationwide: true },
-  { email: 'sre@example.com', label: 'Service Ops / SRE', role: 'sre', department_ids: [], is_nationwide: true },
+  // ── Tier 5: Platform Creator — System Operator (Developer / SITA IT) ─────
+  { email: 'operator@example.com', label: 'Platform Creator / Developer (operator@)', role: 'operator', department_ids: [], is_nationwide: true },
 
-  // Department of Home Affairs (DHA) — Live Demo Personas
-  { email: 'soc-ha@example.com', label: 'SOC Analyst (DHA)', role: 'soc-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
-  { email: 'appsec-ha@example.com', label: 'AppSec Engineer (DHA)', role: 'appsec-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
-  { email: 'dbsec-ha@example.com', label: 'DB Security (DHA)', role: 'dbsec-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
-  { email: 'deptadmin-ha@example.com', label: 'Dept Admin (DHA)', role: 'deptadmin-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  // ── Tier 4: SITA Command Center — Transversal Superadmin #1 ──────────────
+  // Created by the Developer (operator). Our primary SITA client contact.
+  // Provisions National Gov Transversal Superadmin (#2) and national-tier security roles.
+  { email: 'admin@example.com', label: 'SITA Superadmin #1 · SITA Command Center (admin@)', role: 'admin', department_ids: [], is_nationwide: true },
+
+  // ── Tier 3: National Security Estate — Transversal Superadmin #2 ─────────
+  // Created by SITA Superadmin (#1). Provisions Department Superadmins across organs of state.
+  { email: 'transversal@example.com', label: 'National Gov Transversal Superadmin #2 (transversal@)', role: 'transversal-admin', department_ids: [], is_nationwide: true },
+
+  // ── Tier 3: National-tier Security Cockpit Roles (Data Plane) ─────────────
+  { email: 'exec@example.com', label: 'Executive / National CISO (exec@)', role: 'exec', department_ids: [], is_nationwide: true },
+  { email: 'compliance@example.com', label: 'Compliance Officer — POPIA / ISO 27001 (compliance@)', role: 'compliance', department_ids: [], is_nationwide: true },
+  { email: 'sre@example.com', label: 'Service Reliability Engineer — SRE (sre@)', role: 'sre', department_ids: [], is_nationwide: true },
+
+  // ── Tier 2: Department Superadmin — Home Affairs Testbed ─────────────────
+  // Created by National Gov Transversal Superadmin (#2). Provisions Branch Admins and DHA cockpit roles.
+  { email: 'deptadmin-ha@example.com', label: 'DHA Department Superadmin (deptadmin-ha@)', role: 'deptadmin-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+
+  // ── Tier 1: Operational Branch Tier — DDG Branches within DHA ────────────
+  { email: 'branchadmin-ha@example.com', label: 'DHA Branch Admin (branchadmin-ha@)', role: 'branchadmin-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  { email: 'soc-ha@example.com', label: 'SOC Security Analyst — DHA (soc-ha@)', role: 'soc-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  { email: 'appsec-ha@example.com', label: 'AppSec Engineer — DHA (appsec-ha@)', role: 'appsec-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
+  { email: 'dbsec-ha@example.com', label: 'DB Security Specialist — DHA (dbsec-ha@)', role: 'dbsec-ha', department_ids: ['home-affairs-digital'], branch_ids: HA_BRANCHES, department_name: 'Department of Home Affairs' },
 ];
 
 export const ADMIN_EMAIL = 'admin@example.com';
@@ -62,35 +77,39 @@ export function getTierAccess(roles: string[]): TierAccess {
   let hasTransversalAccess = false;
 
   for (const r of roles) {
-    // ── Overarching SITA Platform Provider / Transversal Super-Roles ─────────
-    if (r === 'admin' || r === 'operator') {
+    // ── Tier 5: Platform Creator (operator) — Control Plane ONLY ─────────────
+    // Creates and provisions the SITA Superadmin (admin). No telemetry dashboards.
+    if (r === 'operator') {
       isSitaSuperadmin = true;
       hasTransversalAccess = true;
-      ALL_DASHBOARDS.forEach((d) => {
-        sita.add(d);
-        national.add(d);
-        dept.add(d);
-        branch.add(d);
-      });
       adminTiers.add('sita');
       adminTiers.add('national');
       adminTiers.add('dept');
       adminTiers.add('branch');
-      break;
+      // operator grants no data-plane dashboards — pure provisioning role
     }
 
-    // ── Transversal admin: crosses all tiers from SITA Command Center ────────
-    if (r === 'transversal-admin') {
+    // ── Tier 4: SITA Superadmin (admin) — Control Plane ONLY ─────────────────
+    // Transversal Superadmin #1. Created by operator. Provisions Transversal Superadmin #2
+    // and national-level security cockpit roles. No telemetry dashboards of its own.
+    if (r === 'admin') {
       isSitaSuperadmin = true;
       hasTransversalAccess = true;
-      ALL_DASHBOARDS.forEach((d) => {
-        sita.add(d);
-        national.add(d);
-        dept.add(d);
-        branch.add(d);
-      });
       adminTiers.add('sita');
       adminTiers.add('national');
+      adminTiers.add('dept');
+      adminTiers.add('branch');
+      // admin grants no data-plane dashboards — pure Control Plane provisioning role
+    }
+
+    // ── Transversal Superadmin #2 (transversal-admin) — National/Dept/Branch Control Plane ──
+    // Created by SITA Superadmin #1. Provisions Department Superadmins across organs of state.
+    // Scopes to national, dept, branch admin pages ONLY. Cannot reach sita tier.
+    if (r === 'transversal-admin') {
+      hasTransversalAccess = true;
+      adminTiers.add('national');
+      adminTiers.add('dept');
+      adminTiers.add('branch');
     }
 
     // ── National-tier roles ──────────────────────────────────────────────────
@@ -102,7 +121,7 @@ export function getTierAccess(roles: string[]): TierAccess {
     if (r === 'compliance') { national.add('compliance'); national.add('ai'); }
     if (r === 'sre')        { national.add('sre'); }
 
-    // ── Dept / Provincial tier roles ─────────────────────────────────────────
+    // ── Dept tier roles ──────────────────────────────────────────────────────
     if (r === 'soc' || r === 'soc-ha') {
       dept.add('soc'); dept.add('appsec'); dept.add('dbsec'); dept.add('ai');
     }
@@ -113,12 +132,11 @@ export function getTierAccess(roles: string[]): TierAccess {
       dept.add('dbsec');
     }
     if (r === 'province-soc-lead') {
-      dept.add('exec'); dept.add('soc'); dept.add('ai');
+      dept.add('soc'); dept.add('ai');
     }
 
-    // ── Dept admin: all dept dashboards + branch access + admin ─────────────
+    // ── Dept admin: provisioning only — accesses dept + branch Admin pages ─────
     if (r === 'dept-admin' || r === 'deptadmin-ha' || r === 'province-dept-admin') {
-      ALL_DASHBOARDS.forEach((d) => { dept.add(d); branch.add(d); });
       adminTiers.add('dept');
       adminTiers.add('branch');
     }
@@ -128,9 +146,8 @@ export function getTierAccess(roles: string[]): TierAccess {
       branch.add('appsec'); branch.add('ai');
     }
 
-    // ── Branch admin: all branch dashboards + admin ──────────────────────────
+    // ── Branch admin: provisioning only — accesses branch Admin page ────────────
     if (r === 'branch-admin' || r === 'branchadmin-ha') {
-      ALL_DASHBOARDS.forEach((d) => branch.add(d));
       adminTiers.add('branch');
     }
   }
@@ -167,7 +184,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const stored = localStorage.getItem('sita_user');
     if (stored) {
       try {
-        setUser(JSON.parse(stored) as User);
+        const u = JSON.parse(stored) as User;
+        // Purge orphan provincial session anomalies
+        if (u.email?.includes('provincesoc') || u.email?.includes('provdeptadmin') || u.email?.includes('localappsec')) {
+          localStorage.removeItem('sita_user');
+          localStorage.removeItem('sita_token');
+          setUser(null);
+        } else {
+          setUser(u);
+        }
       } catch {
         localStorage.removeItem('sita_user');
       }

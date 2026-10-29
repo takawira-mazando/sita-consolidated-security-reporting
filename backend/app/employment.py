@@ -141,8 +141,8 @@ SCHEMES: dict[str, IdentifierScheme] = {
         label="SAP personnel number",
         authority="SITA SAP HCM / IFMS HR module",
         identifies="employment",
-        pattern=re.compile(r"^[A-Za-z0-9]{4,20}$"),
-        pattern_description="4-20 alphanumeric characters",
+        pattern=re.compile(r"^[A-Za-z0-9._-]{4,20}$"),
+        pattern_description="4-20 alphanumeric characters, dot, underscore, or hyphen",
         notes=(
             "SAP numbering is client-defined and varies between installations. "
             "Validate against the live feed before enforcing this in production."
@@ -198,6 +198,8 @@ def classify(value: str) -> str | None:
         # 8 digits also satisfies the SAP pattern; PERSAL is the more specific
         # reading and the one that is nationally meaningful.
         return SCHEME_PERSAL
+    if SCHEME_INTERNAL in matches and candidate.startswith(("EMP-", "EMP_")):
+        return SCHEME_INTERNAL
     if looks_like_sa_id_number(candidate):
         # Person identifier. Never an employment identifier, whatever the
         # patterns say.

@@ -20,6 +20,13 @@ export interface VerificationResult {
   zero_hallucination_guaranteed: boolean;
 }
 
+export interface ReportRecommendation {
+  priority?: string;
+  action?: string;
+  target?: string;
+  [key: string]: unknown;
+}
+
 export interface GeneratedReport {
   report_id: string;
   report_type: string;
@@ -28,9 +35,9 @@ export interface GeneratedReport {
   scope_summary: string;
   scope_hash: string;
   summary: string;
-  key_findings: string[];
+  key_findings: Array<string | { text?: string; finding?: string; [key: string]: unknown }>;
   risk_analysis: string;
-  recommendations: string[];
+  recommendations: Array<string | ReportRecommendation>;
   facts: {
     report_type: string;
     as_of_date: string;

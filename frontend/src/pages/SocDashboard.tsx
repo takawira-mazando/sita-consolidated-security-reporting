@@ -15,7 +15,7 @@ import type { TenancyTier } from '../types';
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string; queueHint: string }> = {
   sita: {
     title: 'SOC Analyst — SITA Command Center Incident Response',
-    subtitle: 'Overarching · Transversal alert queue across every province and department, unified multi-OEM ingestion feed',
+    subtitle: 'Overarching · Transversal alert queue across all National and Provincial Departments, unified multi-OEM ingestion feed',
     queueHint: 'all OEMs · transversal whole-estate · live',
   },
   national: {

@@ -7,6 +7,11 @@ import DashHeader from '../components/dashboard/DashHeader';
 import Panel from '../components/dashboard/Panel';
 import AiReportStudio from '../components/ai/AiReportStudio';
 import {
+  RoleExplanationFootlink,
+  RoleExplanationModal,
+  ROLE_GUIDANCE_MAP,
+} from '../components/ai/RoleAdvantageGuide';
+import {
   postAuthorRule,
   postAttributeCampaign,
   postPopiaDossier,
@@ -114,7 +119,7 @@ function ErrorMsg({ error }: { error: string }) {
 function FieldRow({ label, value, mono }: { label: string; value: string | number | boolean | null | undefined; mono?: boolean }) {
   const display = value === null || value === undefined ? '—' : String(value);
   return (
-    <div style={{ display: 'flex', gap: 12, padding: '5px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', alignItems: 'flex-start' }}>
+    <div style={{ display: 'flex', gap: 12, padding: '5px 0', borderBottom: '1px solid var(--border-dim)', alignItems: 'flex-start' }}>
       <span style={{ color: 'var(--text-muted)', fontSize: 12, minWidth: 160, flexShrink: 0 }}>{label}</span>
       <span style={{ fontSize: 13, fontFamily: mono ? 'monospace' : undefined, wordBreak: 'break-all' }}>{display}</span>
     </div>
@@ -250,9 +255,10 @@ function Avp2Panel({ roles }: { roles: string[] }) {
                 {(['summary', 'yaml', 'diff'] as const).map((t) => (
                   <button key={t} id={`avp2-tab-${t}`} onClick={() => setTab(t)}
                     style={{
-                      padding: '5px 14px', borderRadius: 6, border: 'none',
-                      background: tab === t ? '#6366f1' : 'rgba(255,255,255,0.07)',
+                      padding: '5px 14px', borderRadius: 6,
+                      background: tab === t ? '#6366f1' : 'var(--surface-2)',
                       color: tab === t ? '#fff' : 'var(--text-muted)',
+                      border: tab === t ? '1px solid #6366f1' : '1px solid var(--border-dim)',
                       cursor: 'pointer', fontSize: 12, fontWeight: 600,
                     }}>{t}</button>
                 ))}
@@ -724,7 +730,7 @@ function Avp11Panel({ roles }: { roles: string[] }) {
                   {result.anomalous_clusters.slice(0, 10).map((c, i) => (
                     <div key={i} style={{
                       padding: '12px 14px', marginBottom: 8, borderRadius: 8,
-                      background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)',
+                      background: 'var(--ai-subcard-bg)', border: '1px solid var(--ai-subcard-border)',
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                         <code style={{ fontSize: 12, color: '#60a5fa' }}>{c.actor_id || '(unknown)'}</code>
@@ -839,12 +845,12 @@ function AimiVaptLogInterpreterPanel({
         {data && (
           <div style={{
             padding: '6px 14px', borderRadius: 8,
-            background: 'rgba(255,255,255,0.04)',
-            border: '1px solid rgba(255,255,255,0.08)',
+            background: 'var(--ai-subcard-bg)',
+            border: '1px solid var(--ai-subcard-border)',
             fontSize: 12, display: 'flex', alignItems: 'center', gap: 8,
           }}>
             <span style={{ color: 'var(--text-muted)' }}>Tenant Scope:</span>
-            <strong style={{ color: '#818cf8' }}>{data.tenant_scope.scope_label}</strong>
+            <strong style={{ color: 'var(--blue)' }}>{data.tenant_scope.scope_label}</strong>
           </div>
         )}
       </div>
@@ -852,8 +858,8 @@ function AimiVaptLogInterpreterPanel({
       {/* Control bar */}
       <div style={{
         padding: '14px 18px', borderRadius: 10,
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.06)',
+        background: 'var(--ai-subcard-bg)',
+        border: '1px solid var(--ai-subcard-border)',
         display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 14,
         marginBottom: 20,
       }}>
@@ -871,9 +877,9 @@ function AimiVaptLogInterpreterPanel({
               onClick={() => setLookbackHours(opt.value)}
               style={{
                 padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-                background: lookbackHours === opt.value ? '#6366f1' : 'rgba(255,255,255,0.05)',
-                color: lookbackHours === opt.value ? '#fff' : 'inherit',
-                border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
+                background: lookbackHours === opt.value ? 'var(--blue)' : 'var(--surface)',
+                color: lookbackHours === opt.value ? '#fff' : 'var(--text-primary)',
+                border: '1px solid var(--border-dim)', cursor: 'pointer',
               }}
             >
               {opt.label}
@@ -898,166 +904,253 @@ function AimiVaptLogInterpreterPanel({
 
       {data && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {/* Top 4 KPI Stat Cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12 }}>
-            <div style={{
-              padding: '14px 16px', borderRadius: 10,
-              background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)',
-            }}>
-              <div style={{ fontSize: 11, color: '#818cf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Total Telemetry Logs
-              </div>
-              <div style={{ fontSize: 26, fontWeight: 800, marginTop: 4 }}>
-                {data.telemetry_summary.total_logs_analyzed}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                {data.telemetry_summary.waf_blocks_count} WAF · {data.telemetry_summary.vulnerability_findings_count} Findings · {data.telemetry_summary.alerts_correlated_count} Alerts
-              </div>
-            </div>
-
-            <div style={{
-              padding: '14px 16px', borderRadius: 10,
-              background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
-            }}>
-              <div style={{ fontSize: 11, color: '#34d399', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Hostile WAF Interceptions
-              </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#34d399', marginTop: 4 }}>
-                {data.perimeter_resilience.blocked_events_count}
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                100% neutralized at perimeter DMZ
-              </div>
-            </div>
-
-            <div style={{
-              padding: '14px 16px', borderRadius: 10,
-              background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)',
-            }}>
-              <div style={{ fontSize: 11, color: '#60a5fa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Perimeter Resilience
-              </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#60a5fa', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                {data.perimeter_resilience.resilience_percentage}%
-                <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, background: 'rgba(59,130,246,0.2)', fontWeight: 700 }}>
-                  Grade {data.perimeter_resilience.defense_grade}
-                </span>
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                Bypasses: {data.perimeter_resilience.unmitigated_bypasses_count} · Status: {data.perimeter_resilience.status}
-              </div>
-            </div>
-
-            <div style={{
-              padding: '14px 16px', borderRadius: 10,
-              background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
-            }}>
-              <div style={{ fontSize: 11, color: '#f87171', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                Exploitability Index
-              </div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: '#f87171', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
-                {data.attacker_typology.exploitability_index}
-                <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>/ 10</span>
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
-                Dominant vector: <strong style={{ color: '#fff' }}>{data.attacker_typology.dominant_attack_vector}</strong>
-              </div>
-            </div>
-          </div>
-
-          {/* Attacker Typology & Intent Box */}
-          <div style={{
-            padding: '14px 18px', borderRadius: 10,
-            background: 'linear-gradient(135deg, rgba(99,102,241,0.12), rgba(139,92,246,0.06))',
-            border: '1px solid rgba(99,102,241,0.25)',
-            display: 'flex', alignItems: 'flex-start', gap: 14,
-          }}>
-            <span style={{ fontSize: 24 }}>🎯</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#818cf8', textTransform: 'uppercase' }}>Inferred Attacker Profile</span>
-                <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 700 }}>
-                  AIMI COGNITIVE INFERENCE
-                </span>
-              </div>
-              <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>
-                {data.attacker_typology.profile_name}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                {data.attacker_typology.inferred_intent}
-              </div>
-            </div>
-          </div>
-
-          {/* VAPT Attack Vectors Grid */}
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 10 }}>
-              Identified VAPT Attack Vectors in Telemetry ({data.vector_breakdown.length})
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
-              {data.vector_breakdown.map((v) => (
-                <div key={v.vector_key} style={{
+          {/* Security KPIs & Attack Content: only for SOC/AppSec/Exec roles — not compliance */}
+          {(canSoc || canExec) && (
+            <>
+              {/* Top 4 KPI Stat Cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12 }}>
+                <div style={{
                   padding: '14px 16px', borderRadius: 10,
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  display: 'flex', flexDirection: 'column', gap: 8,
+                  background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)',
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-                      background: v.severity === 'critical' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)',
-                      color: v.severity === 'critical' ? '#f87171' : '#fbbf24',
-                      border: `1px solid ${v.severity === 'critical' ? 'rgba(239,68,68,0.4)' : 'rgba(245,158,11,0.4)'}`,
-                    }}>
-                      {v.severity.toUpperCase()}
-                    </span>
-                    <span style={{ fontSize: 11, fontWeight: 700, color: '#818cf8' }}>
-                      {v.event_count} events ({v.percentage}%)
-                    </span>
+                  <div style={{ fontSize: 11, color: '#818cf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Total Telemetry Logs
                   </div>
-
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{v.title}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    <span>{v.owasp_id}</span> ·
-                    <span>{v.cwe_ids.join(', ')}</span> ·
-                    <span style={{ color: '#a78bfa' }}>{v.mitre_technique}</span>
+                  <div style={{ fontSize: 26, fontWeight: 800, marginTop: 4 }}>
+                    {data.telemetry_summary.total_logs_analyzed}
                   </div>
-
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5, background: 'rgba(0,0,0,0.2)', padding: '8px 10px', borderRadius: 6 }}>
-                    {v.aimi_interpretation}
-                  </div>
-
-                  <div style={{ fontSize: 11, color: '#34d399', display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 'auto' }}>
-                    <span>🛡️</span>
-                    <span><strong>Virtual Patch:</strong> {v.remediation_guidance}</span>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {data.telemetry_summary.waf_blocks_count} WAF · {data.telemetry_summary.vulnerability_findings_count} Findings · {data.telemetry_summary.alerts_correlated_count} Alerts
                   </div>
                 </div>
-              ))}
+
+                <div style={{
+                  padding: '14px 16px', borderRadius: 10,
+                  background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
+                }}>
+                  <div style={{ fontSize: 11, color: '#34d399', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Hostile WAF Interceptions
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: '#34d399', marginTop: 4 }}>
+                    {data.perimeter_resilience.blocked_events_count}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    100% neutralized at perimeter DMZ
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '14px 16px', borderRadius: 10,
+                  background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)',
+                }}>
+                  <div style={{ fontSize: 11, color: '#60a5fa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Perimeter Resilience
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: '#60a5fa', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {data.perimeter_resilience.resilience_percentage}%
+                    <span style={{ fontSize: 12, padding: '2px 8px', borderRadius: 6, background: 'rgba(59,130,246,0.2)', fontWeight: 700 }}>
+                      Grade {data.perimeter_resilience.defense_grade}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    Bypasses: {data.perimeter_resilience.unmitigated_bypasses_count} · Status: {data.perimeter_resilience.status}
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '14px 16px', borderRadius: 10,
+                  background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)',
+                }}>
+                  <div style={{ fontSize: 11, color: '#f87171', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Exploitability Index
+                  </div>
+                  <div style={{ fontSize: 26, fontWeight: 800, color: '#f87171', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {data.attacker_typology.exploitability_index}
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>/ 10</span>
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    Dominant vector: <strong style={{ color: 'var(--text-primary)' }}>{data.attacker_typology.dominant_attack_vector}</strong>
+                  </div>
+                </div>
+              </div>
+
+              {/* Attacker Typology & Intent Box */}
+              <div style={{
+                padding: '14px 18px', borderRadius: 10,
+                background: 'var(--ai-banner-bg)',
+                border: '1px solid var(--ai-card-border)',
+                display: 'flex', alignItems: 'flex-start', gap: 14,
+              }}>
+                <span style={{ fontSize: 24 }}>🎯</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--blue)', textTransform: 'uppercase' }}>Inferred Attacker Profile</span>
+                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: 'rgba(245,158,11,0.15)', color: '#f59e0b', fontWeight: 700 }}>
+                      AIMI COGNITIVE INFERENCE
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4, color: 'var(--ai-text-header)' }}>
+                    {data.attacker_typology.profile_name}
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--ai-text-desc)', lineHeight: 1.5 }}>
+                    {data.attacker_typology.inferred_intent}
+                  </div>
+                </div>
+              </div>
+
+              {/* VAPT Attack Vectors Grid */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)', marginBottom: 10 }}>
+                  Identified VAPT Attack Vectors in Telemetry ({data.vector_breakdown.length})
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 12 }}>
+                  {data.vector_breakdown.map((v) => (
+                    <div key={v.vector_key} style={{
+                      padding: '14px 16px', borderRadius: 10,
+                      background: 'var(--ai-subcard-bg)',
+                      border: '1px solid var(--ai-subcard-border)',
+                      display: 'flex', flexDirection: 'column', gap: 8,
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{
+                          fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
+                          background: v.severity === 'critical' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)',
+                          color: v.severity === 'critical' ? '#f87171' : '#fbbf24',
+                          border: `1px solid ${v.severity === 'critical' ? 'rgba(239,68,68,0.4)' : 'rgba(245,158,11,0.4)'}`,
+                        }}>
+                          {v.severity.toUpperCase()}
+                        </span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--blue)' }}>
+                          {v.event_count} events ({v.percentage}%)
+                        </span>
+                      </div>
+
+                      <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>{v.title}</div>
+                      <div style={{ fontSize: 11, color: 'var(--text-muted)', display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <span>{v.owasp_id}</span> ·
+                        <span>{v.cwe_ids.join(', ')}</span> ·
+                        <span style={{ color: '#a78bfa' }}>{v.mitre_technique}</span>
+                      </div>
+
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary)', lineHeight: 1.5, background: 'var(--ai-code-bg)', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--ai-subcard-border)' }}>
+                        {v.aimi_interpretation}
+                      </div>
+
+                      <div style={{ fontSize: 11, color: '#34d399', display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 'auto' }}>
+                        <span>🛡️</span>
+                        <span><strong>Virtual Patch:</strong> {v.remediation_guidance}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Compliance-only Statutory Summary & Governance View */}
+          {canComp && !canSoc && !canExec && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+              <div style={{
+                padding: '16px 20px',
+                borderRadius: 10,
+                background: 'rgba(16,185,129,0.07)',
+                border: '1px solid rgba(16,185,129,0.25)',
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 14,
+              }}>
+                <span style={{ fontSize: 28 }}>⚖️</span>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#10b981', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Statutory Compliance & Governance View
+                    </span>
+                    <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: 'rgba(16,185,129,0.15)', color: '#34d399', fontWeight: 700 }}>
+                      POPIA s.22 & ISO/IEC 27001
+                    </span>
+                  </div>
+                  <div style={{ fontWeight: 800, fontSize: 15, color: 'var(--text-primary)', marginBottom: 4 }}>
+                    AIMI Compliance & Statutory Intelligence View
+                  </div>
+                  <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                    Showing POPIA Section 22 breach assessment, ISO/IEC 27001 control status, and Auditor-General attestation derived from active telemetry.
+                    Raw security operations forensics (WAF intercept logs, exploitability indices, hostile attacker vectors) are isolated to authorized SOC and AppSec personnel.
+                  </div>
+                </div>
+              </div>
+
+              {/* Compliance Statutory KPI Summary Grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))', gap: 12 }}>
+                <div style={{
+                  padding: '14px 16px', borderRadius: 10,
+                  background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.25)',
+                }}>
+                  <div style={{ fontSize: 11, color: '#34d399', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    POPIA s.22 Breach Threshold
+                  </div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: data.role_gated_insights.compliance?.popia_s22_breach_triggered ? '#f87171' : '#34d399', marginTop: 4 }}>
+                    {data.role_gated_insights.compliance?.popia_s22_breach_triggered ? 'BREACH TRIGGERED' : 'ZERO COMPROMISE'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    {data.role_gated_insights.compliance?.popia_s22_breach_triggered ? 'Regulator notification required' : 'No notification threshold reached'}
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '14px 16px', borderRadius: 10,
+                  background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)',
+                }}>
+                  <div style={{ fontSize: 11, color: '#60a5fa', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    ISO/IEC 27001 Control Status
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: '#60a5fa', marginTop: 4 }}>
+                    {data.role_gated_insights.compliance?.iso_27001_control_status || 'Compliant'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    A.12.6 Technical Vulnerability Mgmt
+                  </div>
+                </div>
+
+                <div style={{
+                  padding: '14px 16px', borderRadius: 10,
+                  background: 'rgba(99,102,241,0.08)', border: '1px solid rgba(99,102,241,0.25)',
+                }}>
+                  <div style={{ fontSize: 11, color: '#818cf8', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Auditor-General Attestation
+                  </div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginTop: 4 }}>
+                    {data.role_gated_insights.compliance?.auditor_attestation || 'Attestation on record'}
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>
+                    Deterministic cryptographic audit log
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* RBAC Differentiated Insights Navigation Bar */}
           <div style={{
             display: 'flex', flexWrap: 'wrap', gap: 8,
-            borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: 10,
+            borderBottom: '1px solid var(--border-dim)', paddingBottom: 10,
             marginTop: 8,
           }}>
             {[
-              { id: 'soc', label: '🛠 SOC / AppSec Telemetry Forensics', gate: 'findings' },
-              { id: 'compliance', label: '⚖️ Statutory & POPIA Impact', gate: 'compliance' },
-              { id: 'exec', label: '📈 Executive Risk Posture', gate: 'risks' },
-              { id: 'stream', label: `📜 Interpreted Log Telemetry (${data.interpreted_events.length})`, gate: 'all' },
-              { id: 'baseline', label: '✅ VAPT Baseline Remediation Verifier', gate: 'all' },
-              { id: 'matrix', label: '🛡️ AIMI Blue-Team Capability Matrix & Governance', gate: 'all' },
-            ].map((tab) => (
+              { id: 'soc',        label: '🛠 SOC / AppSec Telemetry Forensics',                                      show: canSoc },
+              { id: 'compliance', label: '⚖️ Statutory & POPIA Impact',                                              show: canComp },
+              { id: 'exec',       label: '📈 Executive Risk Posture',                                                 show: canExec },
+              { id: 'stream',     label: `📜 Interpreted Log Telemetry (${data.interpreted_events.length})`,         show: canSoc || canExec },
+              { id: 'baseline',   label: '✅ VAPT Baseline Remediation Verifier',                                    show: canSoc || canExec },
+              { id: 'matrix',     label: '🛡️ AIMI Blue-Team Capability Matrix & Governance',                        show: true },
+            ].filter((tab) => tab.show).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 style={{
                   padding: '7px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600,
-                  background: activeTab === tab.id ? 'rgba(99,102,241,0.2)' : 'transparent',
-                  color: activeTab === tab.id ? '#818cf8' : 'var(--text-muted)',
-                  border: activeTab === tab.id ? '1px solid rgba(99,102,241,0.4)' : '1px solid transparent',
+                  background: activeTab === tab.id ? 'var(--blue-dim)' : 'transparent',
+                  color: activeTab === tab.id ? 'var(--blue)' : 'var(--text-muted)',
+                  border: activeTab === tab.id ? '1px solid var(--blue)' : '1px solid transparent',
                   cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
                 }}
               >
@@ -1070,7 +1163,7 @@ function AimiVaptLogInterpreterPanel({
           {activeTab === 'soc' && (
             <div style={{
               padding: '16px 18px', borderRadius: 10,
-              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--ai-subcard-bg)', border: '1px solid var(--ai-subcard-border)',
             }}>
               {data.role_gated_insights.soc_appsec?.authorized ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1101,7 +1194,7 @@ function AimiVaptLogInterpreterPanel({
           {activeTab === 'compliance' && (
             <div style={{
               padding: '16px 18px', borderRadius: 10,
-              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--ai-subcard-bg)', border: '1px solid var(--ai-subcard-border)',
             }}>
               {data.role_gated_insights.compliance?.authorized ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1131,7 +1224,7 @@ function AimiVaptLogInterpreterPanel({
           {activeTab === 'exec' && (
             <div style={{
               padding: '16px 18px', borderRadius: 10,
-              background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+              background: 'var(--ai-subcard-bg)', border: '1px solid var(--ai-subcard-border)',
             }}>
               {data.role_gated_insights.exec_risks?.authorized ? (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1173,7 +1266,7 @@ function AimiVaptLogInterpreterPanel({
                 />
               </div>
 
-              <div style={{ overflowX: 'auto', maxHeight: 360, overflowY: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
+              <div style={{ overflowX: 'auto', maxHeight: 360, overflowY: 'auto', border: '1px solid var(--ai-table-border)', borderRadius: 8 }}>
                 <table style={tableStyle}>
                   <thead>
                     <tr>
@@ -1232,7 +1325,7 @@ function AimiVaptLogInterpreterPanel({
               <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 4 }}>
                 Continuous empirical audit verifying that remediated VAPT baseline vulnerabilities remain actively neutralized in telemetry:
               </div>
-              <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8 }}>
+              <div style={{ overflowX: 'auto', border: '1px solid var(--ai-table-border)', borderRadius: 8 }}>
                 <table style={tableStyle}>
                   <thead>
                     <tr>
@@ -1246,7 +1339,7 @@ function AimiVaptLogInterpreterPanel({
                   <tbody>
                     {(data.vapt_baseline_audit || []).map((b) => (
                       <tr key={b.id}>
-                        <td style={{ ...tdStyle, fontWeight: 700, color: '#818cf8' }}>{b.id}</td>
+                        <td style={{ ...tdStyle, fontWeight: 700, color: 'var(--blue)' }}>{b.id}</td>
                         <td style={{ ...tdStyle, fontWeight: 600 }}>{b.title}</td>
                         <td style={tdStyle}>
                           <span style={{
@@ -1271,30 +1364,30 @@ function AimiVaptLogInterpreterPanel({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div style={{
                 padding: '14px 18px', borderRadius: 10,
-                background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.7), rgba(49, 46, 129, 0.4))',
-                border: '1px solid rgba(99, 102, 241, 0.35)',
+                background: 'var(--ai-banner-bg)',
+                border: '1px solid var(--ai-card-border)',
                 display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12,
               }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: '#818cf8', letterSpacing: '0.08em' }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: 'var(--blue)', letterSpacing: '0.08em' }}>
                       AIMI BLUE-TEAM ARCHITECTURAL EVALUATION
                     </span>
                     <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: 'rgba(16,185,129,0.2)', color: '#34d399', fontWeight: 700 }}>
                       VERIFIED OPERATIONAL
                     </span>
                   </div>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#f8fafc', marginTop: 4 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ai-text-header)', marginTop: 4 }}>
                     Multi-Tenant Defensive Matrix (7 Evaluated Areas)
                   </div>
-                  <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 2, maxWidth: 720 }}>
+                  <div style={{ fontSize: 12, color: 'var(--ai-text-desc)', marginTop: 2, maxWidth: 720 }}>
                     Reconciles AIMI's cognitive tools with SITA's four-tier delegated tenancy. Preserves deterministic normalisation and auditing while harnessing external threat intelligence and automated rule authoring.
                   </div>
                 </div>
               </div>
 
               {/* Scorecard Table */}
-              <div style={{ overflowX: 'auto', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10 }}>
+              <div style={{ overflowX: 'auto', border: '1px solid var(--ai-table-border)', borderRadius: 10 }}>
                 <table style={tableStyle}>
                   <thead>
                     <tr>
@@ -1387,8 +1480,8 @@ function AimiVaptLogInterpreterPanel({
                       },
                     ].map((row) => (
                       <tr key={row.num}>
-                        <td style={{ ...tdStyle, fontWeight: 700, color: '#818cf8', textAlign: 'center' }}>{row.num}</td>
-                        <td style={{ ...tdStyle, fontWeight: 700, color: '#f8fafc' }}>{row.area}</td>
+                        <td style={{ ...tdStyle, fontWeight: 700, color: 'var(--blue)', textAlign: 'center' }}>{row.num}</td>
+                        <td style={{ ...tdStyle, fontWeight: 700, color: 'var(--text-primary)' }}>{row.area}</td>
                         <td style={{ ...tdStyle, fontSize: 11 }}>
                           <span style={{ color: row.stateColor, fontWeight: 600 }}>• {row.state}</span>
                         </td>
@@ -1412,7 +1505,7 @@ function AimiVaptLogInterpreterPanel({
                               style={{
                                 padding: '4px 10px', borderRadius: 6,
                                 background: 'rgba(99,102,241,0.15)', border: '1px solid rgba(99,102,241,0.3)',
-                                color: '#818cf8', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                                color: 'var(--blue)', fontSize: 11, fontWeight: 700, cursor: 'pointer',
                                 whiteSpace: 'nowrap',
                               }}
                             >
@@ -1430,7 +1523,7 @@ function AimiVaptLogInterpreterPanel({
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
                 <div style={{
                   padding: '12px 16px', borderRadius: 8,
-                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--ai-subcard-bg)', border: '1px solid var(--ai-subcard-border)',
                 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#34d399', marginBottom: 4 }}>
                     🔒 Multi-Tenant Warehouse Boundary
@@ -1442,7 +1535,7 @@ function AimiVaptLogInterpreterPanel({
 
                 <div style={{
                   padding: '12px 16px', borderRadius: 8,
-                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--ai-subcard-bg)', border: '1px solid var(--ai-subcard-border)',
                 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: '#f59e0b', marginBottom: 4 }}>
                     ⚖️ Autonomous Blocking Refusal
@@ -1454,9 +1547,9 @@ function AimiVaptLogInterpreterPanel({
 
                 <div style={{
                   padding: '12px 16px', borderRadius: 8,
-                  background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)',
+                  background: 'var(--ai-subcard-bg)', border: '1px solid var(--ai-subcard-border)',
                 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#818cf8', marginBottom: 4 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--blue)', marginBottom: 4 }}>
                     🛡️ Hermes Review Gate Envelope
                   </div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)', lineHeight: 1.5 }}>
@@ -1478,10 +1571,10 @@ function AimiVaptLogInterpreterPanel({
 const inputStyle: React.CSSProperties = {
   width: '100%',
   padding: '8px 12px',
-  background: 'rgba(255,255,255,0.05)',
-  border: '1px solid rgba(255,255,255,0.12)',
+  background: 'var(--ai-input-bg)',
+  border: '1px solid var(--ai-input-border)',
   borderRadius: 8,
-  color: 'inherit',
+  color: 'var(--ai-input-color)',
   fontSize: 13,
   outline: 'none',
   boxSizing: 'border-box',
@@ -1493,20 +1586,22 @@ const tableStyle: React.CSSProperties = {
 
 const thStyle: React.CSSProperties = {
   textAlign: 'left', padding: '6px 10px',
-  background: 'rgba(255,255,255,0.04)',
+  background: 'var(--ai-table-header)',
   color: 'var(--text-muted)', fontWeight: 700, fontSize: 11,
-  borderBottom: '1px solid rgba(255,255,255,0.08)',
+  borderBottom: '1px solid var(--ai-table-border)',
 };
 
 const tdStyle: React.CSSProperties = {
   padding: '6px 10px',
-  borderBottom: '1px solid rgba(255,255,255,0.04)',
+  borderBottom: '1px solid var(--ai-table-border)',
+  color: 'var(--text-primary)',
 };
 
 const codeStyle: React.CSSProperties = {
   padding: '14px 16px', borderRadius: 8,
-  background: 'rgba(0,0,0,0.3)',
-  border: '1px solid rgba(255,255,255,0.08)',
+  background: 'var(--ai-code-bg)',
+  border: '1px solid var(--ai-card-border)',
+  color: 'var(--text-primary)',
   fontSize: 12, lineHeight: 1.7, overflowX: 'auto',
   fontFamily: 'monospace', whiteSpace: 'pre',
 };
@@ -1595,6 +1690,7 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
 
   // Dropdown View Mode State: Default to 'all' or 'aimi-vapt'
   const [viewMode, setViewMode] = useState<string>(() => searchParams.get('view') || 'all');
+  const [roleModalKey, setRoleModalKey] = useState<string | null>(null);
 
   const handleSelectView = (key: string) => {
     setViewMode(key);
@@ -1617,24 +1713,24 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
         subtitle={cfg.subtitle}
         badge={{ label: 'AI · Active Telemetry', color: '#10b981', bg: 'rgba(16,185,129,0.15)' }}
         consolidatedTag="AppScan DAST/SAST · Imperva WAF · Imperva DAM · API Security"
-        onExplain={() => {}}
-        onLayman={() => {}}
+        onExplain={() => setRoleModalKey(viewMode)}
+        onLayman={() => setRoleModalKey(viewMode)}
       />
 
       {/* ── Operational Dropdown View Controller Bar ── */}
       <div
         style={{
-          background: 'rgba(15, 23, 42, 0.85)',
-          border: '1px solid rgba(99, 102, 241, 0.3)',
+          background: 'var(--ai-card-bg)',
+          border: '1px solid var(--ai-card-border)',
           borderRadius: 14,
           padding: '14px 20px',
-          marginBottom: 20,
+          marginBottom: 16,
           display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: 16,
-          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.35)',
+          boxShadow: 'var(--ai-card-shadow)',
         }}
       >
         <div style={{ flex: '1 1 340px' }}>
@@ -1644,7 +1740,7 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
               display: 'block',
               fontSize: 11,
               fontWeight: 800,
-              color: '#818cf8',
+              color: 'var(--blue)',
               letterSpacing: '0.08em',
               marginBottom: 6,
               textTransform: 'uppercase',
@@ -1661,14 +1757,14 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
                 width: '100%',
                 padding: '10px 16px',
                 borderRadius: 10,
-                background: '#1e293b',
-                color: '#f8fafc',
-                border: '1px solid rgba(99, 102, 241, 0.45)',
+                background: 'var(--ai-input-bg)',
+                color: 'var(--ai-input-color)',
+                border: '1px solid var(--ai-input-border)',
                 fontSize: 14,
                 fontWeight: 700,
                 cursor: 'pointer',
                 outline: 'none',
-                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.25)',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
               }}
             >
               {CAPABILITY_DROPDOWN_OPTIONS.map((opt) => (
@@ -1701,12 +1797,12 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
                   fontSize: 12,
                   fontWeight: 700,
                   border: isSelected
-                    ? '1px solid #6366f1'
-                    : '1px solid rgba(255, 255, 255, 0.08)',
+                    ? '1px solid var(--ai-pill-active-border)'
+                    : '1px solid var(--ai-pill-border)',
                   background: isSelected
-                    ? 'linear-gradient(135deg, #4f46e5, #6366f1)'
-                    : 'rgba(30, 41, 59, 0.6)',
-                  color: isSelected ? '#fff' : '#94a3b8',
+                    ? 'var(--ai-pill-active-bg)'
+                    : 'var(--ai-pill-bg)',
+                  color: isSelected ? 'var(--ai-pill-active-color)' : 'var(--ai-pill-color)',
                   cursor: 'pointer',
                   transition: 'all 0.2s ease',
                   display: 'flex',
@@ -1728,9 +1824,9 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
           style={{
             padding: '16px 20px',
             borderRadius: 12,
-            marginBottom: 20,
-            background: 'linear-gradient(135deg, rgba(30, 27, 75, 0.8), rgba(49, 46, 129, 0.4))',
-            border: '1px solid rgba(99, 102, 241, 0.4)',
+            marginBottom: 14,
+            background: 'var(--ai-banner-bg)',
+            border: '1px solid var(--ai-card-border)',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -1743,37 +1839,65 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
             <span style={{ fontSize: 28 }}>{activeOption.icon}</span>
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11, fontWeight: 800, color: '#818cf8', letterSpacing: '0.08em' }}>
+                <span style={{ fontSize: 11, fontWeight: 800, color: 'var(--blue)', letterSpacing: '0.08em' }}>
                   {activeOption.badge}
                 </span>
-                <span style={{ fontSize: 11, color: '#34d399', fontWeight: 600 }}>• Active Tenanted Log Ingestion</span>
+                <span style={{ fontSize: 11, color: '#10b981', fontWeight: 600 }}>• Active Tenanted Log Ingestion</span>
               </div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#f8fafc' }}>
+              <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ai-text-header)' }}>
                 {activeOption.title}
               </div>
-              <div style={{ fontSize: 12, color: '#cbd5e1', marginTop: 2 }}>
+              <div style={{ fontSize: 12, color: 'var(--ai-text-desc)', marginTop: 2 }}>
                 {activeOption.desc}
               </div>
             </div>
           </div>
 
-          <button
-            onClick={() => handleSelectView('all')}
-            style={{
-              padding: '6px 14px',
-              borderRadius: 8,
-              background: 'rgba(255, 255, 255, 0.08)',
-              border: '1px solid rgba(255, 255, 255, 0.15)',
-              color: '#e2e8f0',
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            ← View All Working Engines
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={() => setRoleModalKey(viewMode)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 8,
+                background: 'var(--blue-dim)',
+                border: '1px solid var(--blue)',
+                color: 'var(--blue)',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 6,
+              }}
+            >
+              <span>📖</span>
+              <span>Role Advantage Guide</span>
+            </button>
+
+            <button
+              onClick={() => handleSelectView('all')}
+              style={{
+                padding: '6px 14px',
+                borderRadius: 8,
+                background: 'var(--surface-2)',
+                border: '1px solid var(--border-dim)',
+                color: 'var(--text-primary)',
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              ← View All Working Engines
+            </button>
+          </div>
         </div>
       )}
+
+      {/* ── Role Advantage Explanation Footlink (Shows to guide user as to what it helps their role with) ── */}
+      <RoleExplanationFootlink
+        viewKey={viewMode}
+        onOpenModal={() => setRoleModalKey(viewMode)}
+      />
 
       {/* ── Dynamically Rendered AI Panels (Operates directly on ingested logs) ── */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
@@ -1812,6 +1936,64 @@ export default function AiIntelPage({ tier = 'dept' }: { tier?: TenancyTier }) {
           <Avp11Panel roles={roles} />
         )}
       </div>
+
+      {/* ── Bottom Explanation Footlink Anchor for Persistent Guidance ── */}
+      <div
+        style={{
+          marginTop: 26,
+          padding: '14px 20px',
+          borderRadius: 12,
+          background: 'var(--ai-card-bg)',
+          border: '1px dashed var(--ai-card-border)',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+          boxShadow: 'var(--ai-card-shadow)',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 20 }}>💡</span>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+              Role-Based Value Guide: {activeOption.title}
+            </div>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>
+              Need clarification on how this cognitive engine empowers your specific SITA role? Click the footlink to read the full layman&apos;s guide and operational comparison.
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setRoleModalKey(viewMode)}
+          style={{
+            padding: '7px 18px',
+            borderRadius: 8,
+            background: 'var(--blue-dim)',
+            border: '1px solid var(--blue)',
+            color: 'var(--blue)',
+            fontSize: 12,
+            fontWeight: 700,
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+          }}
+        >
+          <span>📖</span>
+          <span>Open Full Role Advantage Playbook &rarr;</span>
+        </button>
+      </div>
+
+      {/* ── Interactive Role Advantage & Layman Modal ── */}
+      {roleModalKey && (
+        <RoleExplanationModal
+          guidance={ROLE_GUIDANCE_MAP[roleModalKey] || ROLE_GUIDANCE_MAP.all}
+          open={roleModalKey !== null}
+          onClose={() => setRoleModalKey(null)}
+        />
+      )}
     </div>
   );
 }

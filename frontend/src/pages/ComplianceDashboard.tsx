@@ -15,7 +15,7 @@ import type { TenancyTier } from '../types';
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
   sita: {
     title: 'Compliance & Audit — SITA Command Center',
-    subtitle: 'Overarching · Auditor-General & POPIA statutory oversight across all organs of state and provinces',
+    subtitle: 'Overarching · Auditor-General & POPIA statutory oversight across all National and Provincial Departments (PFMA Organs of State)',
   },
   national: {
     title: 'Compliance & Audit — National Estate',

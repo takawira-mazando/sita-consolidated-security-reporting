@@ -71,6 +71,8 @@ export interface UserPayload {
   branch_ids?: string[];
   province_ids?: string[];
   person_id?: string;
+  identifier_scheme?: string;
+  identifier_value?: string;
   is_active?: boolean;
 }
 
@@ -83,6 +85,37 @@ export interface BranchOption {
   id: string;
   name: string;
   department_id: string;
+}
+
+export interface ExternalHRIdentity {
+  employee_code: string;
+  surname: string;
+  position: string;
+  initials?: string;
+  display_name?: string;
+  email?: string;
+  department_id?: string;
+  branch_id?: string;
+  source_system: string;
+  scheme: string;
+}
+
+export interface ExternalHRSystemsResponse {
+  status: string;
+  popia_data_minimization_policy: {
+    law: string;
+    description: string;
+    retained_fields: string[];
+    excluded_hr_master_data: string[];
+  };
+  systems: Array<{
+    id: string;
+    name: string;
+    authority: string;
+    protocol: string;
+    status: string;
+    retained_fields: string[];
+  }>;
 }
 
 export async function fetchDepartments(): Promise<{ items: DepartmentOption[] }> {
@@ -105,6 +138,44 @@ export async function fetchUsers(): Promise<{ items: AdminUser[]; total: number 
 export async function fetchPersons(q?: string): Promise<{ items: PersonRecord[]; total: number }> {
   const { data } = await adminApi.get('/persons', {
     params: { q, size: 200, employment_status: 'active' },
+  });
+  return data;
+}
+
+export async function fetchExternalHRSystems(): Promise<ExternalHRSystemsResponse> {
+  const { data } = await adminApi.get('/hr/external/systems');
+  return data;
+}
+
+export async function lookupExternalHR(
+  system: 'sita' | 'persal',
+  code?: string,
+  q?: string,
+  departmentId?: string
+): Promise<{ system: string; total: number; items: ExternalHRIdentity[] }> {
+  const { data } = await adminApi.get('/hr/external/lookup', {
+    params: { system, code, q, department_id: departmentId },
+  });
+  return data;
+}
+
+export async function importExternalHR(
+  system: 'sita' | 'persal',
+  employeeCode: string
+): Promise<{
+  status: string;
+  person_id: string;
+  employee_code: string;
+  surname: string;
+  position: string;
+  department_id?: string;
+  branch_id?: string;
+  email?: string;
+  source: string;
+}> {
+  const { data } = await adminApi.post('/hr/external/import', {
+    system,
+    employee_code: employeeCode,
   });
   return data;
 }

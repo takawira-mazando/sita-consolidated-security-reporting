@@ -95,6 +95,12 @@ class Settings(BaseSettings):
     appscan_page_size: int = 200
     appscan_scope: str = "application"
 
+    # External Personnel System APIs (SITA SAP HCM & National Treasury PERSAL)
+    sita_employee_api_url: str = "https://hcm.sita.co.za/api/v1"
+    sita_employee_api_key: str = ""
+    persal_api_url: str = "https://persal.treasury.gov.za/api/v2"
+    persal_api_key: str = ""
+
     db_pool_size: int = 20
     db_max_overflow: int = 40
     db_pool_timeout: int = 30

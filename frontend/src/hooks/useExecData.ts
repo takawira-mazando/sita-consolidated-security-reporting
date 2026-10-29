@@ -46,8 +46,8 @@ export function useExecData() {
     () => fetchAlerts({ size: 50 })
   ));
 
-  const loading = [summary, findings, risks, popia, iso, alerts].some((h) => h.loading);
-  const error = [summary, findings, risks, popia, iso, alerts].find((h) => h.error)?.error || null;
+  const loading = [summary, findings, risks].some((h) => h.loading);
+  const error = [summary, findings, risks, alerts].find((h) => h.error)?.error || null;
 
   const findingsItems = findings.data?.items || [];
   const risksItems = risks.data?.items || [];

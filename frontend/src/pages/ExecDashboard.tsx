@@ -15,23 +15,23 @@ import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string; heatmapHint: string }> = {
   sita: {
-    title: 'Executive Risk Overview — SITA Command Center',
-    subtitle: 'Overarching · Republic-wide consolidated threat posture, all organs of state & AG compliance',
-    heatmapHint: 'transversal whole-estate findings × severity',
+    title: 'Executive Risk Overview — SITA Command Center (Tier 4)',
+    subtitle: 'Overarching · Republic-wide consolidated threat posture across ~173 National & Provincial Departments — Auditor-General & POPIA statutory compliance',
+    heatmapHint: 'transversal whole-estate findings × severity — all departments',
   },
   national: {
-    title: 'Executive Risk Overview — National Estate',
-    subtitle: 'Strategic · Consolidated from 4 OEM sources — estate-wide trendlines & AG compliance',
-    heatmapHint: 'estate-wide findings × severity',
+    title: 'Executive Risk Overview — National Security Estate (Tier 3)',
+    subtitle: 'Strategic · Consolidated telemetry across all National & Provincial Departments — estate-wide trendlines & AG compliance posture',
+    heatmapHint: 'estate-wide findings × severity — all departments',
   },
   dept: {
-    title: 'Executive Risk Overview — Department',
-    subtitle: 'Tactical · Department-scoped risk summary and application heatmap',
-    heatmapHint: 'dept-level findings × severity',
+    title: 'Executive Risk Overview — Department of Home Affairs (Tier 2)',
+    subtitle: 'Tactical · Department of Home Affairs live testbed (AppScan SAST/DAST & Thales DAM) within DHA departmental tenancy',
+    heatmapHint: 'DHA department-level findings × severity',
   },
   branch: {
-    title: 'Executive Risk Overview — Branch',
-    subtitle: 'Granular · Branch KPIs, remediation backlog and local unit risk',
+    title: 'Executive Risk Overview — DHA Operational Branch (Tier 1)',
+    subtitle: 'Granular · DDG Branch KPIs, remediation backlog and local unit risk within branch tenancy',
     heatmapHint: 'branch-level findings × severity',
   },
 };

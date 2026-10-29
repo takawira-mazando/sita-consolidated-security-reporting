@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TAX INVOICE INV-2026-010 | Bantu InfoTech</title>
+<style>
+  @page {
+    size: A4;
+    margin: 12mm 15mm;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', Calibri, Arial, sans-serif;
+    background: #f1f4f8;
+    color: #333333;
+    line-height: 1.45;
+    padding: 25px 0;
+  }
+  .invoice-container {
+    max-width: 960px;
+    margin: 0 auto;
+    background: #ffffff;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .banner {
+    background: #1F2A44;
+    color: #ffffff;
+    padding: 24px 32px;
+    border-bottom: 4px solid #C9A24B;
+  }
+  .banner h1 {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 2px;
+  }
+  .banner .subtitle {
+    color: #C9A24B;
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .banner .inv-meta {
+    font-size: 14px;
+    font-weight: 600;
+    color: #FFFFFF;
+    margin-bottom: 4px;
+  }
+  .banner .period {
+    font-size: 12px;
+    color: #D9D2BE;
+  }
+  
+  .party-section {
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 32px;
+    background: #FAFAFC;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .party-col {
+    width: 48%;
+  }
+  .party-tag {
+    font-size: 11px;
+    font-weight: 700;
+    color: #C9A24B;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+  }
+  .party-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: #16203A;
+    margin-bottom: 3px;
+  }
+  .party-details {
+    font-size: 12px;
+    color: #4A5568;
+    line-height: 1.5;
+  }
+  
+  .project-box {
+    margin: 20px 32px;
+    padding: 14px 18px;
+    background: #F8FAFC;
+    border-left: 4px solid #1F2A44;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #333333;
+  }
+  .project-box strong {
+    color: #16203A;
+  }
+  
+  .deliverables-wrapper {
+    padding: 0 32px;
+  }
+  .part-block {
+    margin-bottom: 22px;
+  }
+  .part-header {
+    background: #1F2A44;
+    color: #ffffff;
+    padding: 8px 14px;
+    border-radius: 4px 4px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+  }
+  .part-badge {
+    background: #C9A24B;
+    color: #16203A;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-weight: 800;
+  }
+  
+  .deliv-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .deliv-table th {
+    background: #F2F2F2;
+    color: #16203A;
+    text-align: left;
+    padding: 7px 12px;
+    font-weight: 700;
+    font-size: 11px;
+    border: 1px solid #E2E8F0;
+  }
+  .deliv-table td {
+    padding: 9px 12px;
+    border: 1px solid #E2E8F0;
+    vertical-align: top;
+  }
+  .col-num {
+    text-align: center;
+    font-weight: 700;
+    color: #1F2A44;
+  }
+  .col-hrs {
+    text-align: center;
+    font-weight: 700;
+    color: #1F2A44;
+  }
+  .deliv-title {
+    font-weight: 700;
+    color: #16203A;
+    margin-bottom: 5px;
+    font-size: 12.5px;
+  }
+  .bullet-list {
+    margin-left: 18px;
+    color: #4A5568;
+    font-size: 11.5px;
+  }
+  .bullet-list li {
+    margin-bottom: 3px;
+  }
+  .subtotal-row td {
+    background: #F8FAFC;
+    font-weight: 700;
+    color: #16203A;
+  }
+  
+  .summary-section {
+    margin: 25px 32px;
+  }
+  .summary-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #16203A;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+  }
+  .summary-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  .summary-table th {
+    background: #1F2A44;
+    color: #ffffff;
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  .summary-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #E2E8F0;
+  }
+  .total-row td {
+    background: #F8FAFC;
+    font-size: 13px;
+    font-weight: 800;
+    color: #16203A;
+    border-top: 2px solid #1F2A44;
+  }
+  
+  .banking-box {
+    margin: 20px 32px 30px 32px;
+    padding: 16px 20px;
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+  .banking-tag {
+    font-weight: 700;
+    color: #C9A24B;
+    margin-bottom: 6px;
+    font-size: 11px;
+    letter-spacing: 0.5px;
+  }
+  
+  .footer {
+    text-align: center;
+    padding: 16px 32px;
+    background: #F1F4F8;
+    font-size: 11px;
+    color: #64748B;
+    border-top: 1px solid #E2E8F0;
+  }
+</style>
+</head>
+<body>
+<div class="invoice-container">
+  
+  <!-- BANNER -->
+  <div class="banner">
+    <h1>BANTU INFOTECH</h1>
+    <div class="subtitle">(B.iT)</div>
+    <div class="inv-meta">INV-2026-010 &nbsp;•&nbsp; SITA Security Platform & FMCG Ingestion Data Lake Backend Architecture</div>
+    <div class="period">Period: 23 September 2026 – 22 October 2026 &nbsp;|&nbsp; Date: 22 October 2026</div>
+  </div>
+
+  <!-- PARTIES -->
+  <div class="party-section">
+    <div class="party-col">
+      <div class="party-tag">PREPARED BY</div>
+      <div class="party-name">Takawira Mazando</div>
+      <div class="party-details">
+        Senior Full Stack Software Developer<br>
+        Bantu InfoTech (B.iT)<br>
+        Phone: 0672 319 200<br>
+        Email: takawira.mazando@entailabs.com
+      </div>
+    </div>
+    <div class="party-col">
+      <div class="party-tag">CLIENT</div>
+      <div class="party-name">Hosi Technologies (Pty) Ltd</div>
+      <div class="party-details">
+        Attn: Koketso Molelemane (Human Capital Manager)<br>
+        Email: Koketso@hosi.co.za<br>
+        Registration: 2010/015030/07<br>
+        Hosi Academy LMS Division<br>
+        Block A, 2nd Floor, The Pivot, Fourways, Johannesburg
+      </div>
+    </div>
+  </div>
+
+  <!-- PROJECT CONTEXT -->
+  <div class="project-box">
+    <strong>Project:</strong> SITA Security Intelligence Platform (Addendum B, AppScan SAST/DAST Remediation, AIMI AI Layer) & FMCG Enterprise Ingestion, Data Lake & Predictive Analytics Backend Architecture<br>
+    <strong>Contract:</strong> Monthly Retainer under Independent Contractor Agreement (01 May 2026 – 30 April 2028 per ADD-2026-002)<br>
+    <strong>Period:</strong> 23 September 2026 – 22 October 2026 &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Date:</strong> 22 October 2026 &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Invoice No:</strong> INV-2026-010<br>
+    <strong>Contact:</strong> admin@hosi.co.za &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Monthly Retainer:</strong> R60,000.00
+  </div>
+
+  <!-- DELIVERABLES -->
+  <div class="deliverables-wrapper">
+    
+        <div class="part-block">
+          <div class="part-header">
+            <span class="part-title">PART 1 – FLIGHT PLANNING & ADDENDUM B COMPRESSION (23 SEP – 07 OCT)</span>
+            <span class="part-badge">18 HRS</span>
+          </div>
+          <table class="deliv-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>DELIVERABLE / DESCRIPTION</th>
+                <th style="width: 70px;">HRS</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            <tr>
+              <td class="col-num">1.1</td>
+              <td class="col-desc">
+                <div class="deliv-title">Unified Flight Plan Addendum B & Execution Decomposition</div>
+                <ul class="bullet-list"><li>Re-engineered flight plan compression from 12-day to 9-day execution window (Plan v4)</li><li>Authored HOSI-UNIFIED_FLIGHT_PLAN_ADDENDUM_B_G2_9DAY_COMPRESSION.xlsx decomposing 39 discrete engineering tasks (T01–T39, 14.25 PD)</li><li>Established strict boundary verification: separated prompt authoring from verification, with verifier containment test assertions</li><li>Authored scratch/build_9day_addendum.py (1,715 lines) validating resource capacity, float, and gate milestones</li></ul>
+              </td>
+              <td class="col-hrs">9</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">1.2</td>
+              <td class="col-desc">
+                <div class="deliv-title">Architecture Decision Records & Evidence Pack Framework</div>
+                <ul class="bullet-list"><li>Authored comprehensive governance suite: docs/AI_INTEGRATION_PLAN_MASTER.md (660 lines) and 01_G2_POC_Plan_2026-10-05_to_2026-10-15.md</li><li>Authored 02_G2_POC_Decision_Papers_D1-D8.md, 05_G2_Agent_Architecture_Assessment.md, and 06_G2_Architecture_Decision_Record.md</li><li>Compiled 08_Evidence_Pack.md (DEL-19): non-interference proof, verification-independence proof, latency budget register, and acceptance checklist</li><li>Implemented cryptographic ECDSA P-256 PKI Attestation Keypair engine (backend/app/security_pki.py) for attestation signing and verification</li></ul>
+              </td>
+              <td class="col-hrs">9</td>
+            </tr>
+            
+              <tr class="subtotal-row">
+                <td colspan="2">Part 1 Subtotal</td>
+                <td class="col-hrs">18</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="part-block">
+          <div class="part-header">
+            <span class="part-title">PART 2 – MULTI-TENANCY HARDENING & GOVERNANCE EVIDENCE (07 – 12 OCT)</span>
+            <span class="part-badge">18 HRS</span>
+          </div>
+          <table class="deliv-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>DELIVERABLE / DESCRIPTION</th>
+                <th style="width: 70px;">HRS</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            <tr>
+              <td class="col-num">2.1</td>
+              <td class="col-desc">
+                <div class="deliv-title">Regulatory Alignment & Security Mapping Matrix</div>
+                <ul class="bullet-list"><li>Authored docs/B3_POPIA_Compliance_Assessment.md and docs/B4_POPIA_Remediation_Plan.md establishing zero-log PII guardrails</li><li>Formulated compliance traceability documentation: C1_Requirements_Traceability_Matrix.md, C2_Framework_Security_Mapping.md, and C3_CISO_Four_Tier_Role_Mapping.md</li><li>Authored C4_Customer_Outcomes_Persona_Matrix.md, A1_Automated_Test_Report_Pack.md, and A2_Master_Test_Registry.md (2,347 lines) mapping 150+ automated test verifications</li><li>Developed scripts/export_master_registry.py with defusedxml and canonical path validation</li></ul>
+              </td>
+              <td class="col-hrs">10</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">2.2</td>
+              <td class="col-desc">
+                <div class="deliv-title">Infrastructure Hardening & Reverse Proxy Modernization</div>
+                <ul class="bullet-list"><li>Replaced generic Nginx config with hardened infrastructure/nginx/sita-http.conf</li><li>Pinned Nginx upstream frontend port to 8080 and exposed secured backend API on port 8000 in docker-compose.remote.yml</li><li>Implemented server token suppression, HR-backed user provisioning enforcement, and configurable environment controls (SEED_DEMO_USERS_ENABLED, PII_ENCRYPTION_KEY)</li></ul>
+              </td>
+              <td class="col-hrs">8</td>
+            </tr>
+            
+              <tr class="subtotal-row">
+                <td colspan="2">Part 2 Subtotal</td>
+                <td class="col-hrs">18</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="part-block">
+          <div class="part-header">
+            <span class="part-title">PART 3 – FMCG DISTRIBUTED DATA LAKE & INGESTION BACKEND ARCHITECTURE (07 – 13 OCT)</span>
+            <span class="part-badge">22 HRS</span>
+          </div>
+          <table class="deliv-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>DELIVERABLE / DESCRIPTION</th>
+                <th style="width: 70px;">HRS</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            <tr>
+              <td class="col-num">3.1</td>
+              <td class="col-desc">
+                <div class="deliv-title">High-Throughput Streaming Ingestion Pipeline & Enterprise Reliability</div>
+                <ul class="bullet-list"><li>Architected asynchronous ingestion pipeline (app/ingestion/fmgc_pipeline.py) streaming 12,500+ ERP order records from raw multi-sheet workbooks into PostgreSQL lake</li><li>Engineered enterprise fault-tolerance: Three-state Circuit Breaker (circuit_breaker.py), Token-Bucket rate limiter (token_bucket.py), and Exponential Backoff Retry engine (retry.py)</li><li>Implemented Dead-Letter Queue (dlq.py) isolating invalid/malformed records into staging.rejected_records with failure payloads and ingestion audit trails</li><li>Developed dual-bus event architecture supporting Redis Streams (STREAM_FMGC_RAW) with zero-config local memory bus fallback (local_bus.py)</li></ul>
+              </td>
+              <td class="col-hrs">11</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">3.2</td>
+              <td class="col-desc">
+                <div class="deliv-title">PostgreSQL Lake Engine, Normalisation Rules & Predictive Analytics Models</div>
+                <ul class="bullet-list"><li>Designed multi-schema Postgres lake (fmgc, staging, warehouse) with chunked transactional upsert engine (fmgc_writer.py, 500-record batches)</li><li>Built declarative normalisation engine (fmgc_normaliser.py, field_mapper_fmgc.yaml) handling Excel sentinel dates (1900-01-01 to NaT), whitespace trimming, and net/gross lost value logic</li><li>Developed predictive analytics suite (predictive.py): Logistic Regression delay-risk classifier (ROC/PR tuned), Random Forest delivery ageing regressor with multi-horizon SLA breach probabilities (7/14/30/45 days), and additive Holt-Winters intake demand forecaster</li><li>Built high-performance FastAPI service (:13000, /api/v1/fmgc/*) with dual-TTL fingerprint-keyed memory cache (cache.py) and automated executive HTML report generation (reports.py)</li></ul>
+              </td>
+              <td class="col-hrs">11</td>
+            </tr>
+            
+              <tr class="subtotal-row">
+                <td colspan="2">Part 3 Subtotal</td>
+                <td class="col-hrs">22</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="part-block">
+          <div class="part-header">
+            <span class="part-title">PART 4 – HCL APPSCAN DAST & SAST VULNERABILITY REMEDIATION (12 – 14 OCT)</span>
+            <span class="part-badge">22 HRS</span>
+          </div>
+          <table class="deliv-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>DELIVERABLE / DESCRIPTION</th>
+                <th style="width: 70px;">HRS</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            <tr>
+              <td class="col-num">4.1</td>
+              <td class="col-desc">
+                <div class="deliv-title">HCL AppScan DAST Dynamic Vulnerability Remediation & Proxy Hardening</div>
+                <ul class="bullet-list"><li>Remediated HCL AppScan DAST assessment findings across production target (Oct 13-14 cycles)</li><li>Enforced strict algorithm verification in JWT decoding, explicitly rejecting alg: none exploits</li><li>Implemented mass assignment guards preventing privilege escalation and per-tenant/per-IP rate limiting middleware</li><li>Upgraded Nginx to 1.27.4-alpine (resolving CVE-2025-23419), purged unsafe-inline/unsafe-eval from CSP, and remediated BFLA (CWE-284) on metrics endpoints</li><li>Authored docs/SITA_DAST_VAPT_Report_Oct2026.docx and docs/SITA_VAPT_Remediation_Report_Oct2026.docx</li></ul>
+              </td>
+              <td class="col-hrs">11</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">4.2</td>
+              <td class="col-desc">
+                <div class="deliv-title">SAST Static Code Remediation & DefusedXML/Cryptography Hardening (49 Findings)</div>
+                <ul class="bullet-list"><li>Resolved 49 HCL AppScan SAST static security findings across backend codebase</li><li>Upgraded alert deduplication hashing from MD5 to collision-resistant SHA-256 (alert_dedup.py) and adopted secrets.SystemRandom for backoff jitter (CWE-327)</li><li>Hardened backend Dockerfile: pinned python:3.12.7-slim, established non-root appuser:appgroup (CWE-266), dropped root capabilities, and enforced read-only root filesystems</li><li>Mitigated XML External Entity (XXE, CWE-91) via defusedxml, eliminated Path Traversal (CWE-73) via canonical Path.resolve(), and purged hardcoded credential heuristics</li><li>Authored docs/SITA_SAST_Remediation_Report.docx, docs/SAST_REMEDIATION_REPORT.md, and docs/SITA_SAST_Comparative_Analysis_Report_Oct2026.docx</li></ul>
+              </td>
+              <td class="col-hrs">11</td>
+            </tr>
+            
+              <tr class="subtotal-row">
+                <td colspan="2">Part 4 Subtotal</td>
+                <td class="col-hrs">22</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="part-block">
+          <div class="part-header">
+            <span class="part-title">PART 5 – AIMI AI INTELLIGENCE & 5 AVP ENDPOINTS (14 – 15 OCT)</span>
+            <span class="part-badge">24 HRS</span>
+          </div>
+          <table class="deliv-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>DELIVERABLE / DESCRIPTION</th>
+                <th style="width: 70px;">HRS</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            <tr>
+              <td class="col-num">5.1</td>
+              <td class="col-desc">
+                <div class="deliv-title">AIMI VAPT Log Intelligence Engine</div>
+                <ul class="bullet-list"><li>Architected and built backend/app/processing/intel/vapt.py: automated log intelligence parser performing severity clustering, pattern extraction, and threat narrative generation</li><li>Implemented end-to-end unit test suite (backend/tests/test_vapt_log_intel.py) covering 8 deterministic scenarios</li><li>Built frontend API client (frontend/src/api/intel.ts) and interactive UI panel AimiVaptLogInterpreterPanel within frontend/src/pages/AiIntelPage.tsx</li><li>Gated endpoints POST /intel/vapt/interpret-logs and GET /intel/vapt/baseline-status with tenant and RBAC controls</li></ul>
+              </td>
+              <td class="col-hrs">8</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">5.2</td>
+              <td class="col-desc">
+                <div class="deliv-title">Five Core AI Value Proposition (AVP) Endpoints</div>
+                <ul class="bullet-list"><li>Developed and integrated 5 core AI Value Proposition residual modules (backend/app/processing/intel/):</li><li>AVP-2 (Detection Content): author_rules.py (POST /intel/attack/author-rule) proposing git-diff alert rules without automated merges</li><li>AVP-3 (Threat Enrichment): campaign.py (POST /intel/threat/attribute) extracting ATT&CK/CVE techniques against estate exposure</li><li>AVP-5 (Legal Guidance): popia.py (POST /intel/popia/dossier) generating POPIA Section 22 breach notification evidence packages</li><li>AVP-8 (Causal Analysis): causal.py (POST /intel/risk/causal) hypothesizing root causes and mapping dominant telemetry to ATT&CK</li><li>AVP-11 (Behavioral Auditing): behaviour.py (POST /intel/audit/explain) identifying temporal burst anomalies (RAPID_AUTHORITY_SWEEP, CROSS_SCOPE_PIVOT)</li></ul>
+              </td>
+              <td class="col-hrs">10</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">5.3</td>
+              <td class="col-desc">
+                <div class="deliv-title">Threat Attribution & Advisory Review Boundary Invariants</div>
+                <ul class="bullet-list"><li>Enforced strict architectural safety invariant across all AI intelligence endpoints: advisory_only=True</li><li>Implemented zero automated database writes and mandatory human analyst sign-off workflows</li><li>Validated cross-tenant isolation and strict schema conformance across all five AVP modules</li></ul>
+              </td>
+              <td class="col-hrs">6</td>
+            </tr>
+            
+              <tr class="subtotal-row">
+                <td colspan="2">Part 5 Subtotal</td>
+                <td class="col-hrs">24</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="part-block">
+          <div class="part-header">
+            <span class="part-title">PART 6 – G2 AI REPORT GENERATION ENGINE & COPILOT (15 – 18 OCT)</span>
+            <span class="part-badge">18 HRS</span>
+          </div>
+          <table class="deliv-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>DELIVERABLE / DESCRIPTION</th>
+                <th style="width: 70px;">HRS</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            <tr>
+              <td class="col-num">6.1</td>
+              <td class="col-desc">
+                <div class="deliv-title">G2 Two-Gate Verification Engine</div>
+                <ul class="bullet-list"><li>Built G2 report generation architecture (backend/app/ai/):</li><li>Gate 1 (Pre-generation Scope Filter): strict tenancy validation and role permission enforcement (backend/app/ai/scope.py, permissions.py)</li><li>Gate 2 (Post-generation Containment Verifier): automated assertion engine verifying zero hallucination and tenant boundary compliance (backend/app/ai/verify.py)</li><li>Developed context assembly pipeline (backend/app/ai/context.py) binding AI models directly to ingested tenant telemetry logs</li><li>Exposed secured POST /api/v1/reports-ai endpoint with full unit test coverage (backend/tests/test_reports_ai.py)</li></ul>
+              </td>
+              <td class="col-hrs">10</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">6.2</td>
+              <td class="col-desc">
+                <div class="deliv-title">Frontend Interactive Grounded Copilot & Report Studio</div>
+                <ul class="bullet-list"><li>Developed frontend/src/components/ai/AiReportStudio.tsx (1,021 lines): interactive studio featuring streaming report preview, tenant selection, two-gate status indicators, and export actions</li><li>Built frontend/src/api/reportsAi.ts typed client and role-aware navigation integration</li></ul>
+              </td>
+              <td class="col-hrs">8</td>
+            </tr>
+            
+              <tr class="subtotal-row">
+                <td colspan="2">Part 6 Subtotal</td>
+                <td class="col-hrs">18</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="part-block">
+          <div class="part-header">
+            <span class="part-title">PART 7 – AIMI MULTI-PROVIDER GATEWAY & DBSEC AI ENGINE (19 – 21 OCT)</span>
+            <span class="part-badge">22 HRS</span>
+          </div>
+          <table class="deliv-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>DELIVERABLE / DESCRIPTION</th>
+                <th style="width: 70px;">HRS</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            <tr>
+              <td class="col-num">7.1</td>
+              <td class="col-desc">
+                <div class="deliv-title">AIMI Multi-Provider Gateway Abstraction</div>
+                <ul class="bullet-list"><li>Implemented multi-provider abstraction gateway (backend/app/ai/aimi/gateway.py, 375 lines) supporting Ollama, OpenAI, and Anthropic backends with automatic failover</li><li>Authored unit test suite backend/tests/test_aimi_integration.py (425 lines) verifying deterministic provider routing and error recovery</li></ul>
+              </td>
+              <td class="col-hrs">6</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">7.2</td>
+              <td class="col-desc">
+                <div class="deliv-title">Real-time Contextual Enrichment & POPIA Zero-Log Sanitizer</div>
+                <ul class="bullet-list"><li>Built real-time contextual enrichment engine (enrichment.py, 245 lines) augmenting threat prompts with localized tenant telemetry</li><li>Implemented POPIA zero-log PII redaction sanitizer (redaction.py, 145 lines) scrubbing RSA ID numbers, phone numbers, and employee credentials before external inference</li></ul>
+              </td>
+              <td class="col-hrs">5</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">7.3</td>
+              <td class="col-desc">
+                <div class="deliv-title">Database Security (DbSec) AI Alerts Engine & React UI</div>
+                <ul class="bullet-list"><li>Implemented database security anomaly detection engine (backend/app/processing/intel/dbsec.py, 555 lines) detecting exfiltration, privilege abuse, and anomalous queries</li><li>Authored test suite backend/tests/test_dbsec_ai_alerts.py (265 lines)</li><li>Developed frontend DbSecAiAlertsPanel.tsx and React hook useDbSecAiAlerts.ts</li></ul>
+              </td>
+              <td class="col-hrs">6</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">7.4</td>
+              <td class="col-desc">
+                <div class="deliv-title">Stakeholder Value Documentation & OpenAPI 3.1 Technical Artefacts</div>
+                <ul class="bullet-list"><li>Generated executive value reports: generate_aimi_stakeholder_report.py -> docs/SITA_AIMI_AI_Integration_Business_Value_Proposition.docx, generate_security_progress_report.py -> docs/SITA_Security_Assessment_Progress_Report_Oct2026.docx, generate_truth_remediation_report.py -> docs/SITA_Security_Remediation_Executive_Truth_Report_Oct2026.docx</li><li>Compiled complete OpenAPI 3.1 specifications (openapi.json, openapi.yaml) and ingestion documentation (INGESTION_PIPELINE_EXPLAINED.md)</li></ul>
+              </td>
+              <td class="col-hrs">5</td>
+            </tr>
+            
+              <tr class="subtotal-row">
+                <td colspan="2">Part 7 Subtotal</td>
+                <td class="col-hrs">22</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="part-block">
+          <div class="part-header">
+            <span class="part-title">PART 8 – C4 ARCHITECTURE VIEWER, DECKS & EXECUTIVE BRIEFS (21 – 22 OCT)</span>
+            <span class="part-badge">16 HRS</span>
+          </div>
+          <table class="deliv-table">
+            <thead>
+              <tr>
+                <th style="width: 50px;">#</th>
+                <th>DELIVERABLE / DESCRIPTION</th>
+                <th style="width: 70px;">HRS</th>
+              </tr>
+            </thead>
+            <tbody>
+              
+            <tr>
+              <td class="col-num">8.1</td>
+              <td class="col-desc">
+                <div class="deliv-title">Interactive C4 Architecture Viewer & Handover Decks</div>
+                <ul class="bullet-list"><li>Enhanced interactive architecture viewer (architecture.html, 2,116 lines) incorporating comprehensive AI integration layers, inspection modals, and zero-log markers</li><li>Updated handover_presentation.html and presentation.html incorporating 4-layer AI control model, live demo flows, and granular RBAC-within-tenancy matrix</li></ul>
+              </td>
+              <td class="col-hrs">8</td>
+            </tr>
+            
+            <tr>
+              <td class="col-num">8.2</td>
+              <td class="col-desc">
+                <div class="deliv-title">Executive Briefs Generation, UI Polish & Remote Deploy Automation</div>
+                <ul class="bullet-list"><li>Developed scripts/create_executive_brief_docx.py generating reports/SITA_Security_Remediation_Executive_Brief.docx and reports/SITA_AI_Role_Advantage_Executive_Brief.docx</li><li>Polished homepage UI (frontend/src/pages/HomePage.tsx, home.css) with clean role navigation and status badges</li><li>Finalized automated remote deployment scripts (scripts/deploy_remote.py and infrastructure/scripts/deploy.sh)</li></ul>
+              </td>
+              <td class="col-hrs">8</td>
+            </tr>
+            
+              <tr class="subtotal-row">
+                <td colspan="2">Part 8 Subtotal</td>
+                <td class="col-hrs">16</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="summary-section">
+    <div class="summary-title">INVOICE SUMMARY</div>
+    <table class="summary-table">
+      <thead>
+        <tr>
+          <th>DELIVERABLE SUMMARY</th>
+          <th style="width: 120px; text-align: right;">HOURS</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td>PART 1 – FLIGHT PLANNING & ADDENDUM B COMPRESSION (23 SEP – 07 OCT)</td>
+          <td style="text-align: right; font-weight: bold; color: #1f2a44;">18 hrs</td>
+        </tr>
+        
+        <tr>
+          <td>PART 2 – MULTI-TENANCY HARDENING & GOVERNANCE EVIDENCE (07 – 12 OCT)</td>
+          <td style="text-align: right; font-weight: bold; color: #1f2a44;">18 hrs</td>
+        </tr>
+        
+        <tr>
+          <td>PART 3 – FMCG DISTRIBUTED DATA LAKE & INGESTION BACKEND ARCHITECTURE (07 – 13 OCT)</td>
+          <td style="text-align: right; font-weight: bold; color: #1f2a44;">22 hrs</td>
+        </tr>
+        
+        <tr>
+          <td>PART 4 – HCL APPSCAN DAST & SAST VULNERABILITY REMEDIATION (12 – 14 OCT)</td>
+          <td style="text-align: right; font-weight: bold; color: #1f2a44;">22 hrs</td>
+        </tr>
+        
+        <tr>
+          <td>PART 5 – AIMI AI INTELLIGENCE & 5 AVP ENDPOINTS (14 – 15 OCT)</td>
+          <td style="text-align: right; font-weight: bold; color: #1f2a44;">24 hrs</td>
+        </tr>
+        
+        <tr>
+          <td>PART 6 – G2 AI REPORT GENERATION ENGINE & COPILOT (15 – 18 OCT)</td>
+          <td style="text-align: right; font-weight: bold; color: #1f2a44;">18 hrs</td>
+        </tr>
+        
+        <tr>
+          <td>PART 7 – AIMI MULTI-PROVIDER GATEWAY & DBSEC AI ENGINE (19 – 21 OCT)</td>
+          <td style="text-align: right; font-weight: bold; color: #1f2a44;">22 hrs</td>
+        </tr>
+        
+        <tr>
+          <td>PART 8 – C4 ARCHITECTURE VIEWER, DECKS & EXECUTIVE BRIEFS (21 – 22 OCT)</td>
+          <td style="text-align: right; font-weight: bold; color: #1f2a44;">16 hrs</td>
+        </tr>
+        
+        <tr class="total-row">
+          <td>TOTAL HOURS</td>
+          <td style="text-align: right;">160 hrs</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- BANKING DETAILS -->
+  <div class="banking-box">
+    <div class="banking-tag">BANKING DETAILS</div>
+    <strong>Bank:</strong> Bank Zero - Mukuru &nbsp;|&nbsp; <strong>Branch Code:</strong> 435000<br>
+    <strong>Account Number:</strong> 70030185715<br>
+    <strong>Account Holder:</strong> Bantu InfoTech (Pty) Ltd<br>
+    <strong>Registration No:</strong> 2025/228003/07 &nbsp;|&nbsp; <strong>Tax No:</strong> 9637019200<br>
+    <strong>Covered under:</strong> Monthly Retainer INV-2026-010 &nbsp;<strong>(R60,000.00)</strong>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    Bantu InfoTech (B.iT) • Pretoria, Gauteng<br>
+    SITA Platform Delivery, FMCG Data Lake Backend Architecture & AIMI AI Integration • October 2026
+  </div>
+
+</div>
+</body>
+</html>
