@@ -13,15 +13,15 @@ import type { Tone } from '../data/mappers';
 export function useComplianceData() {
   const popia = useApi(useDemoAwareFetcher(
     () => fetchCompliance('popia'),
-    (branchId) => fetchDemoCompliance(branchId)
+    () => fetchDemoCompliance()
   ));
   const iso = useApi(useDemoAwareFetcher(
     () => fetchCompliance('iso_27001'),
-    (branchId) => fetchDemoCompliance(branchId)
+    () => fetchDemoCompliance()
   ));
   const gaps = useApi(useDemoAwareFetcher(
     () => fetchGaps({ sort_by: 'due_date' }),
-    (branchId) => fetchDemoCompliance(branchId)
+    () => fetchDemoCompliance()
   ));
   const evidence = useApi(() => fetchEvidence()); // No demo evidence yet
   const trend = useApi(() => fetchComplianceTrend()); // No demo trend yet

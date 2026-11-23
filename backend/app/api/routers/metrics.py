@@ -247,7 +247,11 @@ async def get_slo_metrics(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("alerts_read")),
 ):
-    rows = (await session.execute(select(SloMetric).order_by(SloMetric.week_start))).scalars().all()
+    query = select(SloMetric).order_by(SloMetric.week_start)
+    slo_scope = tenant_filter(claims, SloMetric)
+    if slo_scope is not None:
+        query = query.where(slo_scope)
+    rows = (await session.execute(query)).scalars().all()
     mttd = [
         {"week": r.week_start.isoformat(), "value_hours": r.value_hours}
         for r in rows if r.metric == "mttd"
@@ -331,7 +335,11 @@ async def get_agents(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("sre", "admin_read")),
 ):
-    rows = (await session.execute(select(Agent).order_by(Agent.name))).scalars().all()
+    query = select(Agent).order_by(Agent.name)
+    scope = tenant_filter(claims, Agent)
+    if scope is not None:
+        query = query.where(scope)
+    rows = (await session.execute(query)).scalars().all()
     items = [
         {
             "id": r.id,
@@ -398,11 +406,11 @@ async def get_compliance_trend(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("compliance")),
 ):
-    rows = (
-        await session.execute(
-            select(ComplianceSnapshot).order_by(ComplianceSnapshot.snapshot_date)
-        )
-    ).scalars().all()
+    query = select(ComplianceSnapshot).order_by(ComplianceSnapshot.snapshot_date)
+    scope = tenant_filter(claims, ComplianceSnapshot)
+    if scope is not None:
+        query = query.where(scope)
+    rows = (await session.execute(query)).scalars().all()
     items = [
         {
             "framework": r.framework,
@@ -421,14 +429,16 @@ async def get_regulatory_calendar(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("compliance")),
 ):
-    rows = (
-        await session.execute(
-            select(ComplianceGap)
-            .where(ComplianceGap.status.notin_(["closed", "remediated"]))
-            .order_by(ComplianceGap.due_date.asc())
-            .limit(12)
-        )
-    ).scalars().all()
+    query = (
+        select(ComplianceGap)
+        .where(ComplianceGap.status.notin_(["closed", "remediated"]))
+        .order_by(ComplianceGap.due_date.asc())
+        .limit(12)
+    )
+    scope = tenant_filter(claims, ComplianceGap)
+    if scope is not None:
+        query = query.where(scope)
+    rows = (await session.execute(query)).scalars().all()
     items = [
         {
             "id": r.id,

@@ -18,7 +18,7 @@ import type { Tone } from '../data/mappers';
 export function useDbSecData() {
   const findings = useApi(useDemoAwareFetcher(
     () => fetchFindings({ size: 200 }),
-    (branchId) => fetchDemoFindings({ size: 200, branch_id: branchId })
+    () => fetchDemoFindings({ size: 200 })
   ));
   const alerts = useApi(() => fetchAlerts({ size: 50 })); // No demo alerts
   const inventory = useApi(() => fetchDbInventory()); // No demo inventory

@@ -3,7 +3,7 @@ import { fetchNarrativeFacts } from '../api/meta';
 import type { NarrativeFacts } from '../types';
 
 /**
- * Platform model constants (risk weights, band thresholds, estate counts,
+ * Platform model constants (risk weights, band thresholds,
  * framework applicability) used by the dashboard narrative.
  *
  * These are deliberately fetched from the API rather than imported: the values

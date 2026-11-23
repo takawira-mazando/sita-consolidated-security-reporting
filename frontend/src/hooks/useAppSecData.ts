@@ -16,19 +16,19 @@ import type { Tone } from '../data/mappers';
 export function useAppSecData() {
   const findings = useApi(useDemoAwareFetcher(
     () => fetchFindings({ size: 200 }),
-    (branchId) => fetchDemoFindings({ size: 200, branch_id: branchId })
+    () => fetchDemoFindings({ size: 200 })
   ));
   const fix = useApi(useDemoAwareFetcher(
     () => fetchFixRate(),
-    (branchId) => fetchDemoFixRate(branchId)
+    () => fetchDemoFixRate()
   ));
   const waf = useApi(useDemoAwareFetcher(
     () => fetchWafSummary(),
-    (branchId) => fetchDemoWafSummary(branchId)
+    () => fetchDemoWafSummary()
   ));
   const apiExp = useApi(useDemoAwareFetcher(
     () => fetchApiExposure(),
-    (branchId) => fetchDemoApiExposure(branchId)
+    () => fetchDemoApiExposure()
   ));
   const owaspPosture = useApi(() => fetchOwaspPosture());
 

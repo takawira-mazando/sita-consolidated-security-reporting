@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import require_roles
+from app.api.auth import require_roles, tenant_filter
 from app.db import get_session
 from app.models.compliance import ComplianceGap, ComplianceSnapshot
 from app.monitoring.egress import open_findings
@@ -26,6 +26,9 @@ async def get_compliance(
     claims = Depends(require_roles("compliance")),
 ):
     q = select(ComplianceSnapshot)
+    scope = tenant_filter(claims, ComplianceSnapshot)
+    if scope is not None:
+        q = q.where(scope)
     if framework:
         q = q.where(ComplianceSnapshot.framework == framework)
     q = q.order_by(ComplianceSnapshot.snapshot_date.desc())
@@ -51,6 +54,9 @@ async def get_compliance_gaps(
     claims = Depends(require_roles("compliance")),
 ):
     q = select(ComplianceGap)
+    scope = tenant_filter(claims, ComplianceGap)
+    if scope is not None:
+        q = q.where(scope)
     if framework:
         q = q.where(ComplianceGap.framework == framework)
     if status:
@@ -84,6 +90,9 @@ async def get_evidence(
     claims = Depends(require_roles("compliance")),
 ):
     q = select(ComplianceGap)
+    scope = tenant_filter(claims, ComplianceGap)
+    if scope is not None:
+        q = q.where(scope)
     if gap_id:
         q = q.where(ComplianceGap.id == gap_id)
     rows = (await session.execute(q)).scalars().all()

@@ -151,6 +151,18 @@ TRANSFER_REGISTER: dict[str, EgressDestination] = {
               "internal address, not an end user, so ECT Act direct-marketing "
               "provisions are not engaged.",
     ),
+    "client_superadmin_invite_smtp": EgressDestination(
+        id="client_superadmin_invite_smtp",
+        host="config-supplied",
+        direction="push",
+        jurisdiction="deployment-dependent",
+        data_classes=("recipient email", "one-time account setup token", "client organization name"),
+        purpose="Deliver a verified client employee's superadmin account setup link",
+        transfer_mechanism="deployment-dependent",
+        authorised=False,
+        module="app.services.client_superadmin_invite",
+        notes="Use an approved in-country SMTP relay for client identity invitations.",
+    ),
     "aimi": EgressDestination(
         id="aimi",
         host="aimiafrica.cloud",

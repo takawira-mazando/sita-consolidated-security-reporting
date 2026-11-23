@@ -109,11 +109,11 @@ SELECT cron.schedule('retire-waf-blocks', '0 4 * * *',
 --
 -- Scope note: the platform does not absorb employee identity numbers as a
 -- matter of course (measured 2026-10-09: 22 of 2,451 rows carry an id_number,
--- the rest NULL) and no account originates from a person record. Employee and
--- role data originates in the government HR systems. This job therefore
+-- the rest NULL). Account provisioning links only LDAP-verified person records.
+-- This job therefore
 -- targets the attributes that ARE populated estate-wide -- name, email, work
 -- phone, location, clearance -- with identity number blanked defensively in
--- case a future HR feed supplies one, since the sync path copies it verbatim.
+-- case a directory entry supplies one.
 --
 -- Deliberately NOT a hard delete on the first pass: the row is blanked of all
 -- identifying content and retained as a stub so that historical audit records

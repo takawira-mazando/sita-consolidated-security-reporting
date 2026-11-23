@@ -17,9 +17,11 @@ from app.ai.permissions import can_access_report, get_available_reports
 from app.ai.scope import compute_scope_hash, resolve_report_scope
 from app.ai.verify import verify_numeral_fidelity
 from app.api.auth import JWTClaims
+from app.api.routers.reports_ai import _active_workspace_report_scope
 from app.config import settings
 from app.db import get_session
 from app.main import app
+from app.models.finding import Finding
 
 
 def create_token(email: str, roles: list[str], depts: list[str] | None = None) -> str:
@@ -44,12 +46,12 @@ def exec_token():
 
 @pytest.fixture
 def soc_token():
-    return create_token("soc@example.com", ["soc"], ["home-affairs-digital"])
+    return create_token("soc@example.com", ["soc"], ["treasury"])
 
 
 @pytest.fixture
 def appsec_token():
-    return create_token("appsec@example.com", ["appsec"], ["home-affairs-digital"])
+    return create_token("appsec@example.com", ["appsec"], ["treasury"])
 
 
 @pytest.fixture
@@ -114,23 +116,85 @@ def test_get_available_reports_filtering():
 
 def test_gate_2_scope_hash_isolation():
     """Verify scope_hash determinism and cross-tenant separation."""
-    hash_dha = compute_scope_hash(["home-affairs-digital"], [], [], False)
-    hash_treasury = compute_scope_hash(["treasury"], [], [], False)
-    hash_nationwide = compute_scope_hash([], [], [], True)
+    hash_tenant = compute_scope_hash(["workspace-a"], ["unit-a"], ["division"], False)
+    hash_other_tenant = compute_scope_hash(["workspace-b"], ["unit-a"], ["division"], False)
+    hash_platform = compute_scope_hash([], [], [], True)
 
-    assert len(hash_dha) == 64
-    assert hash_dha != hash_treasury
-    assert hash_dha != hash_nationwide
+    assert len(hash_tenant) == 64
+    assert hash_tenant != hash_other_tenant
+    assert hash_tenant != hash_platform
 
     # Determinism: identical scopes yield identical hashes
-    assert hash_dha == compute_scope_hash(["home-affairs-digital"], [], [], False)
-
-    # Resolution from claims
-    claims = JWTClaims(roles=["soc"], department_ids=["home-affairs-digital"])
+    assert hash_tenant == compute_scope_hash(["workspace-a"], ["unit-a"], ["division"], False)
+    claims = JWTClaims(
+        roles=["soc"],
+        tenant_workspace_ids=["workspace-a"],
+        tenant_scope_unit_ids=["unit-a"],
+        active_tenant_workspace_id="workspace-a",
+        active_tenant_scope_level_keys=["division"],
+    )
     scope = resolve_report_scope(claims)
-    assert scope.scope_hash == hash_dha
-    assert "home-affairs-digital" in scope.department_ids
-    assert scope.is_nationwide is False
+    assert scope.scope_hash == hash_tenant
+    assert "unit-a" in scope.tenant_scope_unit_ids
+    assert scope.is_platform_scope is False
+
+
+def test_tenant_report_scope_isolated_by_workspace_and_tier():
+    claims = JWTClaims(
+        roles=[],
+        tenant_workspace_ids=["workspace-a"],
+        tenant_workspace_access=[
+            {
+                "workspace_id": "workspace-a",
+                "workspace_name": "Tenant A",
+            },
+        ],
+        active_tenant_workspace_id="workspace-a",
+        active_tenant_scope_level_keys=["division", "team"],
+    )
+
+    scope = resolve_report_scope(claims)
+    filter_sql = str(
+        scope.get_filter(Finding).compile(compile_kwargs={"literal_binds": True})
+    )
+    other_scope_hash = compute_scope_hash(
+        ["workspace-b"], [], ["division", "team"], False
+    )
+
+    assert scope.describe() == "Tenant A - division, team"
+    assert "workspace-a" in filter_sql
+    assert "tenant_scope_level_key" in filter_sql
+    assert scope.scope_hash != other_scope_hash
+
+
+def test_tenant_report_authorization_uses_active_workspace_role_scope():
+    claims = JWTClaims(
+        roles=[],
+        tenant_workspace_ids=["workspace-a"],
+        tenant_workspace_access=[
+            {
+                "workspace_id": "workspace-a",
+                "workspace_name": "Tenant A",
+                "cockpit_scopes": {"soc": ["team"]},
+            },
+        ],
+        active_tenant_workspace_id="workspace-a",
+    )
+
+    cockpit_roles, scope_levels = _active_workspace_report_scope(
+        claims, "threat_intel_brief"
+    )
+    scoped_claims = claims.model_copy(
+        update={"active_tenant_scope_level_keys": sorted(scope_levels)}
+    )
+    scope = resolve_report_scope(scoped_claims)
+
+    assert cockpit_roles == {"soc"}
+    assert scope.tenant_workspace_id == "workspace-a"
+    assert scope.tenant_scope_level_keys == ("team",)
+    assert "workspace-a" in str(
+        scope.get_filter(Finding).compile(compile_kwargs={"literal_binds": True})
+    )
 
 
 # -----------------------------------------------------------------------------
@@ -177,7 +241,13 @@ def test_numeral_fidelity_verifier():
 async def test_deterministic_report_generation():
     """Verify fallback template produces complete, verified report envelope without LLM."""
     mock_session = AsyncMock()
-    claims = JWTClaims(roles=["soc"], department_ids=["home-affairs-digital"])
+    claims = JWTClaims(
+        roles=["soc"],
+        tenant_workspace_ids=["workspace-a"],
+        tenant_scope_unit_ids=["unit-a"],
+        active_tenant_workspace_id="workspace-a",
+        active_tenant_scope_level_keys=["division"],
+    )
     scope = resolve_report_scope(claims)
 
     report = await generate_report(mock_session, scope, "threat_intel_brief")

@@ -1,4 +1,4 @@
-"""Endpoint wiring tests for the peer-benchmark and AG export routers."""
+"""Endpoint wiring tests for the peer-benchmark and audit export routers."""
 from __future__ import annotations
 
 from app.api.auth import JWTClaims, verify_token
@@ -195,7 +195,7 @@ def test_ag_export_writes_audit_row_with_hash():
 
 def test_ag_export_province_scope():
     session = _MappingSession()
-    claims = JWTClaims(sub="u1", email="admin@gp.example.com", roles=["province-dept-admin"], province_ids=["gp"])
+    claims = JWTClaims(sub="u1", email="compliance@gp.example.com", roles=["compliance"], province_ids=["gp"])
     client = _make_client(exports_ag.router, session, claims)
     resp = client.post("/api/v1/exports/ag-compliance")
     assert resp.status_code == 200

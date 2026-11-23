@@ -39,6 +39,10 @@ def create_access_token(
     department_ids: list[str] | None = None,
     branch_ids: list[str] | None = None,
     province_ids: list[str] | None = None,
+    tenant_workspace_ids: list[str] | None = None,
+    tenant_scope_unit_ids: list[str] | None = None,
+    tenant_can_manage_members: bool = False,
+    tenant_workspace_access: list[dict] | None = None,
 ) -> str:
     ttl = ttl_seconds or settings.jwt_ttl_seconds
     now = datetime.now(timezone.utc)
@@ -52,6 +56,10 @@ def create_access_token(
         "department_ids": department_ids,
         "branch_ids": branch_ids,
         "province_ids": province_ids,
+        "tenant_workspace_ids": list(tenant_workspace_ids or []),
+        "tenant_scope_unit_ids": list(tenant_scope_unit_ids or []),
+        "tenant_can_manage_members": tenant_can_manage_members,
+        "tenant_workspace_access": list(tenant_workspace_access or []),
         "department_id": department_ids[0] if department_ids else None,
         "iat": now,
         "exp": now + timedelta(seconds=ttl),

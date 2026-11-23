@@ -2,8 +2,6 @@ import api from './client';
 import { useDemoMode } from '../context/DemoContext';
 import { useAuth } from '../hooks/useAuth';
 
-const DEMO_DEPARTMENT_ID = 'home-affairs-digital';
-
 let demoModeEnabled = false;
 
 export function setDemoModeInterceptor(enabled: boolean) {
@@ -30,7 +28,6 @@ export function setupDemoInterceptor() {
     if (method === 'get') {
       const params = config.params || {};
       
-      // Add demo department filter to all relevant endpoints
       if (
         url.includes('/findings') ||
         url.includes('/metrics') ||
@@ -40,11 +37,8 @@ export function setupDemoInterceptor() {
         url.includes('/dashboard') ||
         url.includes('/public/summary')
       ) {
-        // The backend tenant_filter will automatically apply based on user's department_ids
-        // But we can also explicitly pass a filter
         config.params = {
           ...params,
-          department_id: DEMO_DEPARTMENT_ID,
           _demo: 'true',
         };
       }
@@ -83,7 +77,6 @@ export const demoApi = {
     return api.get('/findings', { 
       params: { 
         ...params, 
-        department_id: DEMO_DEPARTMENT_ID,
         _demo: 'true' 
       } 
     });
@@ -91,21 +84,21 @@ export const demoApi = {
   
   async getDemoMetrics() {
     return Promise.all([
-      api.get('/metrics/fix-rate', { params: { department_id: DEMO_DEPARTMENT_ID } }),
-      api.get('/metrics/waf-summary', { params: { department_id: DEMO_DEPARTMENT_ID } }),
-      api.get('/metrics/api-exposure', { params: { department_id: DEMO_DEPARTMENT_ID } }),
+      api.get('/metrics/fix-rate'),
+      api.get('/metrics/waf-summary'),
+      api.get('/metrics/api-exposure'),
     ]);
   },
   
   async getDemoRisks() {
-    return api.get('/risks', { params: { department_id: DEMO_DEPARTMENT_ID } });
+    return api.get('/risks');
   },
   
   async getDemoCompliance() {
-    return api.get('/compliance', { params: { department_id: DEMO_DEPARTMENT_ID } });
+    return api.get('/compliance');
   },
   
   async getDemoPublicSummary() {
-    return api.get('/public/summary', { params: { department_id: DEMO_DEPARTMENT_ID } });
+    return api.get('/public/summary');
   },
 };

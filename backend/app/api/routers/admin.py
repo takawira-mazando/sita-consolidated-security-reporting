@@ -1,12 +1,16 @@
+import asyncio
 import logging
+import re
+import secrets
 from datetime import datetime, timezone
 from math import ceil
-from typing import Any, Mapping
+from typing import Any
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
-from pydantic import BaseModel, Field, model_validator
-from sqlalchemy import func, select, text
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+from sqlalchemy import func, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import employment
@@ -17,21 +21,24 @@ from app.api.auth import (
     require_roles,
     scope_covers,
     tenant_filter,
+    verify_token,
 )
+from app.config import settings
 from app.db import get_session
 from app.employment import (
-    SCHEME_INTERNAL,
-    SCHEME_PERSAL,
-    SCHEME_SAP_PERSONNEL,
+    SCHEME_LDAP,
     IdentifierSchemeError,
-    classify,
 )
-from app.connectors.external_hr import persal_api, sita_employee_api, ExternalHRIdentity
+from app.connectors.ldap_connector import ldap_connector, LDAPConfig, DirectoryUser
+from app.connectors.tenant_ldap_registry import tenant_ldap_registry, TenantLDAPConfig, TierRoleAssignment
+from app.tenant_engine import tenant_registry
+from app.tenant_profiles import get_active_profile, set_active_profile
 from app.ingestion.dlq import DLQManager
 from app.models.connector_status import ConnectorHealth
 from app.models.dlq import RejectedRecord
 from app.models.person import EmploymentIdentifier, Person
 from app.models.user import User
+from app.models.client_organization import ClientOrganization
 from app.monitoring.access_audit import (
     record_access,
     request_context,
@@ -39,6 +46,11 @@ from app.monitoring.access_audit import (
 )
 from app.pii import apply_person_policy
 from app.security import hash_password
+from app.services.client_superadmin_invite import (
+    InvitationEmailConfigurationError,
+    InvitationEmailDeliveryError,
+    send_client_superadmin_credentials,
+)
 from app.tenant import BRANCHES, DEPARTMENTS, PROVINCES
 
 router = APIRouter(tags=["admin"])
@@ -57,7 +69,13 @@ def _mask_id_number(val: str | None) -> str | None:
     return "*" * (len(s) - 4) + s[-4:]
 
 
-def _audit_admin_read(
+async def require_hosi_provider(claims=Depends(verify_token)):
+    if "operator" not in claims.roles:
+        raise HTTPException(status_code=403, detail="Hosi Technologies provider access required")
+    return claims
+
+
+async def _audit_admin_read(
     session: AsyncSession,
     request: Request | None,
     claims: Any,
@@ -75,7 +93,7 @@ def _audit_admin_read(
     branches = list(getattr(claims, "branch_ids", None) or [])
     provinces = list(getattr(claims, "province_ids", None) or [])
     roles = list(getattr(claims, "roles", None) or [])
-    record_access(
+    await record_access(
         session,
         action=action,
         actor=getattr(claims, "email", None) or claims.sub,
@@ -95,7 +113,7 @@ def _audit_admin_read(
     )
 
 
-def _audit_privilege_change(
+async def _audit_privilege_change(
     session: AsyncSession,
     request: Request | None,
     claims: Any,
@@ -114,7 +132,7 @@ def _audit_privilege_change(
     branches = list(getattr(claims, "branch_ids", None) or [])
     provinces = list(getattr(claims, "province_ids", None) or [])
     roles = list(getattr(claims, "roles", None) or [])
-    record_access(
+    await record_access(
         session,
         action=action,
         actor=getattr(claims, "email", None) or claims.sub,
@@ -138,25 +156,21 @@ class UserCreate(BaseModel):
     department_ids: list[str] = Field(default_factory=list)
     branch_ids: list[str] = Field(default_factory=list)
     province_ids: list[str] = Field(default_factory=list)
-    # Accounts can only be provisioned for HR-provisioned employees. There is
+    # Accounts can only be provisioned for directory identities. There is
     # no path to create an external/non-employee user.
     #
-    # Identify the employee either by the internal record key (person_id) or,
-    # preferably, by the scheme-qualified identifier their HR system issued —
-    # `identifier_scheme="persal"` with `identifier_value="80012345"`. The
-    # identifier form is what an administrator actually holds: a PERSAL number
-    # off a payroll record, not a platform UUID. See app/employment.py.
+    # Identify the employee by an existing directory-provisioned person key or
+    # an LDAP directory identifier.
     person_id: str | None = None
     identifier_scheme: str | None = None
     identifier_value: str | None = None
 
     @model_validator(mode="after")
-    def _validate_hr_person(self):
+    def _validate_directory_person(self):
         if not self.person_id and not (self.identifier_scheme and self.identifier_value):
             raise ValueError(
-                "User account must be linked to an authoritative HR identity (SITA Employee System "
-                "or PERSAL) via person_id or scheme-qualified identifier (e.g. identifier_scheme='persal' "
-                "and identifier_value='80012345'). Free-form user creation without external HR linkage is prohibited."
+                "User account must be linked to an existing LDAP directory identity "
+                "using person_id or an LDAP identifier."
             )
         return self
 
@@ -170,34 +184,6 @@ class UserUpdate(BaseModel):
     is_active: bool | None = None
     password: str | None = Field(default=None, min_length=8)
     person_id: str | None = None
-
-
-class HRSyncRecord(BaseModel):
-    #: The originating feed's own reference. Always recorded as an employment
-    #: identifier; classified automatically where the shape is unambiguous.
-    employee_number: str
-    #: National Treasury PERSAL personnel number (8 digits), supplied by a live
-    #: PERSAL feed. Recorded with scheme="persal" and validated on ingest; a
-    #: malformed value is rejected and logged rather than stored.
-    persal_number: str | None = None
-    #: Free-text provenance for the feed this record came from.
-    source_system: str | None = None
-    email: str | None = None
-    id_number: str | None = None
-    title: str | None = None
-    initials: str | None = None
-    surname: str | None = None
-    display_name: str | None = None
-    job_title: str | None = None
-    org_unit: str | None = None
-    department_id: str | None = None
-    branch_id: str | None = None
-    manager_id: str | None = None
-    manager_name: str | None = None
-    work_phone: str | None = None
-    location: str | None = None
-    employment_status: str = "active"
-    clearance_level: str | None = None
 
 
 class UserOut(BaseModel):
@@ -262,10 +248,29 @@ def _to_out(user: User, person: Person | None = None) -> dict:
         "created_at": user.created_at,
         "updated_at": user.updated_at,
     }
+def _active_departments() -> dict[str, str]:
+    profile = get_active_profile()
+    units = profile.get_org_units_by_level(0)
+    merged = dict(DEPARTMENTS)
+    merged.update(units)
+    return merged
+
+
+def _active_branches() -> dict[str, tuple[str, str]]:
+    profile = get_active_profile()
+    branches = {
+        uid: (unit.name, unit.parent_id or "")
+        for uid, unit in profile.org_units.items()
+        if unit.level == 1
+    }
+    merged = dict(BRANCHES)
+    merged.update(branches)
+    return merged
 
 
 def _validate_departments(department_ids: list[str]) -> None:
-    invalid = [d for d in department_ids if d not in DEPARTMENTS]
+    valid = _active_departments()
+    invalid = [d for d in department_ids if d not in valid]
     if invalid:
         raise HTTPException(
             status_code=400,
@@ -274,7 +279,10 @@ def _validate_departments(department_ids: list[str]) -> None:
 
 
 def _validate_provinces(province_ids: list[str]) -> None:
-    invalid = [p for p in province_ids if p not in PROVINCES]
+    profile = get_active_profile()
+    valid_groups = dict(PROVINCES)
+    valid_groups.update(profile.groups)
+    invalid = [p for p in province_ids if p not in valid_groups]
     if invalid:
         raise HTTPException(
             status_code=400,
@@ -283,13 +291,14 @@ def _validate_provinces(province_ids: list[str]) -> None:
 
 
 def _validate_branches(branch_ids: list[str], department_ids: list[str]) -> None:
+    valid_branches = _active_branches()
     for branch in branch_ids:
-        if branch not in BRANCHES:
+        if branch not in valid_branches:
             raise HTTPException(
                 status_code=400,
                 detail="One or more specified branches are invalid",
             )
-        parent = BRANCHES[branch][1]
+        parent = valid_branches[branch][1]
         if parent not in department_ids:
             raise HTTPException(
                 status_code=400,
@@ -305,20 +314,15 @@ def _validate_scope(roles: list[str], department_ids: list[str], branch_ids: lis
         raise HTTPException(
             status_code=400,
             detail=(
-                "Department-scoped roles (soc/appsec/dbsec/dept-admin/branch-admin/"
-                "province-soc-lead/province-dept-admin/local-appsec) require at "
+                "Tenant-scoped operational roles (soc/appsec/dbsec/"
+                "province-soc-lead/local-appsec) require at "
                 "least one assigned department or province."
             ),
         )
     if set(roles) & PROVINCIAL_ROLES and not province_ids and not department_ids:
         raise HTTPException(
             status_code=400,
-            detail="Provincial roles (province-soc-lead/province-dept-admin/local-appsec) require at least one assigned province or department.",
-        )
-    if "branch-admin" in roles and not branch_ids:
-        raise HTTPException(
-            status_code=400,
-            detail="Role 'branch-admin' requires at least one assigned branch.",
+            detail="Regional SITA operator roles (province-soc-lead/local-appsec) require at least one assigned province or department.",
         )
     if branch_ids and not department_ids:
         raise HTTPException(
@@ -349,10 +353,11 @@ async def _get_user_or_404(session: AsyncSession, user_id: str) -> User:
 async def list_departments(
     claims = Depends(require_roles("admin_read")),
 ):
+    valid = _active_departments()
     return {
         "items": [
             {"id": dept_id, "name": name}
-            for dept_id, name in DEPARTMENTS.items()
+            for dept_id, name in valid.items()
         ]
     }
 
@@ -362,14 +367,16 @@ async def list_branches(
     department_id: str | None = None,
     claims = Depends(require_roles("admin_read")),
 ):
+    valid_depts = _active_departments()
+    valid_branches = _active_branches()
     items = [
         {
             "id": branch_id,
             "name": name,
             "department_id": parent,
-            "department_name": DEPARTMENTS.get(parent),
+            "department_name": valid_depts.get(parent),
         }
-        for branch_id, (name, parent) in BRANCHES.items()
+        for branch_id, (name, parent) in valid_branches.items()
         if department_id is None or parent == department_id
     ]
     return {"items": items}
@@ -506,7 +513,7 @@ async def list_users(
     ]
     total = len(in_scope)
     items = [_to_out(u, p) for u, p in in_scope[(page - 1) * size : (page - 1) * size + size]]
-    _audit_admin_read(session, request, claims, "data.read.users", len(items), total)
+    await _audit_admin_read(session, request, claims, "data.read.users", len(items), total)
     return {
         "items": items,
         "total": total,
@@ -517,13 +524,7 @@ async def list_users(
 
 
 async def _resolve_provisioning_target(session: AsyncSession, body: UserCreate, claims: Any = None) -> Person:
-    """Resolve the HR employee an account is being provisioned against.
-
-    Accepts either the internal record key or the scheme-qualified identifier
-    the HR system issued. If neither is supplied (direct real-time provisioning
-    mode), resolves an existing Person with matching email or auto-provisions
-    an active Person record in the identity store.
-    """
+    """Resolve the LDAP directory identity an account is being provisioned against."""
     has_key = bool(body.person_id)
     has_identifier = bool(body.identifier_scheme or body.identifier_value)
 
@@ -541,8 +542,13 @@ async def _resolve_provisioning_target(session: AsyncSession, body: UserCreate, 
         if person is None:
             raise HTTPException(
                 status_code=400,
-                detail=f"No HR employee record found for person_id '{body.person_id}'. "
-                "Use /admin/persons to look up an HR-provisioned employee.",
+                detail=f"No LDAP directory identity found for person_id '{body.person_id}'. "
+                "Use /admin/persons to look up an employee.",
+            )
+        if not person.is_active or person.source not in employment.VERIFIED_PERSON_SOURCES:
+            raise HTTPException(
+                status_code=400,
+                detail="Only active LDAP directory identities may receive platform roles.",
             )
         return person
 
@@ -552,37 +558,42 @@ async def _resolve_provisioning_target(session: AsyncSession, body: UserCreate, 
                 status_code=400,
                 detail="identifier_scheme and identifier_value must both be supplied.",
             )
+        scheme_norm = body.identifier_scheme.lower().strip()
+        if scheme_norm != SCHEME_LDAP:
+            raise HTTPException(
+                status_code=400,
+                detail="Only LDAP directory identifiers are accepted.",
+            )
         try:
             person = await resolve_person_by_identifier(
-                session, body.identifier_scheme, body.identifier_value
+                session, scheme_norm, body.identifier_value
             )
         except IdentifierSchemeError as exc:
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+        if person is not None and (
+            not person.is_active or person.source not in employment.VERIFIED_PERSON_SOURCES
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Only active LDAP directory identities may receive platform roles.",
+            )
+
         if person is None:
-            # Query external SITA Employee System or PERSAL API via live gateway
-            external_identity: ExternalHRIdentity | None = None
-            scheme = body.identifier_scheme.lower().strip()
             val = body.identifier_value.strip()
-
-            if scheme in (SCHEME_PERSAL, "persal"):
-                external_identity = await persal_api.lookup(val)
-            elif scheme in (SCHEME_SAP_PERSONNEL, "sap_personnel", "sita-sap-hcm", "sita"):
-                external_identity = await sita_employee_api.lookup(val)
-
-            if external_identity is not None:
-                # POPIA Minimality: Only surname, position, and employee code are ingested into platform
+            dir_user = await ldap_connector.lookup_by_code(val)
+            if dir_user is not None:
                 person = Person(
                     id=str(uuid.uuid4()),
-                    employee_number=external_identity.employee_code,
-                    surname=external_identity.surname,
-                    initials=external_identity.initials,
-                    display_name=external_identity.display_name or f"{external_identity.initials or ''} {external_identity.surname}".strip(),
-                    job_title=external_identity.position,
-                    email=(external_identity.email or body.email).lower().strip(),
-                    department_id=external_identity.department_id or (body.department_ids[0] if body.department_ids else None),
-                    branch_id=external_identity.branch_id or (body.branch_ids[0] if body.branch_ids else None),
-                    source=external_identity.source_system,
+                    employee_number=dir_user.employee_code or dir_user.username,
+                    surname=dir_user.surname,
+                    initials=dir_user.initials,
+                    display_name=dir_user.display_name,
+                    job_title=dir_user.position,
+                    email=(dir_user.email or body.email).lower().strip(),
+                    department_id=dir_user.department_id or (body.department_ids[0] if body.department_ids else None),
+                    branch_id=dir_user.branch_id or (body.branch_ids[0] if body.branch_ids else None),
+                    source="ldap",
                     is_active=True,
                 )
                 session.add(person)
@@ -590,46 +601,24 @@ async def _resolve_provisioning_target(session: AsyncSession, body: UserCreate, 
                 await _record_employment_identifier(
                     session,
                     person,
-                    scheme=external_identity.scheme,
-                    value=external_identity.employee_code,
-                    source_system=external_identity.source_system,
+                    scheme=SCHEME_LDAP,
+                    value=dir_user.employee_code or dir_user.username,
+                    source_system="ldap",
                 )
             else:
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        f"No HR employee record carries {body.identifier_scheme} identifier "
-                        f"'{body.identifier_value}' in local or external personnel systems (SITA SAP HCM / PERSAL). "
-                        "Confirm the number, or sync via external HR API."
+                        f"No LDAP directory identity carries identifier "
+                        f"'{body.identifier_value}'. Confirm the identifier or import the directory user."
                     ),
                 )
         return person
 
-    # Direct real-time provisioning mode: Check if existing Person has this email
-    email = body.email.lower().strip()
-    person = (
-        await session.execute(select(Person).where(Person.email == email))
-    ).scalar_one_or_none()
-    if person is not None:
-        return person
-
-    # Auto-provision an active HR person record
-    dept_id = body.department_ids[0] if body.department_ids else None
-    branch_id = body.branch_ids[0] if body.branch_ids else None
-    person = Person(
-        id=str(uuid.uuid4()),
-        employee_number=f"EMP-SITA-{uuid.uuid4().hex[:6].upper()}",
-        email=email,
-        display_name=body.display_name or email.split("@")[0].replace(".", " ").title(),
-        job_title=(body.roles[0].replace("-", " ").title() if body.roles else "Security Specialist"),
-        org_unit="SITA National Security Estate",
-        department_id=dept_id,
-        branch_id=branch_id,
-        is_active=True,
+    raise HTTPException(
+        status_code=400,
+        detail="Select an existing LDAP directory identity or supply its LDAP identifier.",
     )
-    session.add(person)
-    await session.flush()
-    return person
 
 
 @router.post("/users", response_model=UserOut, status_code=201)
@@ -639,40 +628,23 @@ async def create_user(
     claims = Depends(require_roles("admin_write")),
 ):
     """
-    Create a new user with strict tenancy and Role-Based Access Control (RBAC) validation.
+    Create a platform account for a verified enterprise directory identity.
 
-    This endpoint integrates the full SITA tenancy model (Provinces, Departments, Branches) 
-    and enforces **Delegated Authority**. The caller may only create users whose roles and 
-    scope fall strictly within their own administrative boundaries.
-
-    ### Delegated Authority (Hierarchical Tiers)
-    - **Tier 5 (Platform Operator / creator):** Role `operator`. National scope. Can create the SITA superuser (`admin`) and peer `operator` accounts only (rotation). Nothing else.
-    - **Tier 4 (SITA Superuser):** Role `admin`. National scope. Can create `transversal-admin`, `exec`, `compliance`, `sre`, `dept-admin`, `province-dept-admin`, `branch-admin` and the operational roles — never a peer `admin` or an `operator`.
-    - **Tier 3 (Transversal Admin):** Role `transversal-admin`. Assigned scope (may be national). Can create `transversal-admin` (peer), `exec`, `compliance`, `sre`, `dept-admin`, `province-dept-admin`, `branch-admin` and the operational roles within its scope.
-    - **Tier 2 (Department Admin):** Role `dept-admin` / `province-dept-admin`. Department/province scope. Can create `branch-admin` (dept-admin only) and the operational roles within their assigned departments/province.
-    - **Tier 1 (Branch Admin):** Role `branch-admin`. Branch scope. Can create the operational roles *only* within their assigned branch.
-    - **Tier 0 (Service Ops):** Role `sre`. Estate-wide scope, operational roles only (`soc`, `appsec`, `dbsec`, `province-soc-lead`, `local-appsec`) — no admin tiers.
-
-    ### Payload Requirements
-    - **Employee**: identified either by `identifier_scheme` + `identifier_value`
-      (preferred — e.g. `persal` + an 8-digit PERSAL number) or by `person_id`.
-      Supply exactly one form. Accounts can only be created for employees
-      imported from the HR system — there is no path for external or non-employee
-      users.
-    - **email**: Must match the HR employee's registered email.
-    - **roles**: Must contain valid SITA roles.
-    - **department_ids**: Must contain valid department slugs (e.g., `home-affairs-digital`) if the role requires department scoping.
+    The platform administrator assigns security roles and government tenant data
+    scopes. The platform operator may create or rotate superadmin accounts.
+    Department, branch, and province assignments constrain data access; they do
+    not delegate user administration. Exactly one directory `person_id` or an
+    LDAP identifier
+    must be supplied.
+    - **email**: Must match the directory user's registered email.
+    - **roles**: Must contain valid platform roles.
+    - **department_ids**: Must contain valid department slugs (e.g., `treasury`) if the role requires department scoping.
     - **branch_ids**: If provided, must belong to the specified department.
 
-    ### Three gates on provisioning
-    1. **Delegation** (`can_manage`) — may the caller grant this authority? Roles
-       must be strictly below the caller's tier and the granted scope inside the
-       caller's own.
-    2. **Tenancy** (`person_within_scope`) — is this the caller's employee? The
-       HR record's department/branch must fall inside the caller's scope. This is
-       separate from gate 1: an in-scope grant does not make a foreign employee
-       in scope.
-    3. **Alignment** — a scoped account must sit in the employee's own department.
+    ### Provisioning checks
+    The caller must be the platform superadmin (or bootstrap operator). The
+    identity must be active and verified by LDAP / Enterprise Directory. The
+    assigned tenant scope must pass the role/scope validators.
 
     ### Security
     - Requires `admin_write` permission.
@@ -709,9 +681,8 @@ async def create_user(
 
     # Tenancy gate: whose employee is this? Distinct from the delegation check
     # above, which only asks whether the granted authority is within the
-    # caller's own reach. Without this, a DHA admin could provision an account
-    # for a National Treasury employee and hold a foreign employee's identity
-    # inside the DHA tenant.
+    # caller's own reach. This also prevents provisioning another tenant's
+    # directory identity inside the caller's tenant.
     if not person_within_scope(claims, person):
         raise HTTPException(
             status_code=403,
@@ -723,32 +694,16 @@ async def create_user(
             ),
         )
 
-    # Alignment: a scoped account must sit in the employee's own department.
-    # A nationwide caller can grant estate-wide scope legitimately; a scoped
-    # one cannot place a DHA employee into an unrelated department because
-    # can_manage already restricts the grant to the caller's own scope.
-    person_depts = {person.department_id} if person.department_id else set()
-    granted_depts = set(body.department_ids) | set(body.province_ids)
-    if person_depts and granted_depts and not person_depts & granted_depts:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                f"Account scope {sorted(granted_depts)} does not align with the "
-                f"employee's HR department '{person.department_id}'. A scoped account "
-                "must be provisioned into the employee's own department."
-            ),
-        )
-
     person_email = (person.email or "").lower().strip()
     if not person_email:
         raise HTTPException(
             status_code=400,
-            detail="HR record has no registered email; an account cannot be provisioned.",
+            detail="LDAP directory identity has no registered email; an account cannot be provisioned.",
         )
     if email != person_email:
         raise HTTPException(
             status_code=400,
-            detail="Account email must match the HR employee's registered email.",
+            detail="Account email must match the LDAP directory identity's email.",
         )
 
     user = User(
@@ -765,7 +720,7 @@ async def create_user(
     session.add(user)
     await session.commit()
     await session.refresh(user)
-    _audit_privilege_change(
+    await _audit_privilege_change(
         session,
         None,
         claims,
@@ -843,7 +798,12 @@ async def update_user(
         if person is None:
             raise HTTPException(
                 status_code=400,
-                detail=f"No HR employee record found for person_id '{body.person_id}'.",
+                detail=f"No LDAP directory person found for person_id '{body.person_id}'.",
+            )
+        if not person.is_active or person.source not in employment.VERIFIED_PERSON_SOURCES:
+            raise HTTPException(
+                status_code=400,
+                detail="Only active LDAP directory identities may be linked to an account.",
             )
         user.person_id = person.id
     elif user.person_id:
@@ -851,21 +811,15 @@ async def update_user(
 
     await session.commit()
     await session.refresh(user)
-    changed = sorted(
-        field
-        for field, before in prior.items()
-        if before != getattr(
-            {
-                "roles": list(user.roles or []),
-                "department_ids": list(user.department_ids or []),
-                "branch_ids": list(user.branch_ids or []),
-                "province_ids": list(user.province_ids or []),
-                "is_active": bool(user.is_active),
-            },
-            field,
-        )
-    )
-    _audit_privilege_change(
+    after = {
+        "roles": list(user.roles or []),
+        "department_ids": list(user.department_ids or []),
+        "branch_ids": list(user.branch_ids or []),
+        "province_ids": list(user.province_ids or []),
+        "is_active": bool(user.is_active),
+    }
+    changed = sorted(field for field, before in prior.items() if before != after[field])
+    await _audit_privilege_change(
         session,
         request,
         claims,
@@ -874,13 +828,7 @@ async def update_user(
         detail={
             "user_id": user.id,
             "before": prior,
-            "after": {
-                "roles": list(user.roles or []),
-                "department_ids": list(user.department_ids or []),
-                "branch_ids": list(user.branch_ids or []),
-                "province_ids": list(user.province_ids or []),
-                "is_active": bool(user.is_active),
-            },
+            "after": after,
             "changed_fields": changed,
             "password_reset": bool(body.password),
         },
@@ -911,7 +859,7 @@ async def delete_user(
         )
     await session.delete(user)
     await session.commit()
-    _audit_privilege_change(
+    await _audit_privilege_change(
         session,
         request,
         claims,
@@ -955,7 +903,7 @@ async def list_persons(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("admin_read")),
 ):
-    """Browse HR-provisioned person records (the only identity source for creating user accounts)."""
+    """Browse LDAP-sourced person records available for user provisioning."""
     size = min(max(size, 1), 200)
     page = max(page, 1)
     filters = []
@@ -997,7 +945,7 @@ async def list_persons(
     # Person records carry special personal information (SA ID numbers,
     # clearance levels, work phones). Record who read them and how many, so a
     # bulk browse is distinguishable from a single-record lookup.
-    _audit_admin_read(session, request, claims, "data.read.persons", len(rows), total)
+    await _audit_admin_read(session, request, claims, "data.read.persons", len(rows), total)
     return {
         "items": [
             apply_person_policy(
@@ -1045,14 +993,11 @@ async def _record_employment_identifier(
     value: str,
     source_system: str,
 ) -> None:
-    """Attach a scheme-qualified identifier to a person, idempotently.
+    """Attach a validated LDAP identifier to a person, idempotently.
 
-    Re-ingesting the same feed must not create duplicates or fail on the
-    unique (scheme, value) constraint, so an existing row is reused. A value
-    already bound to a *different* person is a genuine upstream conflict —
-    two people cannot share a PERSAL number — and is raised rather than
-    silently reassigned, because reassignment would move one official's
-    employment history onto another.
+    Re-importing the same directory entry reuses its existing row. An
+    identifier already bound to another person is rejected rather than
+    silently reassigned.
     """
     validated = employment.validate(scheme, value)
     await session.flush()  # person.id must exist before the FK is written
@@ -1088,9 +1033,9 @@ async def _record_employment_identifier(
 async def resolve_person_by_identifier(
     session: AsyncSession, scheme: str, value: str
 ) -> Person | None:
-    """Resolve a government/HR identifier to a person record.
+    """Resolve an LDAP directory identifier to a person record.
 
-    Used by account provisioning and by reconciliation against DPSA. Returns
+    Used by account provisioning and directory reconciliation. Returns
     ``None`` rather than raising for an unknown identifier so callers can
     distinguish "no such employee" from "malformed input"; use
     ``employment.validate`` first when the distinction matters.
@@ -1116,11 +1061,10 @@ async def find_person_by_identifier(
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("admin_read")),
 ):
-    """Look up a person record by a scheme-qualified employment identifier.
+    """Look up a person record by its LDAP directory identifier.
 
-    Replaces ad-hoc lookups by employee_number with one that is explicit about
-    which identifier is being presented, so a PERSAL number can never be
-    mistaken for the originating feed's own reference.
+    The identifier is validated against the LDAP account-name format before
+    resolving its linked person record.
     """
     try:
         employment.validate(scheme, value)
@@ -1182,7 +1126,7 @@ async def list_identifier_schemes(
                 "authority": s.authority,
                 "identifies": s.identifies,
                 "pattern_description": s.pattern_description,
-                "national": employment.is_national_scheme(s.id),
+                "national": False,
                 "notes": s.notes,
             }
             for s in employment.SCHEMES.values()
@@ -1194,379 +1138,624 @@ async def list_identifier_schemes(
     }
 
 
-async def _upsert_hr_records(
-    session: AsyncSession,
-    claims,
-    records: list[HRSyncRecord],
-) -> dict:
-    """Shared HR -> identity.persons pipeline.
+# ============================================================================
+# Enterprise LDAP / Active Directory (Customizable to any client)
+# ============================================================================
 
-    Used by the push endpoint (POST /admin/hr/sync) and the simulated-HR pull
-    (POST /admin/hr/sim/sync). Keyed on employee_number. HR sync never modifies
-    roles or department/branch scopes — those are set by admins on the linked
-    user. Terminated employees are soft-disabled on any linked platform account.
-    """
-    created = updated = deactivated = skipped = 0
-    seen: set[str] = set()
-    for record in records:
-        emp_no = record.employee_number.strip()
-        if not emp_no or emp_no in seen:
-            skipped += 1
-            continue
-        seen.add(emp_no)
-        if record.department_id and record.department_id not in DEPARTMENTS:
-            skipped += 1
-            continue
-        if record.branch_id and record.branch_id not in BRANCHES:
-            skipped += 1
-            continue
-        if record.branch_id and (
-            record.department_id and BRANCHES[record.branch_id][1] != record.department_id
-        ):
-            skipped += 1
-            continue
-        if not scope_covers(
-            claims,
-            [record.department_id] if record.department_id else [],
-            [record.branch_id] if record.branch_id else [],
-        ):
-            skipped += 1
-            continue
-        person = (
-            await session.execute(
-                select(Person).where(Person.employee_number == emp_no)
-            )
-        ).scalar_one_or_none()
-        is_new = person is None
-        if is_new:
-            person = Person(employee_number=emp_no, source="hr")
-            session.add(person)
-        person.email = (record.email or "").lower().strip() or None
-        person.id_number = record.id_number
-        person.title = record.title
-        person.initials = record.initials
-        person.surname = record.surname
-        person.display_name = record.display_name
-        person.job_title = record.job_title
-        person.org_unit = record.org_unit
-        person.department_id = record.department_id
-        person.branch_id = record.branch_id
-        person.manager_id = record.manager_id
-        person.manager_name = record.manager_name
-        person.work_phone = record.work_phone
-        person.location = record.location
-        person.employment_status = record.employment_status
-        person.clearance_level = record.clearance_level
-        person.is_active = record.employment_status not in ("terminated", "inactive")
+class LDAPConfigUpdatePayload(BaseModel):
+    enabled: bool | None = None
+    server_url: str | None = None
+    use_ssl: bool | None = None
+    start_tls: bool | None = None
+    timeout_seconds: int | None = None
+    bind_dn: str | None = None
+    bind_password: str | None = None
+    base_dn: str | None = None
+    user_search_base: str | None = None
+    user_search_filter: str | None = None
+    user_login_filter: str | None = None
+    group_search_base: str | None = None
+    client_name: str | None = None
+    preset_profile: str | None = None
+    attribute_mapping: dict[str, str] | None = None
+    role_mapping: dict[str, list[str]] | None = None
+    mock_mode: bool | None = None
 
-        # Record scheme-qualified employment identifiers. A live PERSAL feed
-        # supplies persal_number; the originating feed's own employee_number is
-        # always recorded so a person remains resolvable when no national scheme
-        # is present. Failures are logged and skipped rather than aborting the
-        # sync — a malformed identifier must not block provisioning the record.
-        if record.persal_number:
-            try:
-                await _record_employment_identifier(
-                    session,
-                    person,
-                    scheme=SCHEME_PERSAL,
-                    value=record.persal_number,
-                    source_system="persal",
-                )
-            except IdentifierSchemeError:
-                skipped += 1
-                logger.warning(
-                    "Rejected PERSAL number %r for employee %s: does not match the "
-                    "8-digit scheme",
-                    record.persal_number,
-                    emp_no,
-                )
-        await _record_employment_identifier(
-            session,
-            person,
-            scheme=classify(emp_no) or SCHEME_INTERNAL,
-            value=emp_no,
-            source_system=record.source_system or "hr-feed",
-        )
 
-        # Soft-disable any linked platform account on termination.
-        if not person.is_active and person.id:
-            linked = (
-                await session.execute(
-                    select(User).where(User.person_id == person.id, User.is_active.is_(True))
-                )
-            ).scalars().all()
-            for u in linked:
-                u.is_active = False
-                deactivated += 1
-        if is_new:
-            created += 1
-        else:
-            updated += 1
-        await session.flush()
-    await session.commit()
+class LDAPTestPayload(BaseModel):
+    server_url: str | None = None
+    bind_dn: str | None = None
+    bind_password: str | None = None
+    base_dn: str | None = None
+    use_ssl: bool | None = None
+    start_tls: bool | None = None
+    timeout_seconds: int | None = None
+    mock_mode: bool | None = None
+
+
+class DirectoryImportPayload(BaseModel):
+    username_or_code: str
+    create_user_account: bool = False
+    assigned_roles: list[str] | None = None
+    department_id: str | None = None
+    branch_id: str | None = None
+    tenant_id: str | None = None
+
+
+class TierRoleMappingPayload(BaseModel):
+    tier_mappings: list[TierRoleAssignment] = Field(default_factory=list)
+
+
+@router.get("/directory/tenants")
+async def list_directory_tenants(
+    claims = Depends(require_roles("admin_read")),
+):
+    """List all configured tenant LDAP directories across the platform."""
+    return {"tenants": tenant_ldap_registry.list_tenants()}
+
+
+@router.get("/directory/tenants/{tenant_id}/tier-mappings")
+async def get_tenant_tier_mappings(
+    tenant_id: str,
+    claims = Depends(require_roles("admin_read")),
+):
+    """Retrieve directory group-to-role and tier mappings for a specific client tenant."""
+    cfg = tenant_ldap_registry.get_tenant_config(tenant_id)
     return {
-        "status": "ok",
-        "created": created,
-        "updated": updated,
-        "deactivated": deactivated,
-        "skipped": skipped,
+        "tenant_id": tenant_id,
+        "tenant_name": cfg.tenant_name,
+        "tier_mappings": [m.model_dump() for m in cfg.tier_role_mappings],
     }
 
 
-@router.post("/hr/sync")
-async def hr_sync(
-    records: list[HRSyncRecord],
-    session: AsyncSession = Depends(get_session),
+@router.put("/directory/tenants/{tenant_id}/tier-mappings")
+async def update_tenant_tier_mappings(
+    tenant_id: str,
+    payload: TierRoleMappingPayload,
     claims = Depends(require_roles("admin_write")),
 ):
-    """Upsert person records from the HR system (PERSAL/payroll or SCIM feed).
+    """Update directory group-to-role and tier mappings for a specific client tenant."""
+    cfg = tenant_ldap_registry.get_tenant_config(tenant_id)
+    cfg.tier_role_mappings = payload.tier_mappings
 
-    Keyed on employee_number. HR sync never modifies roles or department/branch
-    scopes — those are set by admins on the linked user. Terminated employees
-    are soft-disabled on any linked platform account (is_active=False).
-    """
-    return await _upsert_hr_records(session, claims, records)
+    # Also update role_mapping for fast lookup
+    new_role_map = dict(cfg.role_mapping)
+    for m in payload.tier_mappings:
+        if m.group_name and m.roles:
+            new_role_map[m.group_name] = m.roles
+    cfg.role_mapping = new_role_map
 
-
-# The simulated external HR system lives in a separate `hr` schema and stands
-# in for a real PERSAL/SCIM feed so the HR-only provisioning flow can be
-# exercised end-to-end. See infrastructure/scripts/init-db.sql (DDL) and
-# infrastructure/scripts/seed-hr-system.sql (seed).
-_SIM_HR_SELECT = text(
-    "SELECT employee_number, persal_number, id_number, title, initials, first_name,"
-    " surname, display_name, email, job_title, org_unit, department_code, branch_code,"
-    " manager_employee_number, manager_name, work_phone, location,"
-    " employment_status, clearance_level FROM hr.employees"
-)
+    tenant_ldap_registry.update_tenant_config(tenant_id, cfg)
+    return {
+        "status": "updated",
+        "tenant_id": tenant_id,
+        "tier_mappings": [m.model_dump() for m in cfg.tier_role_mappings],
+    }
 
 
-def _sim_row_to_sync(row: Mapping[str, Any]) -> HRSyncRecord:
-    """Map one hr.employees row to the canonical HR sync record.
+CLIENT_ORGANIZATION_STATUSES = ["draft", "active", "inactive", "suspended", "archived"]
 
-    The simulated HR system stores SITA tenancy slugs in department_code /
-    branch_code, so the record maps straight onto department_id / branch_id and
-    every validation and tenant-scoping rule in the shared pipeline applies
-    unchanged.
-    """
-    return HRSyncRecord(
-        employee_number=row["employee_number"],
-        persal_number=row.get("persal_number"),
-        source_system="sim-hr",
-        email=row.get("email"),
-        id_number=row.get("id_number"),
-        title=row.get("title"),
-        initials=row.get("initials"),
-        surname=row.get("surname"),
-        display_name=row.get("display_name") or row.get("first_name"),
-        job_title=row.get("job_title"),
-        org_unit=row.get("org_unit"),
-        department_id=row.get("department_code"),
-        branch_id=row.get("branch_code"),
-        manager_id=row.get("manager_employee_number"),
-        manager_name=row.get("manager_name"),
-        work_phone=row.get("work_phone"),
-        location=row.get("location"),
-        employment_status=row.get("employment_status") or "active",
-        clearance_level=row.get("clearance_level"),
+
+class ClientOrganizationCreate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    identifier: str = Field(..., min_length=2, max_length=64, pattern=r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
+    name: str = Field(..., min_length=2, max_length=128)
+    description: str = Field(default="", max_length=4000)
+    client_type: str = Field(..., min_length=2, max_length=32, pattern=r"^[a-zA-Z0-9_-]+$")
+    deployment_model: str = Field(..., pattern=r"^(saas|on_premises)$")
+    primary_contact_name: str = Field(..., min_length=2, max_length=128)
+    primary_contact_email: str = Field(..., min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    superadmin_name: str = Field(..., min_length=2, max_length=128)
+    superadmin_email: str = Field(..., min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class ClientOrganizationUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    name: str | None = Field(default=None, min_length=2, max_length=128)
+    description: str | None = Field(default=None, max_length=4000)
+    client_type: str | None = Field(default=None, min_length=2, max_length=32, pattern=r"^[a-zA-Z0-9_-]+$")
+    deployment_model: str | None = Field(default=None, pattern=r"^(saas|on_premises)$")
+    status: str | None = Field(default=None, min_length=2, max_length=64, pattern=r"^[a-zA-Z0-9][a-zA-Z0-9 _-]*$")
+    primary_contact_name: str | None = Field(default=None, min_length=2, max_length=128)
+    primary_contact_email: str | None = Field(default=None, min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    superadmin_name: str | None = Field(default=None, min_length=2, max_length=128)
+    superadmin_email: str | None = Field(default=None, min_length=3, max_length=254, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+def _client_organization_out(client: ClientOrganization) -> dict[str, Any]:
+    return {
+        "id": client.id,
+        "identifier": client.identifier,
+        "name": client.name,
+        "description": client.description,
+        "client_type": client.client_type,
+        "deployment_model": client.deployment_model,
+        "status": client.status,
+        "status_options": client.status_options or CLIENT_ORGANIZATION_STATUSES,
+        "primary_contact_name": client.primary_contact_name,
+        "primary_contact_email": client.primary_contact_email,
+        "superadmin_name": client.superadmin_name,
+        "superadmin_email": client.superadmin_email,
+        "access_setup_status": client.access_setup_status,
+        "created_at": client.created_at,
+        "updated_at": client.updated_at,
+    }
+
+
+@router.get("/client-organizations")
+async def list_client_organizations(
+    session: AsyncSession = Depends(get_session),
+    claims=Depends(require_hosi_provider),
+):
+    result = await session.execute(
+        select(ClientOrganization).order_by(ClientOrganization.created_at.desc())
+    )
+    return {"items": [_client_organization_out(item) for item in result.scalars().all()]}
+
+
+@router.post("/client-organizations", status_code=201)
+async def create_client_organization(
+    payload: ClientOrganizationCreate,
+    session: AsyncSession = Depends(get_session),
+    claims=Depends(require_hosi_provider),
+):
+    client = ClientOrganization(
+        id=str(uuid.uuid4()),
+        identifier=payload.identifier,
+        name=payload.name,
+        description=payload.description,
+        client_type=payload.client_type,
+        deployment_model=payload.deployment_model,
+        status="draft",
+        status_options=CLIENT_ORGANIZATION_STATUSES.copy(),
+        primary_contact_name=payload.primary_contact_name,
+        primary_contact_email=payload.primary_contact_email.lower(),
+        superadmin_name=payload.superadmin_name,
+        superadmin_email=payload.superadmin_email.lower(),
+        access_setup_status="pending_superadmin_setup",
+    )
+    session.add(client)
+    try:
+        await session.commit()
+        await session.refresh(client)
+    except IntegrityError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=409, detail="A client profile with this identifier already exists") from exc
+    logger.info("Provider created client organization %s", client.id)
+    return _client_organization_out(client)
+
+
+@router.patch("/client-organizations/{client_id}")
+async def update_client_organization(
+    client_id: str,
+    payload: ClientOrganizationUpdate,
+    session: AsyncSession = Depends(get_session),
+    claims=Depends(require_hosi_provider),
+):
+    client = await session.get(ClientOrganization, client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Client profile not found")
+
+    changes = payload.model_dump(exclude_unset=True)
+    for field, value in changes.items():
+        if value is not None:
+            setattr(client, field, value.lower() if field.endswith("_email") else value)
+    if client.status not in (client.status_options or CLIENT_ORGANIZATION_STATUSES):
+        client.status_options = [*(client.status_options or CLIENT_ORGANIZATION_STATUSES), client.status]
+
+    await session.commit()
+    await session.refresh(client)
+    logger.info("Provider updated client organization %s", client.id)
+    return _client_organization_out(client)
+
+
+@router.post("/client-organizations/{client_id}/superadmin-account", status_code=201)
+async def provision_client_superadmin(
+    client_id: str,
+    request: Request,
+    session: AsyncSession = Depends(get_session),
+    claims=Depends(require_hosi_provider),
+):
+    client = await session.get(ClientOrganization, client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Client profile not found")
+    if client.status != "active":
+        raise HTTPException(status_code=409, detail="Activate the client profile before provisioning its superadmin")
+
+    display_name = (client.superadmin_name or "").strip()
+    email = (client.superadmin_email or "").strip().lower()
+    if not display_name or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        raise HTTPException(
+            status_code=409,
+            detail="Add a valid designated superadmin name and email to the client profile before provisioning.",
+        )
+
+    existing_user = (
+        await session.execute(select(User).where(func.lower(User.email) == email))
+    ).scalars().first()
+    if existing_user is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This email already has a platform account. Manage that account instead of provisioning another.",
+        )
+
+    temporary_password = secrets.token_urlsafe(18)
+    user = User(
+        id=str(uuid.uuid4()),
+        email=email,
+        password_hash=hash_password(temporary_password),
+        display_name=display_name,
+        roles=["client-admin"],
+        department_ids=[],
+        branch_ids=[],
+        province_ids=[],
+        is_active=True,
+    )
+    session.add(user)
+    client.superadmin_email = email
+    client.access_setup_status = "pending_client_workspace"
+
+    try:
+        await session.commit()
+        await session.refresh(client)
+    except IntegrityError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=409, detail="Could not create the superadmin account; try again") from exc
+
+    email_status = await _email_client_superadmin_credentials(
+        email=email,
+        client_name=client.name,
+        temporary_password=temporary_password,
     )
 
-
-@router.get("/hr/sim/employees")
-async def sim_hr_employees(
-    session: AsyncSession = Depends(get_session),
-    claims = Depends(require_roles("admin_read")),
-):
-    """Browse the simulated external HR system's employee master.
-
-    Read-only helper so the simulated feed can be inspected before syncing.
-    """
-    rows = (await session.execute(_SIM_HR_SELECT)).mappings().all()
+    await _audit_privilege_change(
+        session,
+        request,
+        claims,
+        action="admin.client_superadmin.provision",
+        target=client.id,
+        detail={"client_identifier": client.identifier, "email": email},
+    )
+    logger.info("Provisioned client superadmin account for client %s", client.id)
     return {
-        "system": "simulated-hr",
-        "total": len(rows),
-        "items": [dict(r) for r in rows],
+        "status": "credential_created",
+        "email": email,
+        "temporary_password": temporary_password,
+        "email_status": email_status,
+        "client": _client_organization_out(client),
     }
 
 
-@router.post("/hr/sim/sync")
-async def hr_sim_sync(
+async def _email_client_superadmin_credentials(
+    *,
+    email: str,
+    client_name: str,
+    temporary_password: str,
+) -> str:
+    try:
+        await asyncio.to_thread(
+            send_client_superadmin_credentials,
+            email=email,
+            client_name=client_name,
+            temporary_password=temporary_password,
+        )
+    except InvitationEmailConfigurationError as exc:
+        logger.warning("SMTP is not configured for client superadmin credentials: %s", exc)
+        return "not_configured"
+    except InvitationEmailDeliveryError as exc:
+        logger.warning("Could not email client superadmin credentials: %s", exc)
+        return "delivery_failed"
+    return "sent"
+
+
+@router.post("/client-organizations/{client_id}/superadmin-account/password")
+async def rotate_client_superadmin_password(
+    client_id: str,
+    request: Request,
     session: AsyncSession = Depends(get_session),
-    claims = Depends(require_roles("admin_write")),
+    claims=Depends(require_hosi_provider),
 ):
-    """Pull every row from the simulated external HR system and run the exact
-    same HR sync pipeline used for live feeds (POST /admin/hr/sync).
+    client = await session.get(ClientOrganization, client_id)
+    if client is None:
+        raise HTTPException(status_code=404, detail="Client profile not found")
+    if client.status != "active":
+        raise HTTPException(status_code=409, detail="Activate the client profile before resetting its superadmin password")
 
-    This is how the HR-only account provisioning flow is tested: the pull lands
-    records in identity.persons, which then become the only source that user
-    accounts can be provisioned from.
-    """
-    rows = (await session.execute(_SIM_HR_SELECT)).mappings().all()
-    records = [_sim_row_to_sync(r) for r in rows]
-    result = await _upsert_hr_records(session, claims, records)
-    return {"system": "simulated-hr", "pulled": len(records), **result}
+    display_name = (client.superadmin_name or "").strip()
+    email = (client.superadmin_email or "").strip().lower()
+    if not display_name or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        raise HTTPException(
+            status_code=409,
+            detail="Add a valid designated superadmin name and email to the client profile before resetting its password.",
+        )
+
+    user = (
+        await session.execute(select(User).where(func.lower(User.email) == email))
+    ).scalars().first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="No superadmin account exists for this client profile")
+    if user.roles != ["client-admin"] or user.person_id is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This email is not linked to a client superadmin account managed by this portal.",
+        )
+    if not user.is_active:
+        raise HTTPException(status_code=409, detail="The client superadmin account is disabled.")
+
+    temporary_password = secrets.token_urlsafe(18)
+    user.password_hash = hash_password(temporary_password)
+    user.display_name = display_name
+    try:
+        await session.commit()
+        await session.refresh(client)
+    except IntegrityError as exc:
+        await session.rollback()
+        raise HTTPException(status_code=409, detail="Could not reset the superadmin password; try again") from exc
+
+    email_status = await _email_client_superadmin_credentials(
+        email=email,
+        client_name=client.name,
+        temporary_password=temporary_password,
+    )
+    await _audit_privilege_change(
+        session,
+        request,
+        claims,
+        action="admin.client_superadmin.password_reset",
+        target=client.id,
+        detail={"client_identifier": client.identifier, "email": email},
+    )
+    logger.info("Reset client superadmin password for client %s", client.id)
+    return {
+        "status": "credential_rotated",
+        "email": email,
+        "temporary_password": temporary_password,
+        "email_status": email_status,
+        "client": _client_organization_out(client),
+    }
 
 
-# ============================================================================
-# Authoritative External Personnel System APIs (SITA HCM & PERSAL)
-# ============================================================================
-
-class ExternalHRImportPayload(BaseModel):
-    system: str  # "sita" or "persal"
-    employee_code: str  # SITA employee code or 8-digit PERSAL number
+class TenantProfileCreate(BaseModel):
+    id: str = Field(..., min_length=2, max_length=64)
+    name: str = Field(..., min_length=2, max_length=128)
+    description: str = Field(default="")
+    client_type: str = Field(default="enterprise")
 
 
-@router.get("/hr/external/systems")
-async def list_external_hr_systems(
+class TenantProfileUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    client_type: str | None = None
+
+
+@router.get("/tenant-profiles")
+async def list_tenant_profiles(
     claims = Depends(require_roles("admin_read")),
 ):
-    """Catalog of connected external HR systems with POPIA data minimization policy.
-
-    Guarantees that general HR master information remains outside the platform,
-    retaining only surname, position, and employee code.
-    """
+    """List available tenant profiles (SITA Government, Global Enterprise, etc.)."""
     return {
-        "status": "connected",
-        "popia_data_minimization_policy": {
-            "retained_fields": ["surname", "position", "employee_code"],
-            "excluded_hr_master_data": [
-                "id_number",
-                "salary_notch_band",
-                "residential_address",
-                "emergency_contacts",
-                "pension_fund",
-                "performance_appraisals",
-                "tax_number",
+        "profiles": tenant_registry.list_profiles(),
+        "active_profile": tenant_registry.get_active().id,
+    }
+
+
+@router.post("/tenant-profiles", status_code=201)
+async def create_tenant_profile(
+    payload: TenantProfileCreate,
+    claims = Depends(require_roles("admin_write")),
+):
+    """Developer / Operator endpoint to provision a new Client Tenant profile."""
+    from app.tenant_profiles.template import build_profile
+    if tenant_registry.get(payload.id):
+        raise HTTPException(status_code=400, detail=f"Tenant profile '{payload.id}' already exists")
+    profile = build_profile(client_id=payload.id, client_name=payload.name)
+    profile.description = payload.description or f"Custom profile for {payload.name}"
+    profile.client_type = payload.client_type or "enterprise"
+    tenant_registry.register(profile)
+    return {
+        "status": "created",
+        "id": profile.id,
+        "name": profile.name,
+        "client_type": profile.client_type,
+    }
+
+
+@router.put("/tenant-profiles/{profile_id}")
+async def update_tenant_profile(
+    profile_id: str,
+    payload: TenantProfileUpdate,
+    claims = Depends(require_roles("admin_write")),
+):
+    """Developer / Operator endpoint to edit an existing Client Tenant profile."""
+    profile = tenant_registry.get(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Tenant profile '{profile_id}' not found")
+    if payload.name:
+        profile.name = payload.name
+    if payload.description is not None:
+        profile.description = payload.description
+    if payload.client_type:
+        profile.client_type = payload.client_type
+    return {
+        "status": "updated",
+        "id": profile.id,
+        "name": profile.name,
+        "description": profile.description,
+        "client_type": profile.client_type,
+    }
+
+
+@router.delete("/tenant-profiles/{profile_id}")
+async def delete_tenant_profile(
+    profile_id: str,
+    claims = Depends(require_roles("admin_write")),
+):
+    """Developer / Operator endpoint to delete / unregister a Client Tenant profile."""
+    profile = tenant_registry.get(profile_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail=f"Tenant profile '{profile_id}' not found")
+    tenant_registry.unregister(profile_id)
+    return {
+        "status": "deleted",
+        "id": profile_id,
+        "detail": f"Tenant profile '{profile_id}' has been permanently removed",
+    }
+
+
+@router.post("/tenant-profiles/{profile_id}/activate")
+async def activate_tenant_profile(
+    profile_id: str,
+    claims = Depends(require_roles("admin_write")),
+):
+    """Switch active organizational tenant profile (customizes hierarchy and tier labels)."""
+    try:
+        profile = tenant_registry.set_active(profile_id)
+        return {
+            "status": "activated",
+            "active_profile": profile.id,
+            "name": profile.name,
+            "hierarchy_levels": [
+                {"level": l.level, "name": l.name, "label": l.label, "plural_label": l.plural_label}
+                for l in profile.hierarchy_levels
             ],
-            "statutory_ref": "POPIA s.10 (minimality) & PERSAL Instruction Note No. 3",
-            "enforcement": "Strict gateway projection: sensitive HR master fields are filtered before platform ingress",
-        },
-        "systems": [
-            {
-                "id": "sita-sap-hcm",
-                "name": "SITA Employee System (SAP HCM API)",
-                "authority": "State Information Technology Agency (SITA)",
-                "scheme": "sap_personnel",
-                "applies_to": "SITA personnel (Command Center, National Security Estate, SOC, Platform Operators)",
-                "endpoint": sita_employee_api.base_url,
-                "status": "ACTIVE_INTEGRATED",
-            },
-            {
-                "id": "persal",
-                "name": "National Treasury PERSAL Gateway",
-                "authority": "National Treasury / DPSA",
-                "scheme": "persal",
-                "pattern": "8 digits (e.g. 80491024)",
-                "applies_to": "Government department personnel (Department of Home Affairs, SAPS, Presidency)",
-                "endpoint": persal_api.base_url,
-                "status": "ACTIVE_INTEGRATED",
-            },
-        ],
-    }
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
 
 
-@router.get("/hr/external/lookup")
-async def lookup_external_hr(
-    system: str = Query(..., description="'sita' for SITA Employee System, 'persal' for PERSAL"),
-    code: str | None = Query(default=None, description="Employee code or PERSAL number"),
-    q: str | None = Query(default=None, description="Search term (surname, position, or code)"),
-    department_id: str | None = Query(default=None, description="Filter by department"),
+@router.get("/directory/config")
+async def get_directory_config(
+    tenant_id: str | None = Query(default=None, description="Optional tenant/client identifier"),
     claims = Depends(require_roles("admin_read")),
 ):
-    """Query SITA Employee System or PERSAL System in real time.
+    """Retrieve the enterprise LDAP/Directory configuration for this tenant or default."""
+    conn = tenant_ldap_registry.get_connector(tenant_id)
+    return conn.config.masked()
 
-    Enforces data minimization: the returned payload carries ONLY the sanitized
-    identity projection (surname, position, employee code) and tenancy routing.
-    """
-    sys = system.lower().strip()
-    if sys in ("sita", "sita-hcm", "sita-sap-hcm"):
-        if code:
-            record = await sita_employee_api.lookup(code)
-            items = [record] if record else []
-        else:
-            items = await sita_employee_api.search(q or "")
-    elif sys in ("persal", "gov"):
-        if code:
-            record = await persal_api.lookup(code)
-            items = [record] if record else []
-        else:
-            items = await persal_api.search(q or "", department_id=department_id)
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unknown external HR system '{system}'. Valid systems: 'sita', 'persal'.",
-        )
+
+@router.put("/directory/config")
+async def update_directory_config(
+    payload: LDAPConfigUpdatePayload,
+    tenant_id: str | None = Query(default=None, description="Optional tenant/client identifier"),
+    claims = Depends(require_roles("admin_write")),
+):
+    """Update runtime LDAP/Directory settings customized for a specific client tenant."""
+    target_tenant = tenant_id or "default"
+    current_conn = tenant_ldap_registry.get_connector(target_tenant)
+    current = current_conn.config.model_dump()
+    updates = payload.model_dump(exclude_unset=True)
+    current.update(updates)
+
+    # Update tenant registry
+    updated_cfg = tenant_ldap_registry.update_tenant_config(target_tenant, current)
+
+    # Also update global singleton for backward compatibility
+    ldap_connector.update_config(updated_cfg)
 
     return {
-        "system": sys,
-        "total": len(items),
-        "items": [
-            {
-                "employee_code": item.employee_code,
-                "surname": item.surname,
-                "position": item.position,
-                "initials": item.initials,
-                "display_name": item.display_name,
-                "email": item.email,
-                "department_id": item.department_id,
-                "branch_id": item.branch_id,
-                "source_system": item.source_system,
-                "scheme": item.scheme,
-            }
-            for item in items
-        ],
+        "status": "updated",
+        "tenant_id": target_tenant,
+        "client_name": updated_cfg.client_name,
+        "config": updated_cfg.masked(),
+    }
+@router.post("/directory/preset/{preset_name}")
+async def apply_directory_preset(
+    preset_name: str,
+    tenant_id: str | None = Query(default=None, description="Optional tenant/client identifier"),
+    claims = Depends(require_roles("admin_write")),
+):
+    """Apply an enterprise directory preset (active_directory, openldap, or freeipa)."""
+    target_tenant = tenant_id or "default"
+    conn = tenant_ldap_registry.get_connector(target_tenant)
+    try:
+        updated = conn.apply_preset(preset_name.lower().strip())
+        tenant_ldap_registry.update_tenant_config(target_tenant, updated)
+        ldap_connector.apply_preset(preset_name.lower().strip())
+        return {
+            "status": "preset_applied",
+            "tenant_id": target_tenant,
+            "preset": preset_name,
+            "client_name": updated.client_name,
+            "config": updated.masked(),
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+
+@router.post("/directory/test")
+async def test_directory_connection(
+    payload: LDAPTestPayload | None = None,
+    tenant_id: str | None = Query(default=None, description="Optional tenant/client identifier"),
+    claims = Depends(require_roles("admin_read")),
+):
+    """Test LDAP connectivity and authentication with diagnostics for a specific tenant."""
+    conn = tenant_ldap_registry.get_connector(tenant_id)
+    test_cfg = None
+    if payload:
+        data = conn.config.model_dump()
+        data.update(payload.model_dump(exclude_unset=True))
+        test_cfg = LDAPConfig(**data)
+    result = await conn.test_connection(test_cfg)
+    result["tenant_id"] = tenant_id or "default"
+    return result
+
+
+@router.get("/directory/search")
+async def search_directory_users(
+    q: str | None = Query(default=None, description="Search term (username, surname, position, email, or code)"),
+    department_id: str | None = Query(default=None, description="Filter by department"),
+    tenant_id: str | None = Query(default=None, description="Optional tenant/client identifier"),
+    limit: int = Query(default=50, ge=1, le=200),
+    claims = Depends(require_roles("admin_read")),
+):
+    """Search users from the configured client LDAP / Active Directory."""
+    conn = tenant_ldap_registry.get_connector(tenant_id or department_id)
+    users = await conn.search_users(query=q or "", department_id=department_id, limit=limit)
+    return {
+        "tenant_id": tenant_id or "default",
+        "client_name": conn.config.client_name,
+        "total": len(users),
+        "items": [u.to_dict() for u in users],
     }
 
 
-@router.post("/hr/external/import")
-async def import_external_hr_identity(
-    payload: ExternalHRImportPayload,
+@router.post("/directory/import")
+async def import_directory_user(
+    payload: DirectoryImportPayload,
     session: AsyncSession = Depends(get_session),
     claims = Depends(require_roles("admin_write")),
 ):
-    """Import an authoritative identity from SITA Employee System or PERSAL into the platform.
+    """Import a user from the enterprise LDAP directory into platform Person and optional User account."""
+    conn = tenant_ldap_registry.get_connector(payload.tenant_id or payload.department_id)
+    code = payload.username_or_code.strip()
+    dir_user = await conn.lookup_by_code(code)
+    if dir_user is None:
+        raise HTTPException(status_code=404, detail=f"User '{code}' not found in client LDAP directory.")
 
-    Saves ONLY surname, position, and employee code. Rejects/scrubs all other HR data.
-    """
-    sys = payload.system.lower().strip()
-    code = payload.employee_code.strip()
-
-    external_identity: ExternalHRIdentity | None = None
-    if sys in ("sita", "sita-hcm", "sita-sap-hcm"):
-        external_identity = await sita_employee_api.lookup(code)
-    elif sys in ("persal", "gov"):
-        external_identity = await persal_api.lookup(code)
-    else:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Unknown external HR system '{payload.system}'. Valid systems: 'sita', 'persal'.",
-        )
-
-    if external_identity is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Employee '{code}' not found in external system '{payload.system}'.",
-        )
-
-    # Check if person already exists locally
+    # Find or create Person
     person = (
         await session.execute(
-            select(Person).where(Person.employee_number == external_identity.employee_code)
+            select(Person).where(Person.employee_number == dir_user.employee_code)
         )
     ).scalar_one_or_none()
+
+    dept = payload.department_id or dir_user.department_id
+    branch = payload.branch_id or dir_user.branch_id
 
     if person is None:
         person = Person(
             id=str(uuid.uuid4()),
-            employee_number=external_identity.employee_code,
-            surname=external_identity.surname,
-            initials=external_identity.initials,
-            display_name=external_identity.display_name or f"{external_identity.initials or ''} {external_identity.surname}".strip(),
-            job_title=external_identity.position,
-            email=external_identity.email,
-            department_id=external_identity.department_id,
-            branch_id=external_identity.branch_id,
-            source=external_identity.source_system,
+            employee_number=dir_user.employee_code,
+            surname=dir_user.surname,
+            initials=dir_user.initials,
+            display_name=dir_user.display_name,
+            job_title=dir_user.position,
+            email=dir_user.email,
+            department_id=dept,
+            branch_id=branch,
+            source="ldap",
             is_active=True,
         )
         session.add(person)
@@ -1574,19 +1763,56 @@ async def import_external_hr_identity(
         await _record_employment_identifier(
             session,
             person,
-            scheme=external_identity.scheme,
-            value=external_identity.employee_code,
-            source_system=external_identity.source_system,
+            scheme=SCHEME_LDAP,
+            value=dir_user.employee_code or dir_user.username,
+            source_system="ldap",
         )
     else:
-        # Update strictly the minimal fields
-        person.surname = external_identity.surname
-        person.job_title = external_identity.position
-        person.initials = external_identity.initials
-        person.display_name = external_identity.display_name or person.display_name
-        if external_identity.email:
-            person.email = external_identity.email
+        person.surname = dir_user.surname
+        person.job_title = dir_user.position
+        person.initials = dir_user.initials
+        person.display_name = dir_user.display_name or person.display_name
+        person.source = "ldap"
+        if dir_user.email:
+            person.email = dir_user.email
+        if dept:
+            person.department_id = dept
+        if branch:
+            person.branch_id = branch
         await session.flush()
+
+    user_out = None
+    if payload.create_user_account and dir_user.email:
+        # Check if user account already exists
+        user = (
+            await session.execute(select(User).where(User.email == dir_user.email.lower().strip()))
+        ).scalar_one_or_none()
+        roles_to_assign = payload.assigned_roles or dir_user.suggested_roles or ["soc"]
+        if user is None:
+            user = User(
+                id=str(uuid.uuid4()),
+                email=dir_user.email.lower().strip(),
+                password_hash=hash_password(f"LdapSync#{uuid.uuid4().hex[:8]}!"),
+                display_name=dir_user.display_name,
+                roles=roles_to_assign,
+                department_ids=[dept] if dept else [],
+                branch_ids=[branch] if branch else [],
+                province_ids=[],
+                person_id=person.id,
+                is_active=True,
+            )
+            session.add(user)
+        else:
+            user.display_name = dir_user.display_name
+            user.person_id = person.id
+            if payload.assigned_roles:
+                user.roles = payload.assigned_roles
+            if dept:
+                user.department_ids = [dept]
+            if branch:
+                user.branch_ids = [branch]
+        await session.flush()
+        user_out = {"id": user.id, "email": user.email, "roles": user.roles}
 
     await session.commit()
     return {
@@ -1598,5 +1824,6 @@ async def import_external_hr_identity(
         "department_id": person.department_id,
         "branch_id": person.branch_id,
         "email": person.email,
-        "source": person.source,
+        "source": "ldap",
+        "user_account": user_out,
     }

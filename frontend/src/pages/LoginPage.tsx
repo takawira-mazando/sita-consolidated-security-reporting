@@ -1,24 +1,13 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import { LoginScope } from '../api/auth';
 import type { DemoAccount } from '../types';
+import { useDemoMode } from '../context/DemoContext';
+import PlatformBrand from '../components/layout/PlatformBrand';
 
 interface LoginPageProps {
   onClose?: () => void;
 }
-
-// DHA branches — static list matching backend BRANCHES for the pre-login
-// persona selector.
-const DHA_BRANCHES: { id: string; name: string }[] = [
-  { id: 'dha-civic',       name: 'Civic Services' },
-  { id: 'dha-digital',     name: 'Information Services (CIO)' },
-  { id: 'dha-immigration', name: 'Immigration Services' },
-  { id: 'dha-operations',  name: 'Operations' },
-  { id: 'dha-hrmd',        name: 'Human Resource Management and Development' },
-  { id: 'dha-ccss',        name: 'Counter Corruption and Security Services' },
-  { id: 'dha-finance',     name: 'Finance and Supply Chain Management' },
-  { id: 'dha-planning',    name: 'Institutional Planning and Support' },
-];
 
 interface RolePlaneMeta {
   plane: 'control' | 'data';
@@ -26,93 +15,68 @@ interface RolePlaneMeta {
   shortLabel: string;
   scopeBadge: string;
   desc: string;
+  targetPath: string;
+  cockpitLabel: string;
 }
 
 const ROLE_PLANE_MAP: Record<string, RolePlaneMeta> = {
-  // ── Control Plane (Administrative & Provisioning Tiers 5 → 1) ─────────────
+  // ── Administration & Governance ──────────────────────────────────────────
   'operator': {
     plane: 'control',
-    tierBadge: 'Tier 5',
+    tierBadge: 'Root Operator',
     shortLabel: 'Platform Creator (Root)',
     scopeBadge: 'Platform Provider Root',
-    desc: 'Platform MSP root credentials. Provisions SITA Command Center superuser & peer operators only. Zero live telemetry views.',
+    desc: 'Platform provider access for creating client organization profiles and managing their lifecycle.',
+    targetPath: '/sita/admin',
+    cockpitLabel: 'Client profile administration',
   },
   'admin': {
     plane: 'control',
-    tierBadge: 'Tier 4',
-    shortLabel: 'SITA Platform Superadmin',
-    scopeBadge: 'National Command Center',
-    desc: 'Estate root administrator. Provisions transversal & departmental tiers across ~173 organs of state. Zero raw telemetry views.',
+    tierBadge: 'Superadmin',
+    shortLabel: 'Client MSSP Superadmin',
+    scopeBadge: 'Client workspace',
+    desc: 'Client administrator. Configures tenant structures, custom roles, and scoped dashboard assignments for this organization.',
+    targetPath: '/national/admin',
+    cockpitLabel: 'Tenant administration · Custom structure & dashboard access',
   },
-  'transversal-admin': {
-    plane: 'control',
-    tierBadge: 'Tier 3',
-    shortLabel: 'Transversal Superadmin',
-    scopeBadge: 'Assigned Organs of State',
-    desc: 'Cross-department governance spanning assigned client departments; provisions Department Superadmins. Administrative control plane only.',
-  },
-  'deptadmin-ha': {
-    plane: 'control',
-    tierBadge: 'Tier 2',
-    shortLabel: 'DHA Dept Superadmin',
-    scopeBadge: 'Department Scope (Home Affairs)',
-    desc: 'Home Affairs department control plane. Configures connectors & provisions Branch Admins and operational analysts for DHA.',
-  },
-  'branchadmin-ha': {
-    plane: 'control',
-    tierBadge: 'Tier 1',
-    shortLabel: 'DHA Branch Admin',
-    scopeBadge: 'Branch Subtree (DDG Unit)',
-    desc: 'Subtree-locked branch administrator. Provisions operational specialists strictly within its DDG branch (e.g. dha-digital).',
-  },
-
-  // ── Data Plane (Security Intelligence & Telemetry Cockpits) ───────────────
+  // ── Security Intelligence & Operations Dashboards ───────────────────────────
   'exec': {
     plane: 'data',
-    tierBadge: 'Tier 3',
-    shortLabel: 'Executive / National CISO',
-    scopeBadge: 'Republic-wide Consolidated',
-    desc: 'Executive cockpit. Strategic threat posture, blended risk scores, and AGSA compliance. Low-level CVEs and sinks scrubbed by Layer 4.',
+    tierBadge: 'Executive Posture',
+    shortLabel: 'Executive CISO / Risk Lead',
+    scopeBadge: 'Estate-wide Consolidated Posture',
+    desc: 'Executive Dashboard: Strategic threat posture, blended risk scores (CVSS × Exposure × Blast Radius), Application Risk Heatmap, and CISO intelligence.',
+    targetPath: '/national/exec',
+    cockpitLabel: 'Executive Threat Posture & Blended Risk Dashboard',
   },
   'compliance': {
     plane: 'data',
-    tierBadge: 'Tier 3',
-    shortLabel: 'Compliance Officer / AGSA',
-    scopeBadge: 'National Assurance Scope',
-    desc: 'POPIA s.22 breach window telemetry, ISO 27001 control gaps, and ECDSA NIST P-256 PKI digital signing. App names masked to counts.',
+    tierBadge: 'Assurance Officer',
+    shortLabel: 'Compliance & Audit Officer',
+    scopeBadge: 'Regulatory Assurance Scope',
+    desc: 'Compliance Dashboard: Statutory assurance, POPIA s.22 / GDPR 72h breach window telemetry, ISO 27001 audit readiness, and privacy audit logs.',
+    targetPath: '/national/compliance',
+    cockpitLabel: 'Statutory Compliance & Regulatory Assurance Dashboard',
   },
   'sre': {
     plane: 'data',
-    tierBadge: 'Tier 3',
-    shortLabel: 'Service Reliability Engineer',
-    scopeBadge: 'Estate-wide Telemetry',
-    desc: 'Platform uptime, connector health, rate-limiting tokens, dead-letter queue operations, and circuit-breaker telemetry.',
-  },
-  'soc-ha': {
-    plane: 'data',
-    tierBadge: 'Tier 1',
-    shortLabel: 'SOC Security Analyst',
-    scopeBadge: 'DHA Operational Scope',
-    desc: 'Real-time telemetry, Imperva DAM/WAF alert clusters, MITRE ATT&CK technique tags (T1190), and D3FEND countermeasures.',
-  },
-  'appsec-ha': {
-    plane: 'data',
-    tierBadge: 'Tier 1',
-    shortLabel: 'AppSec Engineer',
-    scopeBadge: 'DHA Operational Scope',
-    desc: 'OWASP Top 10 vulnerabilities, CWE traces, AppScan SAST/DAST telemetry, CVE identifiers, and actionable patch diffs.',
-  },
-  'dbsec-ha': {
-    plane: 'data',
-    tierBadge: 'Tier 1',
-    shortLabel: 'Database Security Specialist',
-    scopeBadge: 'DHA Operational Scope',
-    desc: 'Database Activity Monitoring (DAM), SQL injection clusters, Cassandra/PostgreSQL audits, and POPIA data breach window estimates.',
+    tierBadge: 'Service Ops Lead',
+    shortLabel: 'Service Operations Lead (SRE)',
+    scopeBadge: 'Telemetry Pipeline Observability',
+    desc: 'Service Ops Dashboard: Universal log ingestion rates (EPS), connector telemetry, dead-letter queues, rate limits, and platform reliability metrics.',
+    targetPath: '/sre',
+    cockpitLabel: 'Service Reliability & Telemetry Pipeline Dashboard',
   },
 };
 
 function getRoleMeta(account: DemoAccount): RolePlaneMeta {
-  if (ROLE_PLANE_MAP[account.role]) return ROLE_PLANE_MAP[account.role];
+  if (ROLE_PLANE_MAP[account.role]) {
+    const meta = ROLE_PLANE_MAP[account.role];
+    if (account.role === 'admin') {
+      return { ...meta, shortLabel: 'Client MSSP Superadmin' };
+    }
+    return meta;
+  }
   const role = account.role.toLowerCase();
   const isCtrl =
     role.includes('admin') ||
@@ -120,35 +84,72 @@ function getRoleMeta(account: DemoAccount): RolePlaneMeta {
 
   return {
     plane: isCtrl ? 'control' : 'data',
-    tierBadge: isCtrl ? 'Admin' : 'Cockpit',
-    shortLabel: account.label.replace(' (Home Affairs)', ''),
-    scopeBadge: isCtrl ? 'Control Plane Scope' : 'Data Plane Scope',
+    tierBadge: isCtrl ? 'Admin' : 'Dashboard',
+    shortLabel: account.label.replace(' (Home Affairs)', '').replace('SITA ', 'Tenant '),
+    scopeBadge: isCtrl ? 'Administration Scope' : 'Operations Scope',
     desc: isCtrl
-      ? 'Delegated administration & user provisioning down the tenancy tree.'
-      : 'Live security telemetry & cockpit. Output claims evaluated by Layer 4 RBAC.',
+      ? 'Tenant platform administration and IAM provisioning.'
+      : 'Role-scoped access to the client dashboards and data assigned to this account.',
+    targetPath: isCtrl ? '/national/admin' : '/national/soc',
+    cockpitLabel: isCtrl ? 'Administration · Multi-Tenant Node & IAM Provisioning' : 'Security Intelligence Dashboard',
   };
 }
 
 export default function LoginPage({ onClose }: LoginPageProps) {
-  const { login, loginDemo, demoAccounts } = useAuth();
+  const navigate = useNavigate();
+  const { demoMode } = useDemoMode();
+  const showLocalDemos = demoMode
+    && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const { login, loginDemo, demoAccounts, refreshDemoAccounts } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [demoAccountsLoading, setDemoAccountsLoading] = useState(showLocalDemos);
+  const [demoAccountsError, setDemoAccountsError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
-  const [branch, setBranch] = useState<string>('');
   const [planeFilter, setPlaneFilter] = useState<'all' | 'control' | 'data'>('all');
+  const [isDark, setIsDark] = useState(() => document.body.dataset.theme !== 'light');
+
+  const loadDemoAccounts = useCallback(async (isActive: () => boolean = () => true) => {
+    setDemoAccountsLoading(true);
+    setDemoAccountsError('');
+    try {
+      const accounts = await refreshDemoAccounts();
+      if (isActive()) {
+        setDemoAccountsError('');
+      }
+    } catch (error) {
+      console.error('Failed to load local demo accounts', error);
+      if (isActive()) {
+        setDemoAccountsError('Local demo accounts could not be loaded. Confirm the backend is running, then retry.');
+      }
+    } finally {
+      if (isActive()) setDemoAccountsLoading(false);
+    }
+  }, [refreshDemoAccounts]);
+
+  useEffect(() => {
+    if (!showLocalDemos) return;
+    let active = true;
+    void loadDemoAccounts(() => active);
+    return () => {
+      active = false;
+    };
+  }, [showLocalDemos, loadDemoAccounts]);
+
+  const toggleTheme = () => {
+    const next = isDark ? 'light' : 'dark';
+    document.body.dataset.theme = next;
+    localStorage.setItem('platform_theme', next);
+    setIsDark(!isDark);
+  };
 
   const selectedAccount: DemoAccount | null =
-    demoAccounts.find((a) => a.role === selectedRole) ?? null;
+    showLocalDemos ? demoAccounts.find((a) => a.role === selectedRole) ?? null : null;
 
   const selectedMeta: RolePlaneMeta | null =
     selectedAccount ? getRoleMeta(selectedAccount) : null;
-
-  const personaScope = (): LoginScope | undefined => {
-    if (branch) return { department_id: 'home-affairs-digital', branch_id: branch, province_id: null };
-    return undefined;
-  };
 
   const closeOverlay = () => {
     document.body.style.overflow = '';
@@ -161,13 +162,15 @@ export default function LoginPage({ onClose }: LoginPageProps) {
     setLoading(true);
     try {
       let result;
-      if (selectedAccount) {
-        result = await loginDemo(selectedAccount.role, personaScope());
+      if (selectedAccount && !selectedAccount.password) {
+        result = await loginDemo(selectedAccount.role);
       } else {
         result = await login(email, password);
       }
       if (result.ok) {
         closeOverlay();
+        const target = selectedMeta?.targetPath ?? '/';
+        navigate(target);
       } else {
         setError(result.error || 'Login failed');
       }
@@ -181,21 +184,19 @@ export default function LoginPage({ onClose }: LoginPageProps) {
   const selectPersona = (account: DemoAccount) => {
     setSelectedRole(account.role);
     setEmail(account.email);
-    setPassword(''); // demo login uses loginDemo() — no password needed client-side
-    setBranch('');
+    setPassword(account.password ?? '');
     setError('');
   };
 
-  // Filter out redundant alias shims (soc@, appsec@, dbsec@, deptadmin@, branchadmin@)
-  // when canonical DHA versions exist, giving exactly 11 authoritative personas.
-  const canonicalAccounts = demoAccounts.filter((a) => {
+  // Keep the development-only role shortcuts separate from client sign-in.
+  const canonicalAccounts = (showLocalDemos ? demoAccounts : []).filter((a) => {
     if (['soc', 'appsec', 'dbsec', 'dept-admin', 'branch-admin'].includes(a.role)) {
       return false;
     }
     return true;
   });
 
-  // Segregate demo accounts into Control Plane vs Data Plane
+  // Group local demo shortcuts by access type.
   const controlAccounts = canonicalAccounts.filter((a) => getRoleMeta(a).plane === 'control');
   const dataAccounts = canonicalAccounts.filter((a) => getRoleMeta(a).plane === 'data');
 
@@ -218,21 +219,22 @@ export default function LoginPage({ onClose }: LoginPageProps) {
           <button type="button" className="overlay-close" onClick={onClose} aria-label="Close">&times;</button>
         )}
         <div className="login-header">
+          <button type="button" className="login-theme-toggle" onClick={toggleTheme}>
+            {isDark ? '☀ Light' : '🌙 Dark'}
+          </button>
           <div className="login-logo-mark">
-            <img className="login-logo-img" src="/sita-logo.gif" alt="SITA" />
+            <PlatformBrand className="platform-brand-login" />
           </div>
-          <div className="login-title">Unified Security Intelligence Platform</div>
-          <div className="login-sub">Sovereign 14-Role Multi-Tenancy · Sign In to Continue</div>
         </div>
 
         <form className="login-body" onSubmit={handleLogin}>
           <div className="form-field">
-            <label className="form-label" htmlFor="loginEmail">Email address</label>
+            <label className="form-label" htmlFor="loginEmail">Client email address</label>
             <input
               type="email"
               className="form-input"
               id="loginEmail"
-              placeholder="you@example.com"
+              placeholder="you@organization.example"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -257,231 +259,235 @@ export default function LoginPage({ onClose }: LoginPageProps) {
             />
           </div>
 
-          <div className="login-hint" style={{ marginTop: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>
-                🔑 Select Authority Plane &amp; Persona:
-              </span>
-              <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>
-                One-click authenticated access
-              </span>
-            </div>
-
-            {/* Plane Switcher Filter */}
-            <div className="plane-toggle-bar">
-              <button
-                id="planeToggleAll"
-                type="button"
-                className={`plane-toggle-btn${planeFilter === 'all' ? ' active' : ''}`}
-                onClick={() => setPlaneFilter('all')}
-              >
-                All Roles ({canonicalAccounts.length})
-              </button>
-              <button
-                id="planeToggleControl"
-                type="button"
-                className={`plane-toggle-btn control${planeFilter === 'control' ? ' active' : ''}`}
-                onClick={() => setPlaneFilter('control')}
-              >
-                <span>⚙️</span> Control Plane ({controlAccounts.length})
-              </button>
-              <button
-                id="planeToggleData"
-                type="button"
-                className={`plane-toggle-btn data${planeFilter === 'data' ? ' active' : ''}`}
-                onClick={() => setPlaneFilter('data')}
-              >
-                <span>🛡️</span> Data Plane ({dataAccounts.length})
-              </button>
-            </div>
-
-            {/* ── CONTROL PLANE SECTION ───────────────────────────────────── */}
-            {(planeFilter === 'all' || planeFilter === 'control') && (
-              <div className="plane-card-section control-plane">
-                <div className="plane-section-header">
-                  <div className="plane-section-title control">
-                    <span>⚙️</span> Control Plane · Administrative Tiers
+          {showLocalDemos && (demoAccountsLoading || Boolean(demoAccountsError) || canonicalAccounts.length > 0) && (
+            <details className="login-demo-access">
+              <summary>
+                <span>Local demo accounts</span>
+                <span className="login-demo-count">
+                  {demoAccountsLoading ? 'Loading…' : demoAccountsError ? 'Unavailable' : `${canonicalAccounts.length} available`}
+                </span>
+              </summary>
+              <div className="login-hint">
+                {demoAccountsLoading && <div role="status">Loading local demo accounts…</div>}
+                {demoAccountsError && (
+                  <div role="alert">
+                    {demoAccountsError}{' '}
+                    <button type="button" onClick={() => void loadDemoAccounts()}>Retry</button>
                   </div>
-                  <span className="plane-section-badge control">
-                    Zero Live Telemetry · Sovereign Provisioning
-                  </span>
-                </div>
-                <div className="plane-section-rule">
-                  Delegated authority flows strictly downward (Tier 5 → 1). Manages users and tenancy boundaries.
-                </div>
-                <div className="plane-chips-container">
-                  {controlAccounts.map((account) => {
-                    const meta = getRoleMeta(account);
-                    const isSelected = selectedRole === account.role;
-                    return (
-                      <button
-                        key={account.role}
-                        type="button"
-                        className={`plane-chip control${isSelected ? ' selected' : ''}`}
-                        title={`${account.label} — ${meta.desc}`}
-                        onClick={() => selectPersona(account)}
-                      >
-                        <span className="chip-tier-tag">{meta.tierBadge}</span>
-                        <span className="chip-email-tag">{account.email.split('@')[0]}@</span>
-                        <span className="chip-label-tag">· {meta.shortLabel}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* ── DATA PLANE SECTION ───────────────────────────────────────── */}
-            {(planeFilter === 'all' || planeFilter === 'data') && (
-              <div className="plane-card-section data-plane">
-                <div className="plane-section-header">
-                  <div className="plane-section-title data">
-                    <span>🛡️</span> Data Plane · Security Cockpits
+                )}
+                <div hidden={demoAccountsLoading || Boolean(demoAccountsError) || canonicalAccounts.length === 0}>
+                  <div className="login-demo-intro">
+                    {selectedAccount?.password
+                      ? 'Email and password filled in above. Click sign in to continue.'
+                      : 'Click an account to fill the sign-in fields. For normal access, use your client credentials above.'}
                   </div>
-                  <span className="plane-section-badge data">
-                    Live OEM Telemetry · Layer 4 AI Claim-Gated
-                  </span>
-                </div>
-                <div className="plane-section-rule">
-                  Real-time security telemetry from AppScan, Imperva DAM/WAF &amp; compliance warehouse.
-                </div>
 
-                {/* National Strategic Sub-group */}
-                <div style={{ marginBottom: '6px' }}>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                    🏛️ National Strategic &amp; Assurance (Tier 3)
-                  </div>
-                  <div className="plane-chips-container">
-                    {nationalDataAccounts.map((account) => {
-                      const meta = getRoleMeta(account);
-                      const isSelected = selectedRole === account.role;
-                      return (
-                        <button
-                          key={account.role}
-                          type="button"
-                          className={`plane-chip data${isSelected ? ' selected' : ''}`}
-                          title={`${account.label} — ${meta.desc}`}
-                          onClick={() => selectPersona(account)}
-                        >
-                          <span className="chip-tier-tag">{meta.tierBadge}</span>
-                          <span className="chip-email-tag">{account.email.split('@')[0]}@</span>
-                          <span className="chip-label-tag">· {meta.shortLabel}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Specialized Ops Sub-group */}
-                <div>
-                  <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>
-                    🔬 Specialized Operational Security · Home Affairs Testbed (Tier 1)
-                  </div>
-                  <div className="plane-chips-container">
-                    {operationalDataAccounts.map((account) => {
-                      const meta = getRoleMeta(account);
-                      const isSelected = selectedRole === account.role;
-                      return (
-                        <button
-                          key={account.role}
-                          type="button"
-                          className={`plane-chip data${isSelected ? ' selected' : ''}`}
-                          title={`${account.label} — ${meta.desc}`}
-                          onClick={() => selectPersona(account)}
-                        >
-                          <span className="chip-tier-tag">{meta.tierBadge}</span>
-                          <span className="chip-email-tag">{account.email.split('@')[0]}@</span>
-                          <span className="chip-label-tag">· {meta.shortLabel}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Active Selected Persona Callout Banner */}
-            {selectedAccount && selectedMeta && (
-              <div className={`login-plane-active-callout ${selectedMeta.plane}`}>
-                <div className="login-plane-active-callout-header">
-                  <span className={`login-plane-active-callout-title ${selectedMeta.plane}`}>
-                    <span>{selectedMeta.plane === 'control' ? '⚙️' : '🛡️'}</span>
-                    {selectedMeta.plane === 'control' ? 'Control Plane Active' : 'Data Plane Active'} · {selectedMeta.tierBadge}
-                  </span>
-                  <span style={{ fontSize: '10.5px', fontFamily: 'var(--mono)', color: 'var(--text-primary)', fontWeight: 600 }}>
-                    {selectedAccount.email}
-                  </span>
-                </div>
-                <div style={{ color: 'var(--text-secondary)', fontSize: '11px', marginTop: '2px' }}>
-                  {selectedMeta.desc}
-                </div>
-              </div>
-            )}
-
-            {/* Tenancy Scope Selector (DHA Live Testbed) */}
-            {selectedAccount && selectedAccount.department_ids?.includes('home-affairs-digital') && (
-              <span className="login-scope" style={{ marginTop: '8px' }}>
-                <label className="login-scope-label" htmlFor="loginScopeBranch">
-                  🏛️ Tenancy Scope: Department of Home Affairs
-                  <em className="login-scope-default">
-                    (Live Demo Tenant · 8 Active Branches)
-                  </em>
-                </label>
-                <span className="login-scope-row">
-                  <select
-                    id="loginScopeBranch"
-                    className="form-input"
-                    value={branch}
-                    onChange={(e) => setBranch(e.target.value)}
+                  <div className="plane-toggle-bar">
+                  <button
+                    id="planeToggleAll"
+                    type="button"
+                    className={`plane-toggle-btn${planeFilter === 'all' ? ' active' : ''}`}
+                    onClick={() => setPlaneFilter('all')}
                   >
-                    <option value="">Whole department (All 8 DHA branches)</option>
-                    {DHA_BRANCHES.map((b) => (
-                      <option key={b.id} value={b.id}>
-                        Branch: {b.name}
-                      </option>
-                    ))}
-                  </select>
-                </span>
-                <span className="login-scope-summary">
-                  {selectedMeta?.plane === 'control'
-                    ? 'Provisions users and administrators strictly within selected branch boundary'
-                    : 'Telemetry and findings scoped strictly to selected branch subtree'}
-                </span>
-              </span>
-            )}
+                    All demo accounts ({canonicalAccounts.length})
+                  </button>
+                  <button
+                    id="planeToggleControl"
+                    type="button"
+                    className={`plane-toggle-btn control${planeFilter === 'control' ? ' active' : ''}`}
+                    onClick={() => setPlaneFilter('control')}
+                  >
+                    Platform &amp; client admins ({controlAccounts.length})
+                  </button>
+                  <button
+                    id="planeToggleData"
+                    type="button"
+                    className={`plane-toggle-btn data${planeFilter === 'data' ? ' active' : ''}`}
+                    onClick={() => setPlaneFilter('data')}
+                  >
+                    Client users ({dataAccounts.length})
+                  </button>
+                  </div>
 
-            {selectedAccount && (!selectedAccount.department_ids || selectedAccount.department_ids.length === 0) && (
-              <div style={{ marginTop: '6px', fontSize: '0.8rem', color: 'var(--accent)', textAlign: 'center' }}>
-                🌐 <strong>Estate-wide Scope</strong> — Republic-wide access across all 173 national and provincial organs of state
+                  {(planeFilter === 'all' || planeFilter === 'control') && (
+                  <div className="plane-card-section control-plane">
+                    <div className="plane-section-header">
+                      <div className="plane-section-title control">
+                        <span>⚙️</span> Platform &amp; client administration
+                      </div>
+                      <span className="plane-section-badge control">
+                        Provider and client administrator previews
+                      </span>
+                    </div>
+                    <div className="plane-section-rule">
+                      The platform operator manages client profiles. Each client administrator manages their own organization’s tenant structure and access.
+                    </div>
+                    <div className="plane-chips-container">
+                      {controlAccounts.map((account) => {
+                        const meta = getRoleMeta(account);
+                        const isSelected = selectedRole === account.role;
+                        return (
+                          <button
+                            key={account.role}
+                            type="button"
+                            className={`plane-chip control${isSelected ? ' selected' : ''}`}
+                            aria-pressed={isSelected}
+                            title={`${account.label} — ${meta.desc}`}
+                            onClick={() => selectPersona(account)}
+                          >
+                            <span className="chip-tier-tag">{meta.tierBadge}</span>
+                            <span className="chip-email-tag">{account.email}</span>
+                            <span className="chip-label-tag">· {meta.shortLabel}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  )}
+
+                  {(planeFilter === 'all' || planeFilter === 'data') && (
+                  <div className="plane-card-section data-plane">
+                    <div className="plane-section-header">
+                      <div className="plane-section-title data">
+                        <span>🛡️</span> MSSP client users
+                      </div>
+                      <span className="plane-section-badge data">
+                        Sample role-scoped client access
+                      </span>
+                    </div>
+                    <div className="plane-section-rule">
+                      Client team members sign in to the workspace and dashboards assigned by their organization’s administrator.
+                    </div>
+
+                    <div className="login-demo-subgroup">
+                      <div className="login-demo-subgroup-title">Leadership &amp; assurance</div>
+                      <div className="plane-chips-container">
+                        {nationalDataAccounts.map((account) => {
+                          const meta = getRoleMeta(account);
+                          const isSelected = selectedRole === account.role;
+                          return (
+                            <button
+                              key={account.role}
+                              type="button"
+                              className={`plane-chip data${isSelected ? ' selected' : ''}`}
+                              aria-pressed={isSelected}
+                              title={`${account.label} — ${meta.desc}`}
+                              onClick={() => selectPersona(account)}
+                            >
+                              <span className="chip-tier-tag">{meta.tierBadge}</span>
+                              <span className="chip-email-tag">{account.email}</span>
+                              <span className="chip-label-tag">· {meta.shortLabel}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="login-demo-subgroup">
+                      <div className="login-demo-subgroup-title">Client dashboard users</div>
+                      <div className="plane-chips-container">
+                        {operationalDataAccounts.map((account) => {
+                          const meta = getRoleMeta(account);
+                          const isSelected = selectedRole === account.role;
+                          return (
+                            <button
+                              key={account.role}
+                              type="button"
+                              className={`plane-chip data${isSelected ? ' selected' : ''}`}
+                              aria-pressed={isSelected}
+                              title={`${account.label} — ${meta.desc}`}
+                              onClick={() => selectPersona(account)}
+                            >
+                              <span className="chip-tier-tag">{meta.tierBadge}</span>
+                              <span className="chip-email-tag">{account.email}</span>
+                              <span className="chip-label-tag">· {meta.shortLabel}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  )}
+
+                  {selectedAccount && selectedMeta && (
+                  <div className={`login-plane-active-callout ${selectedMeta.plane}`}>
+                    <div className="login-plane-active-callout-header">
+                      <span className={`login-plane-active-callout-title ${selectedMeta.plane}`}>
+                        <span>{selectedAccount.role === 'operator' ? '⚙️' : '🛡️'}</span>
+                        {selectedAccount.role === 'operator' ? 'Platform administrator selected' : 'Client account selected'} · {selectedMeta.tierBadge}
+                      </span>
+                      <span className="login-demo-selected-email">{selectedAccount.email}</span>
+                    </div>
+                    <div className="login-demo-selected-description">{selectedMeta.desc}</div>
+                    <div className="login-demo-selected-destination">
+                      <span>Destination</span>
+                      <span>{selectedMeta.cockpitLabel}</span>
+                    </div>
+                  </div>
+                  )}
+
+                  {selectedAccount && selectedAccount.role === 'operator' && (
+                  <div className="login-demo-scope">
+                    Platform administration for managing client organization profiles.
+                  </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+            </details>
+          )}
 
           {error && <div className="login-error" id="loginError">{error}</div>}
 
           <button
             type="submit"
-            className={`login-btn${
-              selectedMeta
+            className={`login-btn${selectedMeta
                 ? selectedMeta.plane === 'control'
                   ? ' login-btn-control'
                   : ' login-btn-data'
                 : ''
-            }`}
+              }`}
             disabled={loading}
           >
             {loading
               ? '⏳ Signing in…'
               : selectedAccount && selectedMeta
-              ? selectedMeta.plane === 'control'
-                ? `Sign In to Control Plane · ${selectedMeta.shortLabel} (${selectedAccount.email.split('@')[0]}@)`
-                : `Sign In to Data Plane · ${selectedMeta.shortLabel} (${selectedAccount.email.split('@')[0]}@)`
-              : 'Sign In to Dashboard'}
+                ? `Open ${selectedAccount.role === 'operator' ? 'platform admin' : 'client'} demo`
+                : 'Sign in'}
           </button>
 
-          <span className="login-demo-line" style={{ textAlign: 'center', display: 'block', marginTop: '10px' }}>
-            Multi-tenancy enforced at API, DB, and AI layers simultaneously · Click any persona above
-          </span>
+          <div style={{
+            marginTop: '14px',
+            paddingTop: '10px',
+            borderTop: '1px solid var(--border-dim)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '11px',
+            color: 'var(--text-muted)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                aria-hidden="true"
+                style={{
+                  width: 16,
+                  height: 16,
+                  display: 'grid',
+                  placeItems: 'center',
+                  border: '1px solid var(--sita-copper)',
+                  borderRadius: 4,
+                  color: 'var(--sita-copper)',
+                  fontSize: 10,
+                  fontWeight: 700,
+                }}
+              >
+                H
+              </span>
+              <span>Engineered by <strong>HOSI Technologies</strong></span>
+            </div>
+            <span style={{ fontFamily: 'var(--mono)', color: '#D67D4A', fontWeight: 600 }}>
+              HOSI Brand OS
+            </span>
+          </div>
         </form>
       </div>
     </div>

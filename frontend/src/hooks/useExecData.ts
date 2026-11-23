@@ -22,23 +22,23 @@ import type { Tone } from '../data/mappers';
 export function useExecData() {
   const summary = useApi(useDemoAwareFetcher(
     () => fetchDashboardSummary(),
-    (branchId) => fetchDemoPublicSummary(branchId)
+    () => fetchDemoPublicSummary()
   ));
   const findings = useApi(useDemoAwareFetcher(
     () => fetchFindings({ size: 200 }),
-    (branchId) => fetchDemoFindings({ size: 200, branch_id: branchId })
+    () => fetchDemoFindings({ size: 200 })
   ));
   const risks = useApi(useDemoAwareFetcher(
     () => fetchRisks({ size: 100 }),
-    (branchId) => fetchDemoRisks({ size: 100, branch_id: branchId })
+    () => fetchDemoRisks({ size: 100 })
   ));
   const popia = useApi(useDemoAwareFetcher(
     () => fetchCompliance('popia'),
-    (branchId) => fetchDemoCompliance(branchId)
+    () => fetchDemoCompliance()
   ));
   const iso = useApi(useDemoAwareFetcher(
     () => fetchCompliance('iso_27001'),
-    (branchId) => fetchDemoCompliance(branchId)
+    () => fetchDemoCompliance()
   ));
   const alerts = useApi(useDemoAwareFetcher(
     () => fetchAlerts({ size: 50 }),

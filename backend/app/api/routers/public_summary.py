@@ -22,13 +22,6 @@ from app.models.metrics import (
 )
 from app.models.risk_score import RiskScore
 from app.processing import risk_engine
-from app.tenant import (
-    BRANCHES,
-    DEPARTMENTS,
-    PROVINCES,
-    PROVINCIAL_DEPARTMENTS,
-)
-
 router = APIRouter(tags=["public"])
 
 
@@ -47,16 +40,26 @@ async def public_summary(session: AsyncSession = Depends(get_session)):
     now = datetime.now(timezone.utc)
 
     total_findings = (
-        await session.execute(select(func.count()).select_from(Finding))
+        await session.execute(
+            select(func.count())
+            .select_from(Finding)
+            .where(Finding.tenant_workspace_id.is_(None))
+        )
     ).scalar_one() or 0
     open_findings = (
         await session.execute(
-            select(func.count()).select_from(Finding).where(Finding.status == "open")
+            select(func.count())
+            .select_from(Finding)
+            .where(
+                Finding.status == "open",
+                Finding.tenant_workspace_id.is_(None),
+            )
         )
     ).scalar_one() or 0
     severity_rows = (
         await session.execute(
             select(Finding.severity, func.count())
+            .where(Finding.tenant_workspace_id.is_(None))
             .group_by(Finding.severity)
             .order_by(func.count().desc())
         )
@@ -67,23 +70,46 @@ async def public_summary(session: AsyncSession = Depends(get_session)):
         (
             await session.execute(
                 select(func.count(func.distinct(RiskScore.app_name)))
+                .where(RiskScore.tenant_workspace_id.is_(None))
             )
         ).scalar_one()
         or 0
     ) or 0
-    db_rows = (await session.execute(select(DatabaseInventory))).scalars().all()
+    db_rows = (
+        await session.execute(
+            select(DatabaseInventory).where(
+                DatabaseInventory.tenant_workspace_id.is_(None)
+            )
+        )
+    ).scalars().all()
     db_total = len(db_rows)
     db_monitored = sum(1 for d in db_rows if d.monitored)
     endpoints = (
-        await session.execute(select(func.count()).select_from(ApiEndpoint))
+        await session.execute(
+            select(func.count())
+            .select_from(ApiEndpoint)
+            .where(ApiEndpoint.tenant_workspace_id.is_(None))
+        )
     ).scalar_one() or 0
-    agents = (await session.execute(select(func.count()).select_from(Agent))).scalar_one() or 0
+    agents = (
+        await session.execute(
+            select(func.count())
+            .select_from(Agent)
+            .where(Agent.tenant_workspace_id.is_(None))
+        )
+    ).scalar_one() or 0
     waf_blocks = (
-        await session.execute(select(func.count()).select_from(WafBlock))
+        await session.execute(        select(func.count())
+        .select_from(WafBlock)
+        .where(WafBlock.tenant_workspace_id.is_(None)))
     ).scalar_one() or 0
 
     latest_ingest = (
-        await session.execute(select(func.max(Finding.ingested_at)))
+        await session.execute(
+            select(func.max(Finding.ingested_at)).where(
+                Finding.tenant_workspace_id.is_(None)
+            )
+        )
     ).scalar_one()
     latest_poll = (
         await session.execute(select(func.max(ConnectorHealth.last_success_at)))
@@ -91,7 +117,11 @@ async def public_summary(session: AsyncSession = Depends(get_session)):
     latest_ingest = latest_ingest or latest_poll
 
     latest_date = (
-        await session.execute(select(func.max(RiskScore.score_date)))
+        await session.execute(
+            select(func.max(RiskScore.score_date)).where(
+                RiskScore.tenant_workspace_id.is_(None)
+            )
+        )
     ).scalar_one()
     risk_distribution: dict[str, int] = {}
     latest_bucket_rows = []
@@ -99,7 +129,10 @@ async def public_summary(session: AsyncSession = Depends(get_session)):
         latest_bucket_rows = (
             await session.execute(
                 select(RiskScore.bucket, func.count())
-                .where(RiskScore.score_date == latest_date)
+                .where(
+                    RiskScore.score_date == latest_date,
+                    RiskScore.tenant_workspace_id.is_(None),
+                )
                 .group_by(RiskScore.bucket)
             )
         ).all()
@@ -109,7 +142,10 @@ async def public_summary(session: AsyncSession = Depends(get_session)):
     trend_rows = (
         await session.execute(
             select(RiskScore.score_date, func.avg(RiskScore.fused_score))
-            .where(RiskScore.score_date >= trend_start)
+            .where(
+                RiskScore.score_date >= trend_start,
+                RiskScore.tenant_workspace_id.is_(None),
+            )
             .group_by(RiskScore.score_date)
             .order_by(RiskScore.score_date)
         )
@@ -121,6 +157,7 @@ async def public_summary(session: AsyncSession = Depends(get_session)):
 
     latest_sub = (
         select(RiskScore.app_name, func.max(RiskScore.score_date).label("md"))
+        .where(RiskScore.tenant_workspace_id.is_(None))
         .group_by(RiskScore.app_name)
         .subquery()
     )
@@ -132,6 +169,7 @@ async def public_summary(session: AsyncSession = Depends(get_session)):
                 (RiskScore.app_name == latest_sub.c.app_name)
                 & (RiskScore.score_date == latest_sub.c.md),
             )
+            .where(RiskScore.tenant_workspace_id.is_(None))
             .order_by(RiskScore.fused_score.desc())
             .limit(10)
         )
@@ -187,11 +225,5 @@ async def public_summary(session: AsyncSession = Depends(get_session)):
         "connectors": {
             "total": connector_total,
             **{k: connector_by_status.get(k, 0) for k in ("healthy", "degraded", "down")},
-        },
-        "tenancy": {
-            "departments": len(DEPARTMENTS),
-            "branches": len(BRANCHES),
-            "provinces": len(PROVINCES),
-            "provincial_departments": len(PROVINCIAL_DEPARTMENTS),
         },
     }

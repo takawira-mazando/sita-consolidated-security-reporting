@@ -103,23 +103,6 @@ class TestAlertModel:
             assert rule["window_minutes"], rule["id"]
 
 
-class TestEstateModel:
-    def test_counts_are_derived_from_the_tenancy_catalogue(self):
-        from app.tenant import BRANCHES, CLUSTERS, DEPARTMENTS, MINISTRIES, PROVINCES
-
-        estate = platform_model()["estate"]
-        assert estate["provinces"] == len(PROVINCES)
-        assert estate["departments"] == len(DEPARTMENTS)
-        assert estate["branches"] == len(BRANCHES)
-        assert estate["ministries"] == len(MINISTRIES)
-        assert estate["clusters"] == len(CLUSTERS)
-
-    def test_counts_are_nonzero(self):
-        """A zero here is how "0 departments" language creeps back in."""
-        for key, value in platform_model()["estate"].items():
-            assert value > 0, key
-
-
 class TestNarrativeFacts:
     def test_weight_summary_reports_percentages_not_fractions(self):
         summary = narrative_facts()["risk_weight_summary"]
@@ -141,12 +124,15 @@ class TestNarrativeFacts:
         assert all("_" not in label for label in labels)
         assert "cross border" in labels
 
-    def test_descriptor_carries_no_tenant_rows(self):
-        """The endpoint holds the model, not the data."""
-        assert narrative_facts()["provinces"] == 9
-        assert "departments" not in narrative_facts() or isinstance(
-            narrative_facts()["departments"], int
-        )
+    def test_descriptor_contains_no_fixed_organization_hierarchy(self):
+        assert "estate" not in platform_model()
+        assert not {
+            "provinces",
+            "departments",
+            "branches",
+            "ministries",
+            "clusters",
+        } & narrative_facts().keys()
 
 
 class TestFrontendNarrativeDoesNotRestateTheModel:

@@ -13,29 +13,19 @@ import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string; queueHint: string }> = {
-  sita: {
-    title: 'SOC Analyst — SITA Command Center Incident Response',
-    subtitle: 'Overarching · Transversal alert queue across all National and Provincial Departments, unified multi-OEM ingestion feed',
-    queueHint: 'all OEMs · transversal whole-estate · live',
+  platform: {
+    title: 'SOC Analyst Incident Response',
+    subtitle: 'Prioritized alerts, findings, and incident-response metrics.',
+    queueHint: 'authorized workspace scope · live',
   },
-  national: {
-    title: 'SOC Analyst — National Incident Response',
-    subtitle: 'Strategic · Estate-wide alert queue, top incident regions, unified feed from all OEMs',
-    queueHint: 'all OEMs · estate-wide · live',
-  },
-  dept: {
-    title: 'SOC Analyst — Department Incident Response',
-    subtitle: 'Tactical · Department incident queue, WAF blocks and SOC SLO metrics',
-    queueHint: 'dept scope · live',
-  },
-  branch: {
-    title: 'SOC Analyst — Branch Incident Response',
-    subtitle: 'Granular · Branch alert queue and local unit incidents',
-    queueHint: 'branch scope · live',
+  workspace: {
+    title: 'SOC Analyst Incident Response',
+    subtitle: 'Prioritized alerts, findings, and incident-response metrics.',
+    queueHint: 'authorized workspace scope · live',
   },
 };
 
-export default function SocDashboard({ tier = 'dept' }: { tier?: TenancyTier }) {
+export default function SocDashboard({ tier = 'workspace' }: { tier?: TenancyTier }) {
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useSocData();

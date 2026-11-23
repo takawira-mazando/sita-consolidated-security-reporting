@@ -9,7 +9,7 @@ Design & Boundaries
 -------------------
 1. Tenancy-Aware:
    Every log query is strictly bounded by ``tenant_filter(claims, Model)``,
-   ensuring department personas (e.g. DHA) only receive interpretation of their
+   ensuring tenant-scoped personas only receive interpretation of their
    own department/branch logs, while transversal roles receive estate-wide
    aggregations.
 
@@ -249,7 +249,7 @@ async def interpret_logs_with_vapt(
     province_ids = getattr(claims, "province_ids", None) or []
     caller_roles = getattr(claims, "roles", None) or []
 
-    is_transversal = any(r in ("admin", "operator", "transversal-admin", "exec") for r in caller_roles)
+    is_transversal = any(r in ("admin", "operator", "exec") for r in caller_roles)
     scope_label = (
         "National Estate (Transversal)" if is_transversal and not department_ids
         else f"Department Scope: {', '.join(department_ids)}" if department_ids
@@ -460,7 +460,7 @@ async def interpret_logs_with_vapt(
     role_insights: dict[str, Any] = {}
 
     # Technical (SOC / AppSec)
-    if any(r in ("appsec", "appsec-ha", "soc", "soc-ha", "admin", "operator", "transversal-admin") for r in caller_roles):
+    if any(r in ("appsec", "soc", "admin", "operator") for r in caller_roles):
         unique_ips = len({w.src_ip for w in waf_records if w.src_ip})
         role_insights["soc_appsec"] = {
             "authorized": True,
@@ -474,7 +474,7 @@ async def interpret_logs_with_vapt(
         role_insights["soc_appsec"] = {"authorized": False, "note": "Requires 'findings' scope (SOC / AppSec)."}
 
     # Compliance
-    if any(r in ("compliance", "exec", "deptadmin-ha", "dept-admin", "admin", "operator") for r in caller_roles):
+    if any(r in ("compliance", "exec", "admin", "operator") for r in caller_roles):
         role_insights["compliance"] = {
             "authorized": True,
             "popia_s22_breach_triggered": False,
@@ -486,7 +486,7 @@ async def interpret_logs_with_vapt(
         role_insights["compliance"] = {"authorized": False, "note": "Requires 'compliance' scope."}
 
     # Executive (Risks / Exec)
-    if any(r in ("exec", "soc", "soc-ha", "admin", "operator", "transversal-admin") for r in caller_roles):
+    if any(r in ("exec", "soc", "admin", "operator") for r in caller_roles):
         role_insights["exec_risks"] = {
             "authorized": True,
             "overall_posture": "HARDENED",

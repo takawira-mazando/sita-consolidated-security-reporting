@@ -32,7 +32,6 @@ from app.processing import compliance as compliance_engine
 from app.processing import frameworks as framework_registry
 from app.processing import owasp as owasp_taxonomy
 from app.processing import risk_engine
-from app.tenant import BRANCHES, CLUSTERS, DEPARTMENTS, MINISTRIES, PROVINCES
 
 ALERT_RULES_PATH = (Path(__file__).resolve().parent.parent / "processing" / "alert_rules.yaml").resolve()
 
@@ -97,23 +96,12 @@ def _alert_model() -> dict:
     return {"count": len(rules), "rules": rules}
 
 
-def _estate_model() -> dict:
-    return {
-        "provinces": len(PROVINCES),
-        "departments": len(DEPARTMENTS),
-        "branches": len(BRANCHES),
-        "ministries": len(MINISTRIES),
-        "clusters": len(CLUSTERS),
-    }
-
-
 def platform_model() -> dict:
     """Return the full descriptor. Pure, cached, and free of tenant data."""
     return {
         "risk_model": _risk_model(),
         "compliance_model": _compliance_model(),
         "alert_model": _alert_model(),
-        "estate": _estate_model(),
     }
 
 
@@ -171,5 +159,4 @@ def narrative_facts() -> dict:
             f"{len(not_applicable)} are recorded as assessed and not applying "
             f"({', '.join(f['id'] for f in not_applicable)})."
         ),
-        **model["estate"],
     }

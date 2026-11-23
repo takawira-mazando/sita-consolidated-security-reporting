@@ -69,6 +69,49 @@ def test_alert_fields_complete(engine):
         assert alert.get(field) is not None, f"missing {field}"
 
 
+def test_record_alert_preserves_tenant_tier_scope(engine):
+    alert = engine._build_alert(
+        {"id": "test", "severity": "high"},
+        {
+            "tenant_workspace_id": "workspace-a",
+            "tenant_scope_level_key": "branch",
+        },
+    )
+
+    assert alert["tenant_workspace_id"] == "workspace-a"
+    assert alert["tenant_scope_level_key"] == "branch"
+
+
+def test_alert_throttling_is_isolated_by_tenant_and_tier():
+    deduplicator = AlertRuleEngine().deduplicator
+    workspace_a = deduplicator._make_key(
+        "critical_record", "appscan", "portal", "critical", "workspace-a", "branch"
+    )
+    workspace_b = deduplicator._make_key(
+        "critical_record", "appscan", "portal", "critical", "workspace-b", "branch"
+    )
+    department = deduplicator._make_key(
+        "critical_record", "appscan", "portal", "critical", "workspace-a", "department"
+    )
+
+    assert workspace_a != workspace_b
+    assert workspace_a != department
+
+
+def test_aggregate_rules_exclude_tenant_scoped_records(engine):
+    scoped_tables = {
+        "warehouse.risk_scores",
+        "warehouse.findings",
+        "warehouse.api_endpoints",
+        "warehouse.compliance_snapshots",
+    }
+    for rule in engine.rules:
+        condition = rule.get("condition", {})
+        query = condition.get("query") or condition.get("base_query") or ""
+        if any(table in query for table in scoped_tables):
+            assert "tenant_workspace_id IS NULL" in query
+
+
 def test_enricher_app_owner_lookup():
     enricher = AlertEnricher()
     alert = enricher.enrich({

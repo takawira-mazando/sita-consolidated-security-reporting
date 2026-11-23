@@ -84,8 +84,8 @@ async def build_fact_pack(session: AsyncSession, scope: ReportScope, report_type
         risk_scope_filter = scope.get_filter(RiskScoreModel)
         risk_stmt = select(
             func.count(RiskScoreModel.id),
-            func.avg(RiskScoreModel.overall_score),
-            func.max(RiskScoreModel.overall_score),
+            func.avg(RiskScoreModel.fused_score),
+            func.max(RiskScoreModel.fused_score),
         )
         if risk_scope_filter is not None:
             risk_stmt = risk_stmt.where(risk_scope_filter)
@@ -138,11 +138,18 @@ async def build_fact_pack(session: AsyncSession, scope: ReportScope, report_type
         if isinstance(raw_waf, (int, float)):
             total_waf_blocks = int(raw_waf)
     except Exception:
+        if scope.tenant_workspace_id:
+            raise
         # Fallback to simulated facts when session is a test mock or DB is unreachable
         pass
 
     # Fallback simulation if warehouse is fresh/empty in testing
-    if total_findings == 0 and total_apps_assessed == 0 and total_alerts == 0:
+    if (
+        not scope.tenant_workspace_id
+        and total_findings == 0
+        and total_apps_assessed == 0
+        and total_alerts == 0
+    ):
         total_findings = 69
         severity_counts = {"critical": 0, "high": 0, "medium": 12, "low": 57}
         total_apps_assessed = 8
@@ -167,14 +174,15 @@ async def build_fact_pack(session: AsyncSession, scope: ReportScope, report_type
     critical_penalty = severity_counts["critical"] * 10
     high_penalty = severity_counts["high"] * 3
     compliance_score = max(0, min(100, 100 - critical_penalty - high_penalty))
-
     fact_pack = {
         "report_type": report_type,
         "as_of_date": now_utc.strftime("%d %B %Y"),
         "as_of_iso": now_utc.isoformat(),
         "scope_summary": scope.describe(),
-        "department_count": len(scope.department_ids) if scope.department_ids else (43 if scope.is_nationwide else 1),
-        "branch_count": len(scope.branch_ids),
+        "tenant_scope_unit_count": len(scope.tenant_scope_unit_ids),
+        "tenant_scope_level_count": len(scope.tenant_scope_level_keys),
+        "tenant_workspace_name": scope.tenant_workspace_name,
+        "tenant_scope_level_keys": list(scope.tenant_scope_level_keys),
         "total_findings": int(total_findings),
         "critical_findings": int(severity_counts["critical"]),
         "high_findings": int(severity_counts["high"]),

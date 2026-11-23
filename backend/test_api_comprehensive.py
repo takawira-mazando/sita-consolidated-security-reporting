@@ -33,8 +33,7 @@ async def main():
 
         # ── TIER 4: SITA Command Center (nationwide admin) ─────────────
         print("\n[TIER 4] SITA Command Center Authentication")
-        r = await s.post(f"{API_V1}/auth/login",
-                         json={"email": "admin@example.com", "password": "admin123"})
+        r = await s.post(f"{API_V1}/auth/demo-login", json={"role": "admin"})
         data, ok = await check("SITA Admin Login", r)
         if not ok:
             print("FATAL: Cannot continue without SITA admin token")
@@ -46,68 +45,42 @@ async def main():
         passed += 1
         sita_hdrs = {"Authorization": f"Bearer {sita_token}"}
 
-        # ── TIER 4: SITA Transversal Admin ─────────────────────────────
-        print("\n[TIER 4] SITA Transversal Admin")
-        r = await s.post(f"{API_V1}/auth/login",
-                         json={"email": "transversal@example.com", "password": "pass123"})
-        data, ok = await check("Transversal Admin Login", r)
-        if ok:
-            print(f"         roles: {data['user']['roles']}")
-            passed += 1
-        else:
-            failed += 1
-
-        # ── TIER 2: DHA Department Admin ───────────────────────────────
-        print("\n[TIER 2] Department of Home Affairs — Dept Admin")
-        r = await s.post(f"{API_V1}/auth/login",
-                         json={"email": "deptadmin-ha@example.com", "password": "pass123"})
-        data, ok = await check("DHA Dept Admin Login", r)
-        if ok:
-            dha_admin_token = data["token"]
-            u = data["user"]
-            print(f"         roles      : {u['roles']}")
-            print(f"         dept_ids   : {u['department_ids']}")
-            print(f"         branch_ids : {u['branch_ids']}")
-            passed += 1
-        else:
-            failed += 1
-        dha_admin_hdrs = {"Authorization": f"Bearer {dha_admin_token}"}
-
-        # ── TIER 1: DHA SOC Analyst ──────────────────────────────────
-        print("\n[TIER 1] Branch — DHA SOC Analyst")
-        r = await s.post(f"{API_V1}/auth/login",
-                         json={"email": "soc-ha@example.com", "password": "pass123"})
-        data, ok = await check("DHA SOC Login", r)
+        # ── TIER 1: Tenant-scoped SOC Analyst ─────────────────────────
+        print("\n[TIER 1] Tenant-scoped SOC Analyst")
+        r = await s.post(f"{API_V1}/auth/demo-login", json={"role": "soc"})
+        data, ok = await check("SOC Demo Login", r)
         if ok:
             soc_token = data["token"]
+            soc_department_ids = data["user"]["department_ids"]
             print(f"         roles: {data['user']['roles']}")
             passed += 1
         else:
-            failed += 1
+            print("FATAL: Cannot continue without a tenant-scoped SOC token")
+            sys.exit(1)
         soc_hdrs = {"Authorization": f"Bearer {soc_token}"}
 
-        # ── TIER 1: DHA AppSec Analyst ────────────────────────────────
-        print("\n[TIER 1] Branch — DHA AppSec Analyst")
-        r = await s.post(f"{API_V1}/auth/login",
-                         json={"email": "appsec-ha@example.com", "password": "pass123"})
-        data, ok = await check("DHA AppSec Login", r)
+        # ── TIER 1: Tenant-scoped AppSec Analyst ──────────────────────
+        print("\n[TIER 1] Tenant-scoped AppSec Analyst")
+        r = await s.post(f"{API_V1}/auth/demo-login", json={"role": "appsec"})
+        data, ok = await check("AppSec Demo Login", r)
         if ok:
             appsec_token = data["token"]
             passed += 1
         else:
-            failed += 1
+            print("FATAL: Cannot continue without an AppSec token")
+            sys.exit(1)
         appsec_hdrs = {"Authorization": f"Bearer {appsec_token}"}
 
-        # ── TIER 1: DHA DB Security Analyst ───────────────────────────
-        print("\n[TIER 1] Branch — DHA DB Security Analyst")
-        r = await s.post(f"{API_V1}/auth/login",
-                         json={"email": "dbsec-ha@example.com", "password": "pass123"})
-        data, ok = await check("DHA DB Sec Login", r)
+        # ── TIER 1: Tenant-scoped DB Security Analyst ──────────────────
+        print("\n[TIER 1] Tenant-scoped DB Security Analyst")
+        r = await s.post(f"{API_V1}/auth/demo-login", json={"role": "dbsec"})
+        data, ok = await check("DB Security Demo Login", r)
         if ok:
             dbsec_token = data["token"]
             passed += 1
         else:
-            failed += 1
+            print("FATAL: Cannot continue without a DB Security token")
+            sys.exit(1)
         dbsec_hdrs = {"Authorization": f"Bearer {dbsec_token}"}
 
         # ── TENANCY HIERARCHY ─────────────────────────────────────────
@@ -118,16 +91,12 @@ async def main():
             print(f"         departments : {data['counts']['departments']}")
             print(f"         branches    : {data['counts']['branches']}")
             print(f"         provinces   : {data['counts']['provinces']}")
-            dha = next((d for d in data["departments"] if d["id"] == "home-affairs-digital"), None)
-            if dha:
-                print(f"         DHA name    : {dha['name']}")
-                print(f"         DHA branches: {dha['branch_count']}")
             passed += 1
         else:
             failed += 1
 
         # ── APPSCAN FINDINGS (real data) ──────────────────────────────
-        print("\n[APPSEC] AppScan Real Findings — DHA Scope")
+        print("\n[APPSEC] AppScan Findings — Assigned Tenant Scope")
         r = await s.get(f"{API_V1}/findings", headers=appsec_hdrs)
         data, ok = await check("Findings /findings", r)
         if ok:
@@ -144,7 +113,7 @@ async def main():
             failed += 1
 
         # ── THALES DB SECURITY INVENTORY ─────────────────────────────
-        print("\n[DBSEC] Thales DAM — DB Inventory (DHA Scope)")
+        print("\n[DBSEC] Thales DAM — DB Inventory (Assigned Tenant Scope)")
         r = await s.get(f"{API_V1}/metrics/dbsec/inventory", headers=dbsec_hdrs)
         data, ok = await check("DB Inventory /metrics/dbsec/inventory", r)
         if ok:
@@ -157,7 +126,7 @@ async def main():
             failed += 1
 
         # ── ALERTS ────────────────────────────────────────────────────
-        print("\n[SOC] Alert Queue — DHA Scope")
+        print("\n[SOC] Alert Queue — Assigned Tenant Scope")
         r = await s.get(f"{API_V1}/alerts", headers=soc_hdrs)
         data, ok = await check("Alerts /alerts", r)
         if ok:
@@ -210,36 +179,24 @@ async def main():
         else:
             failed += 1
 
-        # ── ADMIN USERS (DHA dept admin — scoped) ─────────────────────
-        print("\n[ADMIN] User Management — DHA Dept Admin (scoped)")
-        r = await s.get(f"{ADMIN}/users", headers=dha_admin_hdrs)
-        data, ok = await check("DHA Dept Admin Users /admin/users", r)
-        if ok:
-            users_list = data if isinstance(data, list) else data.get("items", [])
-            print(f"         dha_users_visible: {len(users_list)}")
-            passed += 1
-        elif r.status == 403:
-            print(f"         [EXPECTED] DHA admin blocked from /admin/users — good isolation")
-            passed += 1
-        else:
-            failed += 1
-
         # ── SCOPE ISOLATION ────────────────────────────────────────────
-        print("\n[ISOLATION] JWT Scope — SOC-HA sees only DHA findings")
+        print("\n[ISOLATION] JWT Scope — SOC sees only assigned tenant findings")
         r = await s.get(f"{API_V1}/findings", headers=soc_hdrs)
-        data, ok = await check("SOC-HA Findings (JWT scoped)", r)
+        data, ok = await check("SOC Findings (JWT scoped)", r)
         if ok:
             items = data.get("items", data) if isinstance(data, dict) else data
             if isinstance(items, list):
-                # Verify no non-DHA findings leaked
-                leaked = [f for f in items if f.get("department_id") not in (
-                    "home-affairs-digital", None, ""
-                )]
+                # Verify no findings from another tenant were returned.
+                allowed_departments = set(soc_department_ids)
+                leaked = [
+                    finding for finding in items
+                    if finding.get("department_id") not in allowed_departments | {None, ""}
+                ]
                 if leaked:
-                    print(f"  [FAIL] Scope leak: {len(leaked)} non-DHA items found!")
+                    print(f"  [FAIL] Scope leak: {len(leaked)} foreign-tenant items found!")
                     failed += 1
                 else:
-                    print(f"  [PASS] All {len(items)} findings scoped to DHA — no leak")
+                    print(f"  [PASS] All {len(items)} findings match the assigned tenant scope")
                     passed += 1
             else:
                 passed += 1

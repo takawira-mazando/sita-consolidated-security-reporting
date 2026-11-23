@@ -183,7 +183,7 @@ def author_rule_for_technique(
         "proposed_yaml": indented_rule,
         "git_diff": git_diff,
         "governance_note": (
-            "Rule diff emitted as a proposal artefact for operator/transversal-admin review. "
+            "Rule diff emitted as a proposal artefact for SITA platform superadmin review. "
             "Under SITA governance policy, alert_rules.yaml modifications require human code review approval."
         ),
     }

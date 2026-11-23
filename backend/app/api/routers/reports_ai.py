@@ -33,7 +33,40 @@ async def available_reports(
     claims: JWTClaims = Depends(verify_token),
 ) -> list[dict[str, Any]]:
     """Return report templates that the caller holds an authorized role to generate (Gate 1)."""
-    return get_available_reports(claims.roles)
+    workspace_roles, _ = _active_workspace_report_scope(claims, None)
+    roles = list(dict.fromkeys([*claims.roles, *workspace_roles]))
+    return get_available_reports(roles)
+
+
+def _active_workspace_report_scope(
+    claims: JWTClaims,
+    report_type: str | None,
+) -> tuple[set[str], set[str]]:
+    workspace = next(
+        (
+            item
+            for item in claims.tenant_workspace_access
+            if item.get("workspace_id") == claims.active_tenant_workspace_id
+        ),
+        None,
+    )
+    if not workspace:
+        return set(), set()
+
+    cockpit_scopes = workspace.get("cockpit_scopes") or {}
+    if report_type is None:
+        return set(cockpit_scopes), set()
+
+    report = REPORT_CATALOGUE.get(report_type)
+    if report is None:
+        return set(), set()
+    allowed_cockpits = set(report["allowed_roles"]) & set(cockpit_scopes)
+    scope_levels = {
+        level
+        for cockpit in allowed_cockpits
+        for level in cockpit_scopes[cockpit]
+    }
+    return allowed_cockpits, scope_levels
 
 
 @router.get("/catalog")
@@ -57,16 +90,22 @@ async def generate_ai_report(
     - Gate 2: Tenancy Scope encapsulation via ReportScope & scope_hash
     """
     report_type = payload.report_type
+    workspace_roles, scope_levels = _active_workspace_report_scope(
+        claims, report_type
+    )
 
     # Gate 1: Check capability RBAC
-    if not can_access_report(claims.roles, report_type):
+    if not can_access_report(claims.roles, report_type) and not workspace_roles:
         raise HTTPException(
             status_code=403,
             detail=f"Role '{','.join(claims.roles)}' is not authorized to generate '{report_type}' reports.",
         )
 
     # Gate 2: Derive immutable tenancy scope
-    scope = resolve_report_scope(claims)
+    scoped_claims = claims.model_copy(
+        update={"active_tenant_scope_level_keys": sorted(scope_levels)}
+    )
+    scope = resolve_report_scope(scoped_claims)
 
     try:
         report = await generate_report(session, scope, report_type)
@@ -78,9 +117,9 @@ async def generate_ai_report(
             actor=claims.email or claims.sub,
             target=report_type,
             tenant_scope={
-                "department_ids": list(scope.department_ids),
-                "branch_ids": list(scope.branch_ids),
-                "province_ids": list(scope.province_ids),
+                "tenant_scope_unit_ids": list(scope.tenant_scope_unit_ids),
+                "tenant_workspace_id": scope.tenant_workspace_id,
+                "tenant_scope_level_keys": list(scope.tenant_scope_level_keys),
             },
             actor_role=",".join(sorted(claims.roles)),
             scope_hash=scope.scope_hash,

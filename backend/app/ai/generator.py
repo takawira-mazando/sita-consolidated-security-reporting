@@ -69,7 +69,7 @@ def _render_deterministic_report(report_type: str, facts: dict[str, Any]) -> dic
         key_findings = [
             f"{open_alerts} open alerts are currently pending investigation in the SOC queue.",
             f"Dominant threat categories identified in sensor logs: {top_cats_str}.",
-            f"Zero unauthorized transversal hops detected across isolated departmental scopes.",
+            f"Zero unauthorized cross-workspace access attempts detected.",
         ]
         risk_analysis = (
             f"Correlation of active alerts shows concentrated probing against public application endpoints. "
@@ -118,7 +118,7 @@ def _render_deterministic_report(report_type: str, facts: dict[str, Any]) -> dic
             "Cryptographic hashing upgrades (SHA-256) ensure tamper-evident audit trails under POPIA Section 19.",
         ]
         risk_analysis = (
-            "Section 22 notification thresholds have not been triggered. Data isolation controls prevent cross-departmental "
+            "Section 22 notification thresholds have not been triggered. Data isolation controls prevent cross-tenant "
             "data leakage. Role-based privilege separation strictly restricts citizen personal identifiers to authorized operators."
         )
         recommendations = [
@@ -128,7 +128,7 @@ def _render_deterministic_report(report_type: str, facts: dict[str, Any]) -> dic
 
     elif report_type == "ag_audit_readiness":
         summary = (
-            f"Auditor-General (AGSA) Audit Readiness Brief ({date_str}): Assesses internal IT governance and control effectiveness "
+            f"External Audit Readiness Brief ({date_str}): Assesses internal IT governance and control effectiveness "
             f"for {scope_desc}. Audit readiness index is established at {comp_score}%. "
             f"All administrative operations are cryptographically signed with ECDSA P-256 keys for verifiable non-repudiation."
         )
@@ -138,12 +138,12 @@ def _render_deterministic_report(report_type: str, facts: dict[str, Any]) -> dic
             "Delegated administration strictly enforces one-way hierarchy down the tenancy tree.",
         ]
         risk_analysis = (
-            "AGSA information systems audit criteria mandate strict user account lifecycle controls and reproducible evidentiary records. "
-            "The platform's canonical hash-chaining and digital signature verification satisfy National Treasury and AG requirements."
+            "Independent information systems audit criteria mandate strict user account lifecycle controls and reproducible evidentiary records. "
+            "The platform's canonical hash-chaining and digital signature verification support independent audit requirements."
         )
         recommendations = [
             {"priority": "Governance", "action": "Export and archive monthly ECDSA signed audit attestation package.", "target": "Audit Archive"},
-            {"priority": "Technical", "action": "Execute quarterly access review of all transversal administrator credentials.", "target": "IAM Review"},
+            {"priority": "Technical", "action": "Execute quarterly access review of platform administrator credentials.", "target": "IAM Review"},
         ]
 
     else:
@@ -153,7 +153,7 @@ def _render_deterministic_report(report_type: str, facts: dict[str, Any]) -> dic
             f"composite risk score {avg_risk}, and {open_alerts} open alerts. Overall posture index is {comp_score}%."
         )
         key_findings = [
-            f"Scope encompasses {facts['total_apps']} applications and {facts['department_count']} departments.",
+            f"Scope encompasses {facts['total_apps']} applications and {facts['tenant_scope_unit_count']} assigned organization units.",
             f"Vulnerability count: {critical} critical, {high} high, {medium} medium, {low} low.",
             f"Security alert status: {facts['total_alerts']} total events, {open_alerts} currently unresolved.",
         ]
@@ -196,7 +196,7 @@ async def generate_report(
         try:
             # If an external vLLM / OpenAI compatible endpoint is configured
             prompt = (
-                f"You are a Senior Government Cyber Security Intelligence Analyst for SITA (South Africa). "
+                f"You are a cybersecurity intelligence analyst for the Unified Data Security Platform. "
                 f"Generate a professional, structured cybersecurity report for: {meta['title']}.\n"
                 f"Strict rule: You MUST only use figures present in the following JSON fact pack. Do not invent any numbers.\n"
                 f"Fact Pack: {facts}\n"
@@ -205,7 +205,7 @@ async def generate_report(
                 res = await client.post(
                     f"{llm_api_url}/v1/chat/completions",
                     json={
-                        "model": os.environ.get("LLM_MODEL", "sita-security-model"),
+                        "model": os.environ.get("LLM_MODEL", "unified-security-model"),
                         "messages": [{"role": "user", "content": prompt}],
                         "temperature": 0.2,
                     },
@@ -245,9 +245,10 @@ async def generate_report(
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "scope": {
             "summary": scope.describe(),
-            "department_ids": list(scope.department_ids),
-            "branch_ids": list(scope.branch_ids),
-            "is_nationwide": scope.is_nationwide,
+            "tenant_workspace_id": scope.tenant_workspace_id,
+            "tenant_scope_unit_ids": list(scope.tenant_scope_unit_ids),
+            "tenant_scope_level_keys": list(scope.tenant_scope_level_keys),
+            "is_platform_scope": scope.is_platform_scope,
         },
         "scope_hash": scope.scope_hash,
         "fact_pack_hash": facts["fact_pack_hash"],

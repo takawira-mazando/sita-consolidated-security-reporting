@@ -21,6 +21,7 @@ from app.api.routers import (
     intel,
     meta,
     metrics,
+    mssp_admin,
     public_summary,
     reports_ai,
     risks,
@@ -38,35 +39,40 @@ start_time = time.time()
 async def lifespan(app: FastAPI):
     setup_metrics()
     try:
-        async with SessionFactory() as session:
-            if await auth.bootstrap_superadmin(session):
-                logger.warning(
-                    "Bootstrapped superadmin %s — change its password after first login",
-                    settings.bootstrap_admin_email,
-                )
-            if settings.seed_demo_users_enabled:
-                created = await auth.seed_demo_users(session)
-                if created:
-                    logger.info("Seeded %d demo users", created)
-            elif is_disallowed_credential(settings.bootstrap_admin_password):
-                logger.warning(
-                    "Demo users disabled; set a strong BOOTSTRAP_ADMIN_PASSWORD for %s",
-                    settings.bootstrap_admin_email,
-                )
-    except Exception:
-        logger.exception("Failed to initialize identity users")
+        import asyncio
+
+        async def _bootstrap():
+            async with SessionFactory() as session:
+                if await auth.bootstrap_platform_administrator(session):
+                    logger.warning(
+                        "Bootstrapped superadmin %s — change its password after first login",
+                        settings.bootstrap_admin_email,
+                    )
+                if settings.seed_demo_users_enabled:
+                    created = await auth.seed_demo_users(session)
+                    if created:
+                        logger.info("Seeded %d demo users", created)
+                elif is_disallowed_credential(settings.bootstrap_admin_password):
+                    logger.warning(
+                        "Demo users disabled; set a strong BOOTSTRAP_ADMIN_PASSWORD for %s",
+                        settings.bootstrap_admin_email,
+                    )
+
+        await asyncio.wait_for(_bootstrap(), timeout=2.0)
+    except Exception as exc:
+        logger.warning("Database bootstrap skipped/deferred (Postgres offline or timed out: %s)", exc)
     yield
 
 # Disable Swagger/OpenAPI in production
 if settings.environment.lower() in ("dev", "development", "test", "testing"):
     app = FastAPI(
-        title="SITA Security Intelligence Platform API",
+        title="Unified Data Security Platform API",
         version="1.0.0",
         lifespan=lifespan,
     )
 else:
     app = FastAPI(
-        title="SITA Security Intelligence Platform API",
+        title="Unified Data Security Platform API",
         version="1.0.0",
         lifespan=lifespan,
         docs_url=None,
@@ -239,6 +245,7 @@ app.include_router(intel.router, prefix="/api/v1")
 app.include_router(public_summary.router, prefix="/api/v1")
 app.include_router(reports_ai.router, prefix="/api/v1")
 app.include_router(admin.router, prefix="/admin")
+app.include_router(mssp_admin.router, prefix="/admin")
 
 register_exception_handlers(app)
 
@@ -247,7 +254,7 @@ async def root():
     if settings.environment.lower() in ("dev", "development", "test", "testing"):
         return RedirectResponse(url="/docs")
     return {
-        "service": "SITA Security Intelligence Platform API",
+        "service": "Unified Data Security Platform API",
         "version": "1.0.0",
         "health": "/health",
     }

@@ -1,88 +1,16 @@
 import type { Finding, PaginatedResponse } from '../types';
 
-// Home Affairs branches
-const DHA_BRANCHES = [
-  { id: 'dha-civic', name: 'Civic Services' },
-  { id: 'dha-digital', name: 'Information Services (CIO)' },
-  { id: 'dha-immigration', name: 'Immigration Services' },
-  { id: 'dha-operations', name: 'Operations' },
-  { id: 'dha-hrmd', name: 'Human Resource Management and Development' },
-  { id: 'dha-ccss', name: 'Counter Corruption and Security Services' },
-  { id: 'dha-finance', name: 'Finance and Supply Chain Management' },
-  { id: 'dha-planning', name: 'Institutional Planning and Support' },
-] as const;
-
-// Branch-specific apps for Home Affairs
-const DHA_BRANCH_APPS: Record<string, string[]> = {
-  'dha-civic': [
-    'Civic Services Portal',
-    'National Population Register',
-    'Identity Document System',
-    'Birth Registration System',
-  ],
-  'dha-digital': [
-    'eHomeAffairs Portal',
-    'SITA API Gateway',
-    'Digital Identity Platform',
-    'Online Services Gateway',
-  ],
-  'dha-immigration': [
-    'Movement Control System',
-    'Visa Processing System',
-    'Refugee Management System',
-    'Border Control System',
-  ],
-  'dha-operations': [
-    'Operations Management System',
-    'Service Delivery Platform',
-    'Queue Management System',
-    'Document Tracking System',
-  ],
-  'dha-hrmd': [
-    'HR Management System',
-    'Payroll System',
-    'Learning Management System',
-    'Performance Management',
-  ],
-  'dha-ccss': [
-    'Security Incident System',
-    'Counter Corruption Portal',
-    'Vetting System',
-    'Compliance Tracker',
-  ],
-  'dha-finance': [
-    'Finance Management System',
-    'Supply Chain Portal',
-    'Asset Management System',
-    'Revenue Collection System',
-  ],
-  'dha-planning': [
-    'Strategic Planning System',
-    'Monitoring & Evaluation',
-    'Reporting Dashboard',
-    'Policy Management System',
-  ],
-};
-
-// Fallback apps for nationwide or unknown branches
+// Neutral synthetic values are used when no live tenant data is available.
 const DEMO_APPS = [
   'XYZ Application',
   'FlorenceCassandraCluster',
-  'sita-portal',
-  'sita-api-gateway',
-  'sita-hr-system',
-  'sita-finance',
-  'sita-procurement',
-  'sita-reporting',
+  'client-portal',
+  'client-api-gateway',
+  'client-finance',
+  'client-procurement',
+  'client-reporting',
   'demo.testfire.net',
 ];
-
-function getAppsForBranch(branchId?: string): string[] {
-  if (branchId && DHA_BRANCH_APPS[branchId]) {
-    return DHA_BRANCH_APPS[branchId];
-  }
-  return DEMO_APPS;
-}
 
 // Seeded Thales DAM SonarG & Database Security findings (from Thales generator)
 const THALES_DAM_FINDINGS: Finding[] = [
@@ -170,7 +98,7 @@ const DEMO_SEVERITIES = ['critical', 'high', 'medium', 'low'] as const;
 const DEMO_STATUSES = ['Open', 'Open', 'Open', 'Fixed', 'In Progress', 'Not a Finding'];
 
 function seededRandom(seed: number) {
-  let x = Math.sin(seed) * 10000;
+  const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
 }
 
@@ -402,10 +330,10 @@ const REAL_APPSACN_FINDINGS: Finding[] = [
   },
 ];
 
-function generateDemoFindings(count: number = 108, branchId?: string): Finding[] {
+function generateDemoFindings(count: number = 108): Finding[] {
   const findings: Finding[] = [];
   const baseDate = new Date('2026-06-01T00:00:00Z');
-  const apps = getAppsForBranch(branchId);
+  const apps = DEMO_APPS;
 
   for (let i = 0; i < count; i++) {
     const appIdx = i % apps.length;
@@ -422,7 +350,7 @@ function generateDemoFindings(count: number = 108, branchId?: string): Finding[]
       : undefined;
 
     findings.push({
-      id: `demo-finding-${branchId ? branchId + '-' : ''}${i}`,
+      id: `demo-finding-${i}`,
       source: 'appscan',
       external_id: `APPSCAN-${app.toUpperCase().replace(/-/g, '')}-${i.toString().padStart(4, '0')}`,
       app_name: app,
@@ -449,25 +377,9 @@ function generateDemoFindings(count: number = 108, branchId?: string): Finding[]
   return findings;
 }
 
-// Combine real AppScan findings with Thales DAM findings and generated demo findings
+// Combine connector-shaped findings with generated synthetic findings.
 const GENERATED_DEMO_FINDINGS = generateDemoFindings(108);
 const ALL_DEMO_FINDINGS = [...REAL_APPSACN_FINDINGS, ...THALES_DAM_FINDINGS, ...GENERATED_DEMO_FINDINGS];
-
-// Cache for branch-specific findings
-const branchFindingsCache: Record<string, Finding[]> = {};
-
-function getBranchFindings(branchId?: string): Finding[] {
-  if (!branchId) return ALL_DEMO_FINDINGS;
-  
-  if (!branchFindingsCache[branchId]) {
-    const branchApps = getAppsForBranch(branchId);
-    const branchGenerated = generateDemoFindings(108, branchId);
-    // Include Thales DAM findings for FlorenceCassandraCluster (shared across branches)
-    // Include AppScan findings for demo.testfire.net (shared)
-    branchFindingsCache[branchId] = [...REAL_APPSACN_FINDINGS, ...THALES_DAM_FINDINGS, ...branchGenerated];
-  }
-  return branchFindingsCache[branchId];
-}
 
 export function getDemoFindings(params?: {
   app?: string;
@@ -478,10 +390,8 @@ export function getDemoFindings(params?: {
   since?: string;
   page?: number;
   size?: number;
-  branch_id?: string;
 }): PaginatedResponse<Finding> {
-  const branchId = params?.branch_id;
-  let filtered = getBranchFindings(branchId);
+  let filtered = ALL_DEMO_FINDINGS;
 
   if (params?.app) filtered = filtered.filter(f => f.app_name === params.app);
   if (params?.severity) filtered = filtered.filter(f => f.severity === params.severity);
@@ -510,22 +420,20 @@ export function getDemoFindings(params?: {
   };
 }
 
-export function getDemoFinding(id: string, branchId?: string): Finding | undefined {
-  const findings = getBranchFindings(branchId);
-  return findings.find(f => f.id === id || f.external_id === id);
+export function getDemoFinding(id: string): Finding | undefined {
+  return ALL_DEMO_FINDINGS.find(f => f.id === id || f.external_id === id);
 }
 
-export function getDemoFixRate(branchId?: string): { fix_rate: number } {
-  const findings = getBranchFindings(branchId);
+export function getDemoFixRate(): { fix_rate: number } {
+  const findings = ALL_DEMO_FINDINGS;
   const total = findings.length;
   const fixed = findings.filter(f => f.status === 'Fixed').length;
   return { fix_rate: total > 0 ? Math.round((fixed / total) * 100) : 0 };
 }
 
-export function getDemoWafSummary(branchId?: string): { total: number; by_type: Array<{ type: string; count: number }> } {
+export function getDemoWafSummary(): { total: number; by_type: Array<{ type: string; count: number }> } {
   const wafTypes = ['SQL Injection', 'XSS', 'Path Traversal', 'Command Injection', 'LDAP Injection', 'RFI/LFI'];
-  // Vary counts slightly per branch for realism
-  const seed = branchId ? branchId.split('-').reduce((a, c) => a + c.charCodeAt(0), 0) : 0;
+  const seed = 0;
   return {
     total: 1247 + (seed % 50),
     by_type: wafTypes.map((type, i) => ({
@@ -535,7 +443,7 @@ export function getDemoWafSummary(branchId?: string): { total: number; by_type: 
   };
 }
 
-export function getDemoApiExposure(branchId?: string): { total: number; shadow_total: number; items: Array<{
+export function getDemoApiExposure(): { total: number; shadow_total: number; items: Array<{
   endpoint: string;
   app_name: string;
   method: string;
@@ -557,7 +465,7 @@ export function getDemoApiExposure(branchId?: string): { total: number; shadow_t
     '/api/v1/secrets/vault',
   ];
 
-  const apps = branchId ? getAppsForBranch(branchId) : DEMO_APPS;
+  const apps = DEMO_APPS;
   return {
     total: endpoints.length,
     shadow_total: 4,
@@ -571,9 +479,9 @@ export function getDemoApiExposure(branchId?: string): { total: number; shadow_t
   };
 }
 
-export function getDemoPublicSummary(branchId?: string) {
-  const findings = getBranchFindings(branchId);
-  const apps = branchId ? getAppsForBranch(branchId) : DEMO_APPS;
+export function getDemoPublicSummary() {
+  const findings = ALL_DEMO_FINDINGS;
+  const apps = DEMO_APPS;
   const bySeverity: Record<string, number> = {};
   let open = 0;
   for (const f of findings) {
@@ -596,9 +504,9 @@ export function getDemoPublicSummary(branchId?: string) {
   };
 }
 
-export function getDemoRiskScores(branchId?: string) {
-  const apps = branchId ? getAppsForBranch(branchId) : DEMO_APPS;
-  const findings = getBranchFindings(branchId);
+export function getDemoRiskScores() {
+  const apps = DEMO_APPS;
+  const findings = ALL_DEMO_FINDINGS;
   return apps.map(app => {
     const appFindings = findings.filter(f => f.app_name === app);
     const critical = appFindings.filter(f => f.severity === 'critical').length;
@@ -620,9 +528,8 @@ export function getDemoRiskScores(branchId?: string) {
 
 export const getDemoRisks = getDemoRiskScores;
 
-export function getDemoCompliance(branchId?: string) {
-  // Vary compliance scores slightly per branch for realism
-  const seed = branchId ? branchId.split('-').reduce((a, c) => a + c.charCodeAt(0), 0) : 0;
+export function getDemoCompliance() {
+  const seed = 0;
   return {
     frameworks: [
       { name: 'POPIA', score: 72 + (seed % 10), total: 45, passed: 32 + (seed % 5) },
@@ -639,4 +546,3 @@ export function getDemoCompliance(branchId?: string) {
 
 export const DEMO_APPS_LIST = DEMO_APPS;
 export const DEMO_CATEGORIES_LIST = DEMO_CATEGORIES;
-export const DHA_BRANCHES_LIST = DHA_BRANCHES;

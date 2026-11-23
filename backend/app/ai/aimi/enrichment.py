@@ -110,7 +110,7 @@ def enrich_campaign_attribution(
 
     context_parts = [
         "An analyst supplied a threat report and asks whether the described "
-        "campaign applies to a South African national-government security estate.",
+        "campaign applies to the organization represented by this security workspace.",
     ]
     if sector_candidates:
         context_parts.append(
@@ -119,7 +119,7 @@ def enrich_campaign_attribution(
         )
     if exposed_in_estate:
         context_parts.append(
-            "ATT&CK techniques this estate is already exposed to: "
+            "ATT&CK techniques this organization is already exposed to: "
             + ", ".join(exposed_in_estate) + "."
         )
     context_parts.append(
@@ -192,7 +192,7 @@ def enrich_risk_delta_causal(
         )
 
     context = (
-        f"A South African national-government application scored a risk movement "
+        f"An application in this security workspace scored a risk movement "
         f"of {total_risk_delta:+.2f} in a measurement window. The dominant signal "
         f"was '{primary_signal}', which this platform maps to ATT&CK "
         f"{mapped_technique}. Explain what activity this technique represents and "

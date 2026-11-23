@@ -48,6 +48,8 @@ class AlertRuleEngine:
                     alert.get("severity", "info"),
                     rule.get("throttle", {}).get("window_minutes", 60),
                     rule.get("throttle", {}).get("max_alerts", 1),
+                    alert.get("tenant_workspace_id"),
+                    alert.get("tenant_scope_level_key"),
                 ):
                     alerts.append(self.enricher.enrich(alert))
         return alerts
@@ -77,6 +79,8 @@ class AlertRuleEngine:
                     alert.get("severity", "info"),
                     rule.get("throttle", {}).get("window_minutes", 60),
                     rule.get("throttle", {}).get("max_alerts", 1),
+                    alert.get("tenant_workspace_id"),
+                    alert.get("tenant_scope_level_key"),
                 ):
                     alerts.append(self.enricher.enrich(alert))
         return alerts
@@ -127,4 +131,6 @@ class AlertRuleEngine:
             "first_triggered": now,
             "last_triggered": now,
             "dedup_key": f"{rule.get('id')}:{row.get('source', '')}:{row.get('target_id', '') or row.get('app_name', '')}",
+            "tenant_workspace_id": row.get("tenant_workspace_id"),
+            "tenant_scope_level_key": row.get("tenant_scope_level_key"),
         }

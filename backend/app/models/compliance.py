@@ -1,9 +1,10 @@
 from sqlalchemy import JSON, Column, Date, DateTime, Integer, Numeric, String, func
 
 from app.models.base import Base
+from app.models.tenant_data_scope import TenantDataScope
 
 
-class ComplianceSnapshot(Base):
+class ComplianceSnapshot(TenantDataScope, Base):
     __tablename__ = "compliance_snapshots"
     __table_args__ = {"schema": "warehouse"}
 
@@ -16,7 +17,7 @@ class ComplianceSnapshot(Base):
     passed_controls = Column(Integer, nullable=False)
     computed_at = Column(DateTime(timezone=True), server_default=func.now())
 
-class ComplianceGap(Base):
+class ComplianceGap(TenantDataScope, Base):
     __tablename__ = "compliance_gaps"
     __table_args__ = {"schema": "warehouse"}
 

@@ -7,7 +7,7 @@ import { DemoProvider } from './context/DemoContext';
 import { setupDemoInterceptor, useDemoInterceptor } from './api/demoInterceptor';
 import './styles/global.css';
 
-const storedTheme = localStorage.getItem('sita_theme');
+const storedTheme = localStorage.getItem('platform_theme');
 if (storedTheme === 'light') {
   document.body.dataset.theme = 'light';
 } else {

@@ -7,13 +7,12 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.auth import check_tenancy_access, require_roles, tenant_filter
+from app.api.auth import require_roles, tenant_filter
 from app.api.schemas.common import PaginatedResponse
 from app.api.schemas.risk import RiskScore, RiskTrend
 from app.db import get_session
 from app.models.risk_score import RiskBucket
 from app.models.risk_score import RiskScore as RiskScoreModel
-from app.tenant import CLUSTERS, MINISTRIES, MINISTRY_TO_CLUSTER
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +31,7 @@ async def get_risks(
     bucket: str | None = Query(None),
     date_from: date | None = Query(None),
     date_to: date | None = Query(None),
-    department_id: str | None = Query(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$", description="Filter by department within assigned scope"),
-    branch_id: str | None = Query(None, max_length=64, pattern=r"^[a-zA-Z0-9_\-]+$", description="Filter by branch within assigned scope"),
+    scope_level_key: str | None = Query(None, max_length=64, pattern=r"^[a-z0-9_-]+$", description="Filter by a configured tenant hierarchy tier"),
     page: int = Query(1, ge=1),
     size: int = Query(20, ge=1, le=100),
     session: AsyncSession = Depends(get_session),
@@ -44,12 +42,8 @@ async def get_risks(
         scope = tenant_filter(claims, RiskScoreModel)
         if scope is not None:
             filters.append(scope)
-        if department_id or branch_id:
-            check_tenancy_access(claims, department_id, branch_id)
-            if department_id:
-                filters.append(RiskScoreModel.department_id == department_id)
-            if branch_id:
-                filters.append(RiskScoreModel.branch_id == branch_id)
+        if scope_level_key:
+            filters.append(RiskScoreModel.tenant_scope_level_key == scope_level_key)
         if app:
             filters.append(RiskScoreModel.app_name == app)
         if bucket:
@@ -94,125 +88,6 @@ async def get_risks(
         raise HTTPException(status_code=500, detail="Database query failed")
     except Exception as e:
         logger.exception("Unexpected error in get_risks: %s", e)
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/risks/by-cluster")
-async def get_risks_by_cluster(
-    date_from: date | None = Query(None),
-    date_to: date | None = Query(None),
-    session: AsyncSession = Depends(get_session),
-    claims = Depends(require_roles("risks")),
-):
-    """Rank Treasury clusters by average fused risk (most vulnerable first).
-
-    cluster_id/ministry_id are nullable reporting metadata derived from each
-    row's department_id; they never widen the tenant scope (tenant_filter still
-    keys on department_id).
-    """
-    try:
-        filters = []
-        scope = tenant_filter(claims, RiskScoreModel)
-        if scope is not None:
-            filters.append(scope)
-        if date_from:
-            filters.append(RiskScoreModel.score_date >= date_from)
-        if date_to:
-            filters.append(RiskScoreModel.score_date <= date_to)
-
-        rows = (
-            await session.execute(
-                select(
-                    RiskScoreModel.cluster_id,
-                    func.avg(RiskScoreModel.fused_score).label("avg_risk"),
-                    func.max(RiskScoreModel.fused_score).label("max_risk"),
-                    func.count(func.distinct(RiskScoreModel.department_id)).label("departments"),
-                    func.count().label("rows"),
-                )
-                .where(*filters)
-                .group_by(RiskScoreModel.cluster_id)
-                .order_by(func.avg(RiskScoreModel.fused_score).desc())
-            )
-        ).all()
-        return {
-            "items": [
-                {
-                    "cluster_id": r.cluster_id,
-                    "cluster_name": CLUSTERS.get(r.cluster_id) if r.cluster_id else None,
-                    "avg_risk": round(float(r.avg_risk), 1) if r.avg_risk is not None else None,
-                    "max_risk": round(float(r.max_risk), 1) if r.max_risk is not None else None,
-                    "departments": int(r.departments),
-                    "rows": int(r.rows),
-                }
-                for r in rows
-            ]
-        }
-    except HTTPException:
-        raise
-    except SQLAlchemyError as e:
-        logger.exception("Database error in get_risks_by_cluster: %s", e)
-        raise HTTPException(status_code=500, detail="Database query failed")
-    except Exception as e:
-        logger.exception("Unexpected error in get_risks_by_cluster: %s", e)
-        raise HTTPException(status_code=500, detail="Internal server error")
-
-
-@router.get("/risks/by-ministry")
-async def get_risks_by_ministry(
-    cluster_id: str | None = Query(None),
-    date_from: date | None = Query(None),
-    date_to: date | None = Query(None),
-    session: AsyncSession = Depends(get_session),
-    claims = Depends(require_roles("risks")),
-):
-    """Rank ministries by average fused risk (most vulnerable first)."""
-    try:
-        filters = []
-        scope = tenant_filter(claims, RiskScoreModel)
-        if scope is not None:
-            filters.append(scope)
-        if cluster_id:
-            filters.append(RiskScoreModel.cluster_id == cluster_id)
-        if date_from:
-            filters.append(RiskScoreModel.score_date >= date_from)
-        if date_to:
-            filters.append(RiskScoreModel.score_date <= date_to)
-
-        rows = (
-            await session.execute(
-                select(
-                    RiskScoreModel.ministry_id,
-                    func.avg(RiskScoreModel.fused_score).label("avg_risk"),
-                    func.max(RiskScoreModel.fused_score).label("max_risk"),
-                    func.count(func.distinct(RiskScoreModel.department_id)).label("departments"),
-                    func.count().label("rows"),
-                )
-                .where(*filters)
-                .group_by(RiskScoreModel.ministry_id)
-                .order_by(func.avg(RiskScoreModel.fused_score).desc())
-            )
-        ).all()
-        return {
-            "items": [
-                {
-                    "ministry_id": r.ministry_id,
-                    "ministry_name": MINISTRIES.get(r.ministry_id) if r.ministry_id else None,
-                    "cluster_id": MINISTRY_TO_CLUSTER.get(r.ministry_id) if r.ministry_id else None,
-                    "avg_risk": round(float(r.avg_risk), 1) if r.avg_risk is not None else None,
-                    "max_risk": round(float(r.max_risk), 1) if r.max_risk is not None else None,
-                    "departments": int(r.departments),
-                    "rows": int(r.rows),
-                }
-                for r in rows
-            ]
-        }
-    except HTTPException:
-        raise
-    except SQLAlchemyError as e:
-        logger.exception("Database error in get_risks_by_ministry: %s", e)
-        raise HTTPException(status_code=500, detail="Database query failed")
-    except Exception as e:
-        logger.exception("Unexpected error in get_risks_by_ministry: %s", e)
         raise HTTPException(status_code=500, detail="Internal server error")
 
 

@@ -307,7 +307,7 @@ def call_tool(
                     "params": {
                         "protocolVersion": "2024-11-05",
                         "capabilities": {},
-                        "clientInfo": {"name": "sita-platform", "version": "1.0"},
+                        "clientInfo": {"name": "unified-data-security-platform", "version": "1.0"},
                     },
                 },
                 {"jsonrpc": "2.0", "method": "notifications/initialized", "params": {}},

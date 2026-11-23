@@ -38,11 +38,11 @@ export const ROLE_GUIDANCE_MAP: Record<string, RoleGuidanceItem> = {
       { id: 'admin', label: 'Internal Audit & Admin', color: '#34d399', bg: 'rgba(52,211,153,0.15)' },
       { id: 'sre', label: 'SRE / Systems Ops', color: '#94a3b8', bg: 'rgba(148,163,184,0.15)' },
     ],
-    headline: 'Transversal Whole-Estate Situational Awareness & Defense Synchronization',
+    headline: 'Unified Cross-Tenant Whole-Estate Situational Awareness & Defense Synchronization',
     roleHelpSummary: 'Eliminates departmental silos by uniting perimeter WAF blocks, AppScan vulnerabilities, DAM database queries, and compliance filings into one synchronized tactical command center.',
     laymanAnalogy: "Like a Joint Operations Command Center that monitors naval radar, air defenses, infantry movements, and legal rules of engagement simultaneously on a single unified tactical board, ensuring no unit operates in the dark.",
     whatItHelpsWithDetailed: [
-      'Allows CISOs and Transversal Administrators to oversee all 7 cognitive engines in real time.',
+      'Allows CISOs and the platform superadmin to oversee the platform’s cognitive engines in real time.',
       'Correlates perimeter defenses (WAF) directly with application defects (AppScan) and database access (DAM).',
       'Provides instantaneous cross-department risk posture across National, Provincial, Departmental, and Branch tiers.',
       'Maintains 100% tenant isolation with zero cross-tenant leakage between organs of state.'
@@ -50,7 +50,7 @@ export const ROLE_GUIDANCE_MAP: Record<string, RoleGuidanceItem> = {
     deterministicBaseline: 'Separate disjointed dashboards for AppScan, Imperva WAF, Imperva DAM, and static audit spreadsheets.',
     cognitiveAiAdvantage: 'Unified real-time reasoning and correlation connecting raw vulnerability counts to active adversarial threat campaigns.',
     whyCodeFails: 'Relational databases store tables in silos. Code cannot semantically link an unpatched web defect to an active adversary campaign without human-like cognitive inference.',
-    operationalGain: 'Replaces 4 fragmented vendor consoles with a single command screen; speeds transversal triaging from days to minutes.',
+    operationalGain: 'Replaces 4 fragmented vendor consoles with a single command screen; speeds cross-tenant triaging from days to minutes.',
     governingOutcome: 'D0 Outcomes 1–7 (Consolidated Security Reporting Mandate)'
   },
   'g2-report': {
@@ -60,7 +60,7 @@ export const ROLE_GUIDANCE_MAP: Record<string, RoleGuidanceItem> = {
     badge: 'STAGE 4 / G2 VERIFIED',
     targetRoles: [
       { id: 'exec', label: 'Executive Leadership / DG', color: '#f87171', bg: 'rgba(239,68,68,0.15)' },
-      { id: 'admin', label: 'Transversal Admin / CISO', color: '#34d399', bg: 'rgba(52,211,153,0.15)' },
+      { id: 'admin', label: 'Platform Superadmin / CISO', color: '#34d399', bg: 'rgba(52,211,153,0.15)' },
       { id: 'compliance', label: 'Audit & Compliance', color: '#c084fc', bg: 'rgba(192,132,252,0.15)' },
     ],
     headline: 'Instant Cabinet-Ready Executive Briefings with Zero-Hallucination Numeral Verifier',
@@ -71,7 +71,7 @@ export const ROLE_GUIDANCE_MAP: Record<string, RoleGuidanceItem> = {
       'Enforces Gate 1 & Gate 2 multi-tenant data pruning so no department ever sees another department\'s confidential data.',
       'Automated Numeral Verifier checks every digit against the SQL warehouse; discards any hallucinated claims.',
       'Provides an interactive Grounded Copilot for rapid Q&A during parliamentary and board oversight sessions.',
-      'Enables 1-click export to branded DOCX and PDF briefings signed with ECDSA cryptographic hashes.'
+      'Enables 1-click export to branded DOCX and PDF briefings for internal review.'
     ],
     deterministicBaseline: 'Calculates composite risk score formula (e.g. 58 - 42 = +16); displays mathematical line charts and counts.',
     cognitiveAiAdvantage: 'Reads external intelligence, correlates it with estate defects, and authors persuasive, executive-grade briefs in under 8 seconds.',
@@ -116,18 +116,18 @@ export const ROLE_GUIDANCE_MAP: Record<string, RoleGuidanceItem> = {
       { id: 'soc', label: 'SOC Detection Engineer', color: '#60a5fa', bg: 'rgba(59,130,246,0.15)' },
     ],
     headline: 'Synthesizing Schema-Compliant Alert Rules from MITRE ATT&CK Techniques',
-    roleHelpSummary: 'Helps AppSec and SOC engineers convert newly published attacker techniques into valid, reviewable YAML detection rules matching SITA\'s schema in under 2 minutes.',
+    roleHelpSummary: 'Helps AppSec and SOC engineers convert newly published attacker techniques into valid, reviewable YAML detection rules matching the configured tenant schema in under 2 minutes.',
     laymanAnalogy: "Like an expert locksmith who, upon hearing that burglars designed a new master key, instantly fabricates custom deadbolts for every government building that fit the doors perfectly without jamming the locks.",
     whatItHelpsWithDetailed: [
-      'Ingests MITRE ATT&CK technique IDs (e.g. T1190) and maps them to SITA\'s internal log sources.',
+      'Ingests MITRE ATT&CK technique IDs (e.g. T1190) and maps them to the client tenant\'s configured log sources.',
       'Selects appropriate normalized field predicates, thresholds, and severity ratings.',
       'Outputs syntactically valid YAML rules directly adhering to alert_rules.yaml standards.',
       'Presents a color-coded side-by-side Git diff for operator review and verification.',
       'Strictly enforces human-in-the-loop governance: rules are never automatically merged without sign-off.'
     ],
     deterministicBaseline: 'Runs HCL AppScan DAST and SAST scanners; produces static spreadsheets with 69 CWE defect rows.',
-    cognitiveAiAdvantage: 'Translates external MITRE techniques into custom YAML alert rules matching SITA\'s database schema with diff viewers.',
-    whyCodeFails: 'External Sigma or Splunk rules use foreign taxonomies. Traditional code cannot infer semantic equivalence between foreign rule parameters and SITA\'s custom database schema without generating syntax errors.',
+    cognitiveAiAdvantage: 'Translates external MITRE techniques into custom YAML alert rules matching the tenant database schema with diff viewers.',
+    whyCodeFails: 'External Sigma or Splunk rules use foreign taxonomies. Traditional code cannot infer semantic equivalence between foreign rule parameters and the tenant\'s custom database schema without generating syntax errors.',
     operationalGain: 'Rule deployment drops from 48 hours to 2 minutes; zero schema syntax errors; zero risk of untested autonomous commits.',
     governingOutcome: 'AIR-R2 (Automated Alert Rule Authoring)'
   },
@@ -146,7 +146,7 @@ export const ROLE_GUIDANCE_MAP: Record<string, RoleGuidanceItem> = {
     whatItHelpsWithDetailed: [
       'Accepts raw, unstructured threat reports and CTI feeds via simple text paste.',
       'Extracts MITRE ATT&CK techniques, CVE numbers, and targeted industry sectors using semantic reasoning.',
-      'Cross-references extracted techniques against SITA\'s live estate exposure tables.',
+      'Cross-references extracted techniques against the configured live estate exposure tables.',
       'Generates a comprehensive gap analysis highlighting covered versus uncovered attack vectors.',
       'Token-only egress ensures no department names, internal IP addresses, or citizen data leave the secure enclave.'
     ],
@@ -217,19 +217,19 @@ export const ROLE_GUIDANCE_MAP: Record<string, RoleGuidanceItem> = {
       { id: 'exec', label: 'Executive Leadership', color: '#f87171', bg: 'rgba(239,68,68,0.15)' },
     ],
     headline: 'Multi-Day Temporal Pattern Detection Across Signed Audit Logs',
-    roleHelpSummary: 'Helps Internal Auditors and Platform Admins identify non-linear insider threat patterns (self-approval, escalating exports, privilege creep) that bypass standard single-event rules.',
+    roleHelpSummary: 'Helps compliance teams and platform admins identify non-linear insider threat patterns (self-approval, escalating exports, privilege creep) that bypass standard single-event rules.',
     laymanAnalogy: "Like an expert forensic investigator who reviews an employee's actions over 60 days, recognizing that while each single action seemed normal on paper, the combined sequence proves they were preparing to embezzle state funds.",
     whatItHelpsWithDetailed: [
       'Clusters signed audit events (audit.action_audit) into chronological multi-day chains.',
       'Detects complex insider abuse patterns: SELF_APPROVE_CHAIN, ESCALATING_EXPORT, CROSS_SCOPE_PIVOT, and RAPID_AUTHORITY_SWEEP.',
       'Computes statistical confidence scores for each detected anomalous cluster.',
       'Generates explainable narration stubs to support formal disciplinary or forensic inquests.',
-      'Provides verifiable cryptographic evidence for the Auditor-General.'
+      'Provides tamper-evident records for internal review.'
     ],
-    deterministicBaseline: 'Cryptographically logs every administrative API request with ECDSA signatures; checks single-event authorization against RBAC.',
+    deterministicBaseline: 'Logs administrative API requests and checks single-event authorization against RBAC.',
     cognitiveAiAdvantage: 'Interprets multi-day non-linear event sequences in signed audit logs to recognize insider intent and privilege abuse.',
     whyCodeFails: 'Rule-based security only evaluates single isolated events (\'was user authorized to export?\'). It cannot synthesize a 20-step chronological narrative to recognize coordinated insider malice.',
-    operationalGain: 'Catches slow, low-and-slow insider threats before catastrophic data exfiltration occurs; ensures a clean Auditor-General audit.',
+    operationalGain: 'Catches slow, low-and-slow insider threats before catastrophic data exfiltration occurs; supports internal review.',
     governingOutcome: 'Outcome 5 (Auditability, Model Hashing & Privilege Integrity)'
   },
 };
@@ -358,7 +358,7 @@ export function RoleExplanationModal({
           ))}
         </div>
 
-        {/* Layman Analogy Callout (Official SITA Matrix) */}
+        {/* Layman Analogy Callout (Generic Platform Matrix) */}
         <div
           style={{
             padding: '16px 20px',

@@ -43,9 +43,7 @@ ALERT_ACTIONS = ("alert.acknowledge", "alert.resolve")
 #: Permission required to acknowledge or resolve an alert, per ROLES_HIERARCHY.
 #: ``require_roles`` is additive-OR, so membership of this set is the test.
 ALERT_WRITE_ROLES = frozenset({
-    "soc", "sre", "transversal-admin", "admin", "operator",
-    "province-soc-lead", "dept-admin", "branch-admin",
-    "province-dept-admin",
+    "soc", "sre", "admin", "operator", "province-soc-lead",
 })
 
 #: Roles legitimately entitled to see the whole estate. Anything outside this
@@ -57,7 +55,6 @@ SEPARATION_OF_DUTIES = (
     frozenset({"admin", "compliance"}),
     frozenset({"admin", "exec"}),
     frozenset({"operator", "compliance"}),
-    frozenset({"transversal-admin", "compliance"}),
 )
 
 #: An export by a scoped role at or above this row count exceeds what a single
@@ -218,9 +215,9 @@ async def dormant_accounts(session: AsyncSession) -> dict:
         "dormant_accounts": [],
         "executed": linked > 0,
         "note": (
-            "Not executed. identity.users.person_id is NULL on every row, so no "
-            "account resolves to an HR person record. This check becomes live the "
-            "moment HR-linked provisioning is used."
+            "Account links are created only for verified LDAP identities. This "
+            "check counts linked accounts but does not yet evaluate login or "
+            "directory activity history."
         ),
     }
 

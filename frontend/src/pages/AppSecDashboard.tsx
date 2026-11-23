@@ -12,32 +12,24 @@ import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
-  sita: {
-    title: 'Application Security — SITA Command Center (Tier 4)',
-    subtitle: 'Overarching · Transversal CVE triage & vulnerability exposure across ~173 National & Provincial Departments (PFMA Organs of State)',
+  platform: {
+    title: 'Application Security',
+    subtitle: 'Application vulnerabilities, severity distribution, and API exposure.',
   },
-  national: {
-    title: 'Application Security — National Security Estate (Tier 3)',
-    subtitle: 'Strategic · Top vulnerability findings across all National & Provincial Departments — estate-wide posture & severity distribution',
-  },
-  dept: {
-    title: 'Application Security — Department (Tier 2)',
-    subtitle: 'Tactical · Department vulnerability list, severity distribution and API exposure within departmental tenancy',
-  },
-  branch: {
-    title: 'Application Security — Branch (Tier 1)',
-    subtitle: 'Granular · Branch application vulnerabilities, DDG-unit risk and actionable remediation backlog',
+  workspace: {
+    title: 'Application Security',
+    subtitle: 'Application vulnerabilities, severity distribution, and API exposure.',
   },
 };
 
-export default function AppSecDashboard({ tier = 'dept' }: { tier?: TenancyTier }) {
+export default function AppSecDashboard({ tier = 'workspace' }: { tier?: TenancyTier }) {
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useAppSecData();
   const narrative = useNarrativeFacts();
 
   if (d.loading) {
-    return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'appsec', color: 'var(--amber)', bg: 'var(--amber-dim)' }} consolidatedTag="AppScan · API Security · Imperva WAF" onExplain={() => {}} onLayman={() => {}} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
+    return <div className="dash"><DashHeader title={cfg.title} subtitle="Loading live data…" badge={{ label: 'appsec', color: 'var(--amber)', bg: 'var(--amber-dim)' }} consolidatedTag="AppScan · API Security · Imperva WAF" onExplain={() => { }} onLayman={() => { }} /><div className="dash-loading"><span className="spin" />Loading live data…</div></div>;
   }
 
   const facts: ExplainFacts = {
@@ -190,11 +182,11 @@ export default function AppSecDashboard({ tier = 'dept' }: { tier?: TenancyTier 
                   {c.owaspId
                     ? <code style={{ color: 'var(--blue)' }}>{c.owaspId}</code>
                     : <span style={{ color: 'var(--text-muted)', fontSize: 10 }}>
-                        {c.owaspStatus === 'unmapped' ? 'unmapped'
-                          : c.owaspStatus === 'not_applicable' ? 'n/a'
+                      {c.owaspStatus === 'unmapped' ? 'unmapped'
+                        : c.owaspStatus === 'not_applicable' ? 'n/a'
                           : c.owaspStatus === 'absent' ? 'no category'
-                          : '—'}
-                      </span>
+                            : '—'}
+                    </span>
                   }
                 </td>
                 <td style={{ fontFamily: 'var(--mono)' }}>{c.discovered}</td>

@@ -1,9 +1,10 @@
-from sqlalchemy import Boolean, Column, Date, DateTime, Numeric, String, func
+from sqlalchemy import Boolean, Column, Date, DateTime, Index, Numeric, String, func, text
 
 from app.models.base import Base
+from app.models.tenant_data_scope import TenantDataScope
 
 
-class ApiEndpoint(Base):
+class ApiEndpoint(TenantDataScope, Base):
     __tablename__ = "api_endpoints"
     __table_args__ = {"schema": "warehouse"}
 
@@ -21,7 +22,7 @@ class ApiEndpoint(Base):
     last_seen = Column(DateTime(timezone=True), nullable=False, default=func.now())
 
 
-class WafBlock(Base):
+class WafBlock(TenantDataScope, Base):
     __tablename__ = "waf_blocks"
     __table_args__ = {"schema": "warehouse"}
 
@@ -49,7 +50,7 @@ class SystemMetric(Base):
     recorded_at = Column(DateTime(timezone=True), nullable=False, default=func.now())
 
 
-class Agent(Base):
+class Agent(TenantDataScope, Base):
     __tablename__ = "agents"
     __table_args__ = {"schema": "warehouse"}
 
@@ -62,9 +63,27 @@ class Agent(Base):
     last_seen = Column(DateTime(timezone=True), nullable=False, default=func.now())
 
 
-class SloMetric(Base):
+class SloMetric(TenantDataScope, Base):
     __tablename__ = "slo_metrics"
-    __table_args__ = {"schema": "warehouse"}
+    __table_args__ = (
+        Index(
+            "uq_slo_global_metric_week",
+            "metric",
+            "week_start",
+            unique=True,
+            postgresql_where=text("tenant_workspace_id IS NULL"),
+        ),
+        Index(
+            "uq_slo_tenant_metric_week",
+            "tenant_workspace_id",
+            "tenant_scope_level_key",
+            "metric",
+            "week_start",
+            unique=True,
+            postgresql_where=text("tenant_workspace_id IS NOT NULL"),
+        ),
+        {"schema": "warehouse"},
+    )
 
     id = Column(String, primary_key=True)
     metric = Column(String(20), nullable=False)
@@ -72,7 +91,7 @@ class SloMetric(Base):
     value_hours = Column(Numeric(6, 2), nullable=False)
 
 
-class DatabaseInventory(Base):
+class DatabaseInventory(TenantDataScope, Base):
     __tablename__ = "database_inventory"
     __table_args__ = {"schema": "warehouse"}
 

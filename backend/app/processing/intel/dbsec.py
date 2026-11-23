@@ -130,7 +130,7 @@ DAM_ARCHETYPES: dict[str, dict[str, Any]] = {
         "d3fend": "D3-UAM – User Account Management",
         "blast_radius_multiplier": 2000,
         "business_impact": "Privileged DBA activity outside working hours indicates potential insider threat.",
-        "remediation_urgency": "MEDIUM — correlate with HR roster; flag for security review",
+        "remediation_urgency": "MEDIUM — correlate with the directory roster; flag for security review",
     },
 }
 

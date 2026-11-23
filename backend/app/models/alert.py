@@ -3,6 +3,7 @@ import enum
 from sqlalchemy import JSON, Column, DateTime, Integer, String, func
 
 from app.models.base import Base
+from app.models.tenant_data_scope import TenantDataScope
 
 
 class AlertStatus(str, enum.Enum):
@@ -13,7 +14,7 @@ class AlertStatus(str, enum.Enum):
     DISMISSED = "dismissed"
 
 
-class Alert(Base):
+class Alert(TenantDataScope, Base):
     __tablename__ = "alerts"
     __table_args__ = {"schema": "warehouse"}
 
@@ -49,7 +50,7 @@ class DispatchStatus(str, enum.Enum):
     SKIPPED = "skipped"
 
 
-class DispatchLog(Base):
+class DispatchLog(TenantDataScope, Base):
     __tablename__ = "dispatch_log"
     __table_args__ = {"schema": "warehouse"}
 

@@ -41,7 +41,7 @@ const details = {
       <ul>
         <li><code>C:\sita-platform\backend\app\main.py</code> &mdash; FastAPI application entry point.</li>
         <li><code>C:\sita-platform\backend\app\config.py</code> &mdash; Central configuration (env-based).</li>
-        <li><code>C:\sita-platform\backend\app\api\</code> &mdash; REST layer: routers (<code>alerts</code>, <code>findings</code>, <code>risks</code>, <code>compliance</code>, <code>admin</code>, <code>dashboard</code>, <code>benchmark</code> (provincial peer comparison), <code>exports_ag</code> (Auditor-General signed export)), Pydantic <code>schemas/</code>, auth deps, and error handling. <strong>Every endpoint queries the warehouse DB</strong> to serve report data.</li>
+        <li><code>C:\sita-platform\backend\app\api\</code> &mdash; REST layer: routers (<code>alerts</code>, <code>findings</code>, <code>risks</code>, <code>compliance</code>, <code>admin</code>, <code>dashboard</code>, <code>benchmark</code> (provincial peer comparison), <code>exports_ag</code> (signed compliance export)), Pydantic <code>schemas/</code>, auth deps, and error handling. <strong>Every endpoint queries the warehouse DB</strong> to serve report data.</li>
         <li><code>C:\sita-platform\backend\app\connectors\</code> &mdash; Adapters for OEM security tools: <code>appscan</code> (HCL), <code>apisec</code>, <code>imperva</code>, and <code>compliance</code> (CSV/API). All extend a <code>base</code> connector.</li>
         <li><code>C:\sita-platform\backend\app\ingestion\</code> &mdash; Reliable data intake from OEMs with <code>circuit_breaker</code>, <code>retry</code>, <code>token_bucket</code> rate limiting, a <code>scheduler</code>, and a dead-letter queue (<code>dlq</code>). Writes raw payloads to <code>staging.raw_records</code>.</li>
         <li><code>C:\sita-platform\backend\app\bus\</code> &mdash; Internal event stream producer/consumer used to hand records between the ingestion, processing, and analytics stages.</li>
@@ -426,7 +426,7 @@ const details = {
       <p><strong>Purpose:</strong> Store normalised, report-ready data in PostgreSQL. The warehouse schema is the <em>only</em> source the reporting layer reads from.</p>
 
       <div class="schema-erd" id="erdStore"></div>
-      <p class="erd-caption"><strong>PK</strong> primary key &middot; <strong>UQ</strong> unique &middot; <strong>FK</strong> foreign key (solid <strong>accent</strong> arrows) &middot; dashed <strong>amber</strong> arrows = maintenance rotation into <code>archive</code> (LIKE copies, <code>ON CONFLICT DO NOTHING</code>) &middot; bright column name = <strong>NOT NULL</strong>, dim = nullable &middot; <code>DF</code> = server default &middot; hover any box for its purpose. Rendered from the same DDL as <code>infrastructure\scripts\init-db.sql</code> &mdash; 6 schemas (incl. <code>audit.action_audit</code> for AG exports), 24 tables (20 canonical + 4 archive LIKE copies). <strong>Tenancy:</strong> every app/db-scoped warehouse row (<code>findings</code>, <code>risk_scores</code>, <code>alerts</code>, <code>dispatch_log</code>, <code>api_endpoints</code>, <code>waf_blocks</code>, <code>database_inventory</code>) denormalises <code>department_id</code>/<code>branch_id</code> (accent arrows &rarr; <code>warehouse.departments</code> / <code>warehouse.branches</code>), so <code>tenant_filter</code> scoping needs no joins; <code>identity.users</code> carries the admin-set <code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> scope lists, and provincial departments resolve via <code>departments.province_id</code> &rarr; <code>warehouse.provinces</code>. <strong>Click the diagram to open it full-screen and zoom.</strong></p>
+      <p class="erd-caption"><strong>PK</strong> primary key &middot; <strong>UQ</strong> unique &middot; <strong>FK</strong> foreign key (solid <strong>accent</strong> arrows) &middot; dashed <strong>amber</strong> arrows = maintenance rotation into <code>archive</code> (LIKE copies, <code>ON CONFLICT DO NOTHING</code>) &middot; bright column name = <strong>NOT NULL</strong>, dim = nullable &middot; <code>DF</code> = server default &middot; hover any box for its purpose. Rendered from the same DDL as <code>infrastructure\scripts\init-db.sql</code> &mdash; 6 schemas (incl. <code>audit.action_audit</code> for audit exports), 24 tables (20 canonical + 4 archive LIKE copies). <strong>Tenancy:</strong> every app/db-scoped warehouse row (<code>findings</code>, <code>risk_scores</code>, <code>alerts</code>, <code>dispatch_log</code>, <code>api_endpoints</code>, <code>waf_blocks</code>, <code>database_inventory</code>) denormalises <code>department_id</code>/<code>branch_id</code> (accent arrows &rarr; <code>warehouse.departments</code> / <code>warehouse.branches</code>), so <code>tenant_filter</code> scoping needs no joins; <code>identity.users</code> carries the admin-set <code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> scope lists, and provincial departments resolve via <code>departments.province_id</code> &rarr; <code>warehouse.provinces</code>. <strong>Click the diagram to open it full-screen and zoom.</strong></p>
 
       <h3>The database is built by the pipeline, not just loaded</h3>
       <p>PostgreSQL is the <strong>terminal materialisation of a streaming log pipeline</strong>. Every row in the warehouse is a normalised, deduplicated, alerted, and risk-scored descendant of an OEM security log, written idempotently into <code>staging</code> (provenance) then <code>warehouse</code> (canonical model), with <code>archive</code> + <code>maintenance.sql</code> managing its lifecycle.</p>
@@ -513,7 +513,7 @@ const details = {
       <h3>Scoping &amp; Security Isolation</h3>
       <ul>
         <li><strong>Tier 4 &mdash; SITA Superadmins</strong> (<code>admin@</code>, <code>operator@</code>): Overarching transversal authority across all 173 departments and 9 provinces. Unrestricted superadmin provisioning down the entire cascade.</li>
-        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation, and AG compliance export with SHA-256 integrity hash verification.</li>
+        <li><strong>Tier 3 &mdash; National Estate</strong> (<code>transversal-admin</code>, <code>exec</code>, <code>compliance</code>, <code>sre</code>): Strategic, whole-of-government visibility, fused risk aggregation, and Compliance export with SHA-256 integrity hash verification.</li>
         <li><strong>Tier 2 &mdash; Department &amp; Provincial Admins</strong> (<code>dept-admin</code>, <code>provincesoc</code>): Tactical operations scoped strictly to the assigned department (e.g. DHA) or province. Provincial peer blinding prevents cross-tenant leakage.</li>
         <li><strong>Tier 1 &mdash; Branch Superadmins &amp; Specialists</strong> (<code>branch-admin</code>, <code>soc</code>, <code>appsec</code>, <code>dbsec</code>): Operational triage strictly confined to the assigned DDG branch (e.g. <code>dha-digital</code>).</li>
         <li><strong>Write-Time Denormalisation</strong>: Every warehouse record carries <code>department_id</code> and <code>branch_id</code> at ingestion; <code>tenant_filter()</code> guarantees zero cross-tenant leakage.</li>
@@ -527,7 +527,7 @@ const details = {
         <li><strong>Tier 1 (Branch Superadmin)</strong> &mdash; May provision local operational analysts strictly within the assigned branch. Cannot cross branches or elevate.</li>
       </ul>
       <h3>Database Schema</h3>
-      <p>Tenant reference tables live in the <code>warehouse</code> schema (<code>warehouse.departments</code>, <code>warehouse.branches</code>, <code>warehouse.provinces</code>, and <code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> JSONB scope lists on <code>identity.users</code>); the <code>audit</code> schema contains <code>action_audit</code> for the AG export and administrative audit trail. Backed by immutable PostgreSQL logs.</p>
+      <p>Tenant reference tables live in the <code>warehouse</code> schema (<code>warehouse.departments</code>, <code>warehouse.branches</code>, <code>warehouse.provinces</code>, and <code>province_ids</code>/<code>department_ids</code>/<code>branch_ids</code> JSONB scope lists on <code>identity.users</code>); the <code>audit</code> schema contains <code>action_audit</code> for the audit export and administrative audit trail. Backed by immutable PostgreSQL logs.</p>
     `
   },
   ui: {
@@ -569,10 +569,10 @@ const details = {
     `
   },
   exportsag: {
-    title: 'Auditor-General Compliance Export Engine',
+    title: 'Compliance Export Engine',
     badge: 'signed aggregation &middot; SHA-256 audit trail',
     body: String.raw`
-      <p><strong>Purpose:</strong> Produce an Auditor-General-grade <strong>aggregation-only</strong> compliance attestation with tamper-evident integrity. Implemented in <code>C:\sita-platform\backend\app\api\routers\exports_ag.py</code> as <code>POST /api/v1/exports/ag-compliance</code>.</p>
+      <p><strong>Purpose:</strong> Produce an audit-ready <strong>aggregation-only</strong> compliance attestation with tamper-evident integrity. Implemented in <code>C:\sita-platform\backend\app\api\routers\exports_ag.py</code> as <code>POST /api/v1/exports/ag-compliance</code>.</p>
       <div class="file-list"><span class="file-tag">exports_ag.py</span><span class="file-tag">models/audit.py</span><span class="file-tag">tests/test_exports_ag.py</span><span class="file-tag">tests/test_new_endpoints.py</span></div>
       <h3>What the attestation contains</h3>
       <ul>
@@ -1318,7 +1318,7 @@ execute &#8594; aggregate (k-anonymity floor <span class="n">5</span>) &#8594; r
   confidence: 0..1, rationale, requires_human_review }</pre>
       <h3>Hard rules</h3>
       <ul>
-        <li><strong>AI never mutates <code>warehouse.findings.severity</code>.</strong> For scores that are AG-audited, an autonomous severity change is indefensible.</li>
+        <li><strong>AI never mutates <code>warehouse.findings.severity</code>.</strong> For scores that are independently audited, an autonomous severity change is indefensible.</li>
         <li><strong>Below the confidence floor (default 0.70) suggestions are not surfaced at all</strong> &mdash; not shown greyed out, not shown at all.</li>
         <li>Every suggestion <em>and</em> every accept/reject &rarr; <code>warehouse.finding_triage</code> <strong>and</strong> <code>audit.action_audit</code> (NFR-AI-10).</li>
         <li><strong>No raw <code>raw_data</code></strong> &mdash; redacted excerpt only, through the same mandatory gate.</li>

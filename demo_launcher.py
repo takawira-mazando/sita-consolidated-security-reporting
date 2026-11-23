@@ -224,11 +224,11 @@ def main():
 
 {YELLOW}{BOLD}📋 7-ACT DEMO SCRIPT WALKTHROUGH:{RESET}
   {BOLD}Act 1: Landing & Public Summary{RESET}  → Unauthenticated landing page & granular 14-role RBAC matrix
-  {BOLD}Act 2: Multi-Tier Tenancy{RESET}        → Impersonate Executive, DHA SOC Lead, DDG Branch
+  {BOLD}Act 2: Multi-Tier Tenancy{RESET}        → Review executive and tenant-scoped security access
   {BOLD}Act 3: 6 Security Dashboards{RESET}     → Executive (Fused Risk), SOC, AppSec (OWASP), DbSec (DAM)
   {BOLD}Act 4: AI Intelligence Studio{RESET}    → 8 Capabilities (Attribution, POPIA, VAPT, Two-Gate)
-  {BOLD}Act 5: Delegated User Provisioning{RESET}→ 4-tier admin cascade with SAP HCM & PERSAL verification
-  {BOLD}Act 6: Export & Reporting{RESET}         → Auditor-General signed attestations (.docx / .xlsx / .csv)
+  {BOLD}Act 5: Delegated User Provisioning{RESET}→ 4-tier admin cascade with LDAP directory verification
+  {BOLD}Act 6: Export & Reporting{RESET}         → Audit-signed attestations (.docx / .xlsx / .csv)
   {BOLD}Act 7: Security & Arch Deep-Dive{RESET}  → Microservice isolation, JWT hardening, PII encryption
 
 {BOLD}💡 Tip:{RESET} An interactive {BOLD}SITA Demo Co-Pilot HUD{RESET} is embedded at the bottom-right

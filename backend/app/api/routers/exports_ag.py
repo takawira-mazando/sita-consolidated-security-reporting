@@ -1,11 +1,11 @@
-"""Auditor-General (AG) secure compliance export engine.
+"""Secure compliance attestation export engine.
 
 Produces a signed, aggregation-only compliance attestation suitable for an
-Auditor-General / oversight submission:
+independent audit or oversight submission:
 
 - Aggregation only: raw findings, vulnerability counts, individual logs and
-  PII are stripped. The payload is a summary of the estate (or the caller's
-  province scope) — snapshot scores, control status/severity distributions and
+  PII are stripped. The payload is a summary of the authorized workspace —
+  snapshot scores, control status/severity distributions and
   a scoped risk profile. Nothing that could re-identify an asset or a user is
   emitted.
 - Integrity: a SHA-256 hash is computed over the canonical JSON of the
@@ -44,13 +44,11 @@ from app.security_pki import (
     sign_canonical_payload,
     verify_canonical_payload,
 )
-from app.tenant import PROVINCES
-
-router = APIRouter(tags=["exports-ag"])
+router = APIRouter(tags=["compliance-exports"])
 
 # Bumped when the authorisation or aggregation logic changes, so an auditor can
 # tell which control state produced an attestation.
-POLICY_VERSION = "ag-export-v2"
+POLICY_VERSION = "compliance-attestation-v1"
 
 
 def _bucket(score: float) -> str:
@@ -86,7 +84,7 @@ def _build_attestation_body(
 
     Deliberately free of wall-clock values so the output is reproducible.
 
-    risk_rows: [{fused_score, department_id, app_name, signal_appscan,
+    risk_rows: [{fused_score, scope_level_key, app_name, signal_appscan,
                  signal_imperva, signal_api_exposure, signal_compliance_penalty}]
     """
     domain_scores = {}
@@ -103,15 +101,15 @@ def _build_attestation_body(
         domain_counts[domain] = domain_counts.get(domain, 0) + 1
 
     bucket_counts: dict[str, int] = {"critical": 0, "monitored": 0, "safe": 0}
-    departments: set[str] = set()
+    scope_levels: set[str] = set()
     apps: set[str] = set()
     signals = {"appscan": 0.0, "imperva": 0.0, "api": 0.0, "compliance": 0.0}
     total = len(risk_rows)
     for r in risk_rows:
         score = float(r["fused_score"])
         bucket_counts[_bucket(score)] += 1
-        if r.get("department_id"):
-            departments.add(r["department_id"])
+        if r.get("scope_level_key"):
+            scope_levels.add(r["scope_level_key"])
         if r.get("app_name"):
             apps.add(r["app_name"])
         for key, rk in (
@@ -125,7 +123,7 @@ def _build_attestation_body(
                 signals[key] += float(v)
 
     return {
-        "artifact": "AG compliance attestation (aggregate only)",
+        "artifact": "Compliance attestation (aggregate only)",
         "framework": framework,
         "snapshot": (
             {
@@ -147,7 +145,7 @@ def _build_attestation_body(
         },
         "risk_profile": {
             "scoped_apps": len(apps),
-            "scoped_departments": len(departments),
+            "scoped_levels": len(scope_levels),
             "bucket_counts": bucket_counts,
             "signal_averages": {
                 key: (round(value / total, 2) if total else 0.0)
@@ -178,13 +176,13 @@ def build_attestation(
     return _build_attestation_body(framework, snapshot, gaps, risk_rows, scope_meta)
 
 
-def scope_digest(claims: JWTClaims, province_ids: list[str]) -> str:
+def scope_digest(claims: JWTClaims) -> str:
     """Stable digest of the authorisation scope resolved for this export."""
     return sha256_hex(
         {
-            "department_ids": sorted(claims.department_ids or []),
-            "branch_ids": sorted(claims.branch_ids or []),
-            "province_ids": sorted(province_ids or []),
+            "tenant_workspace_ids": sorted(claims.tenant_workspace_ids or []),
+            "tenant_scope_unit_ids": sorted(claims.tenant_scope_unit_ids or []),
+            "tenant_scope_level_keys": sorted(claims.active_tenant_scope_level_keys or []),
             "roles": sorted(getattr(claims, "roles", None) or []),
             "policy_version": POLICY_VERSION,
         }
@@ -203,13 +201,19 @@ async def export_ag_compliance(
         .where(ComplianceSnapshot.framework == framework)
         .order_by(ComplianceSnapshot.snapshot_date.desc())
     )
+    snapshot_scope = tenant_filter(claims, ComplianceSnapshot)
+    if snapshot_scope is not None:
+        snap_q = snap_q.where(snapshot_scope)
     snapshot = (await session.execute(snap_q)).scalars().first()
 
     gap_q = select(ComplianceGap).where(ComplianceGap.framework == framework)
+    gap_scope = tenant_filter(claims, ComplianceGap)
+    if gap_scope is not None:
+        gap_q = gap_q.where(gap_scope)
     gaps = (await session.execute(gap_q)).scalars().all()
 
     risk_q = select(
-        RiskScore.department_id,
+        RiskScore.tenant_scope_level_key,
         RiskScore.app_name,
         RiskScore.fused_score,
         RiskScore.signal_appscan,
@@ -222,7 +226,7 @@ async def export_ag_compliance(
         risk_q = risk_q.where(scope)
     risk_rows = [
         {
-            "department_id": r.department_id,
+            "scope_level_key": r.tenant_scope_level_key,
             "app_name": r.app_name,
             "fused_score": float(r.fused_score),
             "signal_appscan": r.signal_appscan,
@@ -233,17 +237,12 @@ async def export_ag_compliance(
         for r in (await session.execute(risk_q)).all()
     ]
 
-    province_ids = list(getattr(claims, "province_ids", None) or [])
+    scope_levels = list(claims.active_tenant_scope_level_keys or [])
     scope_meta = {
-        "type": "province" if province_ids else "estate",
-        "provinces": [PROVINCES.get(p, p) for p in sorted(province_ids)] if province_ids else ["all"],
-        "note": (
-            "Risk profile is scoped to the caller's province; compliance "
-            "snapshot/gaps are estate-wide today (snapshots carry no "
-            "department_id)."
-            if province_ids
-            else "Whole-of-entity attestation covering the full SITA estate."
-        ),
+        "type": "tenant_workspace" if claims.active_tenant_workspace_id else "platform",
+        "tenant_workspace_id": claims.active_tenant_workspace_id,
+        "scope_level_keys": sorted(scope_levels),
+        "note": "Risk and compliance data are constrained by the caller's authorized scope.",
     }
 
     payload = build_attestation(framework, snapshot, list(gaps), risk_rows, scope_meta)
@@ -257,9 +256,9 @@ async def export_ag_compliance(
         action="ag_compliance_export",
         target=framework,
         tenant_scope={
-            "department_ids": claims.department_ids or [],
-            "branch_ids": claims.branch_ids or [],
-            "province_ids": province_ids,
+            "tenant_workspace_ids": claims.tenant_workspace_ids or [],
+            "tenant_scope_unit_ids": claims.tenant_scope_unit_ids or [],
+            "tenant_scope_level_keys": scope_levels,
         },
         payload_hash=integrity_hash,
         signed_payload=canon_bytes.decode("utf-8"),
@@ -268,7 +267,7 @@ async def export_ag_compliance(
         signing_algorithm=SIGNING_ALGORITHM,
         actor_role=",".join(sorted(getattr(claims, "roles", None) or [])) or None,
         policy_version=POLICY_VERSION,
-        scope_hash=scope_digest(claims, province_ids),
+        scope_hash=scope_digest(claims),
         verification_status="unverified",
         attestation_size_bytes=len(canon_bytes),
     )
@@ -283,7 +282,7 @@ async def export_ag_compliance(
         "signing_algorithm": SIGNING_ALGORITHM,
         "key_id": key_id,
         "policy_version": POLICY_VERSION,
-        "scope_hash": scope_digest(claims, province_ids),
+        "scope_hash": scope_digest(claims),
         "public_key_url": "/api/v1/exports/ag-compliance/public-key",
         "verify_url": f"/api/v1/exports/ag-compliance/verify/{integrity_hash}",
         "reproducibility_note": (
@@ -295,7 +294,7 @@ async def export_ag_compliance(
 
 @router.get("/exports/ag-compliance/public-key")
 async def get_ag_compliance_public_key():
-    """Public key for offline Auditor-General cryptographic verification."""
+    """Public key for offline External audit cryptographic verification."""
     return {
         "algorithm": SIGNING_ALGORITHM,
         "curve": "secp256r1 (NIST P-256)",

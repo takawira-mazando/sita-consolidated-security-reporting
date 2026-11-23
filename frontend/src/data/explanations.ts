@@ -56,7 +56,7 @@ export function buildExplain(role: string, input: NarrativeInput): string {
       return `<h3>Executive Risk Dashboard &mdash; Consolidation Logic</h3>
 <ul>
   <li><strong>Fused Risk Score (${fmt(f.fusedRisk)}):</strong> Weighted composite of ${m.riskWeightSummary ?? 'the four component signals'}. Each component is normalised to 0&ndash;100 before weighting, then the result is banded: ${m.bandSummary ?? 'safe / monitored / critical'}.</li>
-  <li><strong>Open Findings (${count(f.findings)}):</strong> Findings across the ${count(m.departments)} departments and ${count(m.branches)} operational branches in scope for this account. Severity is normalised during ingestion from each OEM's own scale before storage.</li>
+  <li><strong>Open Findings (${count(f.findings)}):</strong> Findings within the authorized tenant workspace. Severity is normalised during ingestion from each OEM's own scale before storage.</li>
   <li><strong>POPIA Compliance (${fmt(f.popia, '%')}):</strong> Latest stored snapshot. The scoring model weights ${list(m.popiaDomainLabels)}. <em>This score is seeded rather than computed &mdash; see the Compliance dashboard note.</em></li>
   <li><strong>Active Alerts (${count(f.alerts)}):</strong> Produced by ${m.alertRuleCount ?? '—'} rules evaluated against the fused warehouse &mdash; covering AppScan findings, Imperva DAM violations and WAF blocks, API Security shadow-API detections, compliance score movement and connector health.${m.alertRules ? ` Rules in force: ${list(m.alertRules.map((r) => r.id))}.` : ''}</li>
   <li><strong>Severity Distribution:</strong> Findings split across the normalised severity bands${f.topCat ? `, with <strong>${f.topCat}</strong> the largest category` : ''}.</li>
@@ -79,7 +79,7 @@ export function buildExplain(role: string, input: NarrativeInput): string {
     case 'appsec':
       return `<h3>Application Security Dashboard &mdash; Consolidation Logic</h3>
 <ul>
-  <li><strong>Total Findings (${count(f.findings)}):</strong> AppScan vulnerabilities across the ${count(m.departments)} departments in scope.</li>
+  <li><strong>Total Findings (${count(f.findings)}):</strong> AppScan vulnerabilities within the authorized tenant workspace.</li>
   <li><strong>Critical (${count(f.critical)}):</strong> Findings at the highest normalised severity, awaiting remediation.</li>
   <li><strong>Fix Rate (${fmt(f.fixRate, '%')}):</strong> Share of findings last seen in the remediation window that have reached a remediated state.${f.fixTotal != null ? ` Computed over ${count(f.fixTotal)} findings.` : ''}</li>
   <li><strong>WAF Blocks (${count(f.wafTotal)}):</strong> Imperva WAF block events in the observed window, grouped by attack type.</li>
@@ -156,11 +156,11 @@ export function buildLayman(role: string, input: NarrativeInput): string {
     case 'appsec':
       return `<h3>AppSec Dashboard &mdash; Plain English</h3>
 <ul>
-  <li><strong>Total Findings (${count(f.findings)}):</strong> Bugs found by the application scanner across ${count(m.departments)} departments. ${count(f.critical)} are critical.</li>
+  <li><strong>Total Findings (${count(f.findings)}):</strong> Bugs found by the application scanner within the authorized tenant workspace. ${count(f.critical)} are critical.</li>
   <li><strong>Vulnerabilities by Application:</strong> Which applications have how many bugs, by severity.</li>
   <li><strong>Fix Rate (${fmt(f.fixRate, '%')}):</strong> The share of issues that have actually been fixed in the recent window.</li>
   <li><strong>Distribution by Source Category:</strong> What <em>kinds</em> of bug these are, using each scanner's own categories.${f.topCat ? ` <strong>${f.topCat}</strong> tops the list (${count(f.topCatCount)}).` : ''}</li>
-  <li><strong>OWASP Top 10 Posture:</strong> The same findings sorted into the industry-standard OWASP categories${m.owaspTaxonomy ? ` (${m.owaspTaxonomy})` : ''}, so the AppScan, API Security and WAF numbers can be added up into one picture. <em>This is the view none of the individual tools can give you on its own.</em></li>
+  <li><strong>OWASP Top 10 Posture:</strong> The same findings sorted into the industry-standard OWASP categories${m.owaspTaxonomy ? ` (${m.owaspTaxonomy})` : ''}, so the AppScan, API Security and WAF numbers can be added up into one picture. <em>This is the view none of the individual tools can provide on its own.</em></li>
   <li><strong>API Exposure:</strong> The risky web-service entry points. Shadow APIs are ones nobody has formally registered.</li>
   <li><strong>WAF Blocks (${count(f.wafTotal)}):</strong> Malicious requests the web application firewall stopped.</li>
 </ul>`;
@@ -169,7 +169,7 @@ export function buildLayman(role: string, input: NarrativeInput): string {
       return `<h3>DB Security Dashboard &mdash; Plain English</h3>
 <ul>
   <li><strong>Total Violations (${count(f.violations)}):</strong> Suspicious database actions caught by the database activity monitor.</li>
-  <li><strong>Critical Violations (${count(f.critical)}):</strong> The most serious ones, on your most sensitive databases.</li>
+  <li><strong>Critical Violations (${count(f.critical)}):</strong> The most serious violations across high-sensitivity databases.</li>
   <li><strong>Databases Monitored (${fmt(f.coverage, '%')} coverage):</strong> How much of the estate the monitor is actually watching.</li>
   <li><strong>Violations by Application:</strong> Which database servers have the most problems.</li>
   <li><strong>Violation Categories:</strong> What happened.${f.topCat ? ` Currently <strong>${f.topCat}</strong> is the most common.` : ''}</li>

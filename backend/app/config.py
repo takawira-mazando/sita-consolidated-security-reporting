@@ -1,16 +1,15 @@
 import hashlib
 
-from pydantic import SecretStr, model_validator
-from pydantic_settings import BaseSettings
+from pydantic import SecretStr, model_validator, Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
-DEV_JWT_SECRET = "sita-local-dev-token-key-ephemeral"  # nosec B105
+DEV_JWT_SECRET = "unified-security-local-dev-token-key-ephemeral"  # nosec B105
 
 #: Dev-only data key so encryption at rest is exercised locally rather than
 #: silently disabled. Any other environment must supply a real key. Published
 #: in source on purpose: it protects nothing outside a development machine, and
 #: ``Settings`` refuses to start if it is still in use elsewhere.
 DEV_PII_KEY = "6h5qq5QWVyBBx4CiSGJiTksg+XfT9ppFDWWEt+Xr++A="
-
 
 DEV_ENVS = ("dev", "development", "test", "testing")
 
@@ -30,14 +29,15 @@ def is_disallowed_credential(candidate: str | None) -> bool:
     digest = hashlib.sha256(candidate.encode("utf-8")).hexdigest()
     return digest in _BANNED_HASHES
 
-
 # Backward-compatibility alias
 DISALLOWED_DEV_PASSWORDS = _BANNED_HASHES
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
     environment: str = "dev"
-    database_url: str = "postgresql+asyncpg://sita@localhost:5432/sita"
+    database_url: str = "postgresql+asyncpg://platform@localhost:5432/platform"
     redis_url: str = "redis://localhost:6379/0"
     auth0_domain: str = ""
     auth0_audience: str = ""
@@ -49,18 +49,19 @@ class Settings(BaseSettings):
     #: (see app.pii_crypto). Must be supplied outside development.
     pii_encryption_key: str = DEV_PII_KEY
 
-    #: Refuse to auto-generate an AG attestation signing key. A generated key
+    #: Refuse to auto-generate an audit attestation signing key. A generated key
     #: changes on every deploy, which silently invalidates every attestation
     #: already issued under the previous key_id. Defaults to True outside
     #: development; leave unset to get the environment-appropriate default.
     require_static_signing_key: bool | None = None
-    seed_demo_users_enabled: bool = True
+    seed_demo_users_enabled: bool = False
     bootstrap_admin_email: str = "admin@example.com"
     bootstrap_admin_password: str = ""
     smtp_host: str = "localhost"
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
+    frontend_base_url: str = "http://localhost:3000"
     teams_webhook_url: str = ""
     pagerduty_routing_key: str = ""
 
@@ -95,11 +96,27 @@ class Settings(BaseSettings):
     appscan_page_size: int = 200
     appscan_scope: str = "application"
 
-    # External Personnel System APIs (SITA SAP HCM & National Treasury PERSAL)
-    sita_employee_api_url: str = "https://hcm.sita.co.za/api/v1"
-    sita_employee_api_key: str = ""
-    persal_api_url: str = "https://persal.treasury.gov.za/api/v2"
-    persal_api_key: str = ""
+    # Active generic tenant-profile template; client workspaces are configured separately.
+    tenant_profile: str = "default"
+    # Optional human‑readable display name for the tenant profile
+    tenant_display_name: str | None = None
+
+    # Enterprise LDAP / Active Directory Integration (Customizable for any client)
+    ldap_enabled: bool = True
+    ldap_server_url: str = "ldap://127.0.0.1:389"
+    ldap_use_ssl: bool = False
+    ldap_start_tls: bool = False
+    ldap_timeout_seconds: int = 10
+    ldap_bind_dn: str = ""
+    ldap_bind_password: str = ""
+    ldap_base_dn: str = "dc=enterprise,dc=local"
+    ldap_user_search_base: str = "ou=users,dc=enterprise,dc=local"
+    ldap_user_search_filter: str = "(&(objectClass=*)(|(sAMAccountName={query}*)(uid={query}*)(mail={query}*)(cn={query}*)(sn={query}*)))"
+    ldap_user_login_filter: str = "(&(objectClass=*)(|(sAMAccountName={username})(uid={username})(mail={username})))"
+    ldap_group_search_base: str = "ou=groups,dc=enterprise,dc=local"
+    ldap_client_name: str = "Enterprise Unified Security Directory"
+    ldap_preset_profile: str = "active_directory"
+    ldap_mock_mode: bool = True
 
     db_pool_size: int = 20
     db_max_overflow: int = 40
@@ -158,9 +175,6 @@ class Settings(BaseSettings):
         then silently serves the deterministic path in production while the
         operator believes residue enrichment is live. Enabling is an assertion
         about intent, so the configuration it depends on had better be there.
-
-        The egress register is checked at call time by the gateway rather than
-        here, so that this module keeps no dependency on ``app.monitoring``.
         """
         if self.aimi_enabled:
             if not self.aimi_api_key.get_secret_value():
@@ -182,8 +196,6 @@ class Settings(BaseSettings):
                 )
         return self
 
-    class Config:
-        env_file = ".env"
-        extra = "allow"
 
+# Module-level singleton consumed by the rest of the application
 settings = Settings()

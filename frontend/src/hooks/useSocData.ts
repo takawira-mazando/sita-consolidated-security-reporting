@@ -19,12 +19,12 @@ import type { Tone } from '../data/mappers';
 export function useSocData() {
   const summary = useApi(useDemoAwareFetcher(
     () => fetchDashboardSummary(),
-    (branchId) => fetchDemoPublicSummary(branchId)
+    () => fetchDemoPublicSummary()
   ));
   const alerts = useApi(() => fetchAlerts({ size: 50 })); // Alerts not demo'd yet
   const findings = useApi(useDemoAwareFetcher(
     () => fetchFindings({ size: 200 }),
-    (branchId) => fetchDemoFindings({ size: 200, branch_id: branchId })
+    () => fetchDemoFindings({ size: 200 })
   ));
   const slo = useApi(() => fetchSloMetrics()); // SLO metrics not demo'd yet
 

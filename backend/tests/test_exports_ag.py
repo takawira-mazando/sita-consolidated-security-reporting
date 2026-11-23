@@ -1,4 +1,4 @@
-"""Tests for the Auditor-General aggregation-only compliance export engine."""
+"""Tests for external auditors aggregation-only compliance export engine."""
 from __future__ import annotations
 
 from datetime import date
@@ -74,7 +74,7 @@ class TestBuildAttestation:
             "popia", _snapshot(), _gaps(), _risk_rows(),
             {"type": "estate", "provinces": ["all"], "note": ""},
         )
-        assert out["artifact"] == "AG compliance attestation (aggregate only)"
+        assert out["artifact"] == "Compliance attestation (aggregate only)"
         assert out["framework"] == "popia"
         assert out["controls"]["gap_total"] == 3
         assert out["controls"]["status_counts"] == {"in_progress": 1, "open": 2}

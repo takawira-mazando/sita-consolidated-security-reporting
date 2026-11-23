@@ -13,25 +13,17 @@ import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
-  sita: {
-    title: 'Service Operations — SITA Command Center (Tier 4)',
-    subtitle: 'Overarching · Platform-provider uptime, multi-tenant pipeline telemetry & connector ingestion SLAs across all National & Provincial Departments',
+  platform: {
+    title: 'Service Operations',
+    subtitle: 'Platform and workspace health, ingestion, and connector status.',
   },
-  national: {
-    title: 'Service Operations — National Security Estate (Tier 3)',
-    subtitle: 'Strategic · Estate-wide infrastructure health, uptime SLAs and ingestion pipeline across all departments',
-  },
-  dept: {
-    title: 'Service Operations — Department (Tier 2)',
-    subtitle: 'Tactical · Department infrastructure, deployment frequency and connector health within departmental tenancy',
-  },
-  branch: {
-    title: 'Service Operations — Branch (Tier 1)',
-    subtitle: 'Granular · Branch infrastructure, local service health and connector status',
+  workspace: {
+    title: 'Service Operations',
+    subtitle: 'Workspace health, ingestion, and connector status.',
   },
 };
 
-export default function SreDashboard({ tier = 'national' }: { tier?: TenancyTier }) {
+export default function SreDashboard({ tier = 'workspace' }: { tier?: TenancyTier }) {
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useSreData();

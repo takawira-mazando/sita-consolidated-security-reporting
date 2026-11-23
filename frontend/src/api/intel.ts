@@ -249,7 +249,6 @@ export interface VaptLogInterpretationResult {
       popia_s22_breach_triggered?: boolean;
       popia_rationale?: string;
       iso_27001_control_status?: string;
-      auditor_attestation?: string;
       note?: string;
     };
     exec_risks?: {

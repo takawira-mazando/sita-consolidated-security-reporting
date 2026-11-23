@@ -1,16 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
-import { getTierAccess } from '../../context/AuthContext';
-import type { TenancyTier } from '../../types';
 import {
-  fetchTenancy,
-  filterTenancy,
-  entitlementFromUser,
-  TenancyResponse,
-} from '../../api/auth';
+  getTierAccess,
+  rolesForTenantWorkspace,
+  TENANT_WORKSPACE_STORAGE_KEY,
+} from '../../context/AuthContext';
+import type { TenancyTier } from '../../types';
 import { useDemoMode } from '../../context/DemoContext';
-import DemoDirectorModal from './DemoDirectorModal';
+import PlatformBrand from './PlatformBrand';
 
 interface RoleTab {
   role: string;
@@ -30,63 +28,44 @@ const ROLE_TABS: RoleTab[] = [
 ];
 
 const TIER_META: Record<TenancyTier, { label: string; icon: string; hint: string }> = {
-  sita:     { label: 'SITA Command Center (Tier 4)', icon: '🇿🇦', hint: 'Tier 4 Control Plane · SITA Superadmin #1 (admin@) — Mandated transversal infrastructure provider across 173 National & Provincial Departments. Provisions Transversal Superadmin #2 & National Data Plane Cockpits.' },
-  national: { label: 'National Estate (Tier 3)',      icon: '🏛',  hint: 'Tier 3 Control Plane · National Gov Transversal Superadmin #2 (transversal@) — Sovereign oversight across National & Provincial Departments. Provisions Department Superadmins (Tier 2).' },
-  dept:     { label: 'Department (Tier 2)',          icon: '🏢',  hint: 'Tier 2 Control Plane · Department Superadmin — Home Affairs PFMA Accounting Entity. Provisions Branch Admins (Tier 1) & Department Security Specialists.' },
-  branch:   { label: 'Branch (Tier 1)',              icon: '📍',  hint: 'Tier 1 Control Plane · Branch Admin — DDG Operational Branch (DHA Immigration). Provisions branch-scoped AppSec, SOC & DBSec specialists.' },
+  platform: { label: 'Platform Administration', icon: '⚡', hint: 'Manage client profiles and platform access.' },
+  workspace: { label: 'Tenant Workspace', icon: '🛡️', hint: 'Review security posture for the selected tenant workspace.' },
 };
 
-const ACCOUNT_DEFAULT = '__account_default__';
-const TIER_STORAGE_KEY = 'sita_active_tier';
+const TIER_STORAGE_KEY = 'platform_active_tier';
 
 export default function RoleNav() {
-  const { user, logout, switchTenant } = useAuth();
-  const { demoMode, toggleDemoMode } = useDemoMode();
+  const { user, logout } = useAuth();
+  const { demoMode } = useDemoMode();
   const navigate = useNavigate();
   const location = useLocation();
-
+  const isProviderAdmin = location.pathname.startsWith('/platform/admin');
+  const tenantWorkspaces = user?.tenant_workspace_access ?? [];
+  const [activeWorkspaceId, setActiveWorkspaceId] = useState(
+    () => localStorage.getItem(TENANT_WORKSPACE_STORAGE_KEY) || user?.active_tenant_workspace_id || '',
+  );
+  const baseRoles = user ? rolesForTenantWorkspace(user, activeWorkspaceId) : [];
+  const activeWorkspace = tenantWorkspaces.find(
+    (workspace) => workspace.workspace_id === activeWorkspaceId,
+  );
   const [aiMenuOpen, setAiMenuOpen] = useState(false);
-  const [directorOpen, setDirectorOpen] = useState(false);
-  const [switchOpen, setSwitchOpen] = useState(false);
-  const [switchError, setSwitchError] = useState('');
-  const [tenancy, setTenancy] = useState<TenancyResponse | null>(null);
-  const [province, setProvince] = useState<string>(ACCOUNT_DEFAULT);
-  const [dept, setDept] = useState<string>(ACCOUNT_DEFAULT);
-  const [branch, setBranch] = useState<string>('');
 
   useEffect(() => {
-    let cancelled = false;
-    fetchTenancy()
-      .then((t) => { if (!cancelled) setTenancy(t); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
+    if (!tenantWorkspaces.length) return;
+    if (!tenantWorkspaces.some((workspace) => workspace.workspace_id === activeWorkspaceId)) {
+      const firstWorkspaceId = tenantWorkspaces[0].workspace_id;
+      setActiveWorkspaceId(firstWorkspaceId);
+      localStorage.setItem(TENANT_WORKSPACE_STORAGE_KEY, firstWorkspaceId);
+    }
+  }, [activeWorkspaceId, tenantWorkspaces]);
 
-  const entitlement = useMemo(() => (user ? entitlementFromUser(user) : null), [user]);
-  const filteredTenancy = useMemo(
-    () => (tenancy && entitlement ? filterTenancy(tenancy, entitlement) : null),
-    [tenancy, entitlement],
-  );
-  const pickableDepartments = filteredTenancy?.departments ?? [];
-  const isProvinceScoped = province !== ACCOUNT_DEFAULT;
-  const selectedDept = pickableDepartments.find((d) => d.id === dept) ?? null;
-
-  // --- Tier & access computation -------------------------------------------
-  const baseRoles = user?.roles || [];
   const access = getTierAccess(baseRoles);
 
-  // Only transversal-scoped roles may switch tenant scope.
-  // Department-scoped personas are locked to their own scope — the backend
-  // also enforces this on POST /auth/switch-tenant.
-  const TRANSVERSAL_ROLES = new Set(['admin', 'transversal-admin', 'operator']);
-  const canSwitchTenant = baseRoles.some((r) => TRANSVERSAL_ROLES.has(r));
-
   const availableTiers = useMemo(
-    () => (['sita', 'national', 'dept', 'branch'] as TenancyTier[]).filter((t) => (access[t]?.length > 0) || access.adminTiers.includes(t)),
+    () => (['platform', 'workspace'] as TenancyTier[]).filter((t) => (access[t]?.length > 0) || access.adminTiers.includes(t)),
     [access],
   );
 
-  // Derive active tier from URL path: /national/exec → 'national'
   const urlTier = location.pathname.split('/')[1] as TenancyTier | undefined;
   const isValidTier = urlTier && availableTiers.includes(urlTier);
 
@@ -94,7 +73,7 @@ export default function RoleNav() {
     if (isValidTier) return urlTier;
     const stored = localStorage.getItem(TIER_STORAGE_KEY) as TenancyTier | null;
     if (stored && availableTiers.includes(stored)) return stored;
-    return availableTiers[0] ?? 'national';
+    return availableTiers[0] ?? 'workspace';
   });
 
   // Sync activeTier with URL
@@ -111,72 +90,66 @@ export default function RoleNav() {
   const switchTierTo = (tier: TenancyTier) => {
     setActiveTier(tier);
     localStorage.setItem(TIER_STORAGE_KEY, tier);
-    // Admin-only tiers land on /admin; operational tiers land on first dashboard tab
     const tierDashes = access[tier];
     const isAdminOnly = tierDashes.length === 0 && access.adminTiers.includes(tier);
-    const target = isAdminOnly ? 'admin' : (tierDashes[0] ?? (access.adminTiers.includes(tier) ? 'admin' : null));
-    if (target) navigate(`/${tier}/${target}`);
+    const target = isAdminOnly
+      ? tier === 'platform' ? '/platform/admin' : '/client/tenant-admin'
+      : tierDashes[0] ? `/${tier}/${tierDashes[0]}` : null;
+    if (target) navigate(target);
   };
 
   const [isDark, setIsDark] = useState(() => document.body.dataset.theme !== 'light');
+
   const toggleTheme = () => {
     const next = document.body.dataset.theme === 'light' ? 'dark' : 'light';
     document.body.dataset.theme = next;
-    localStorage.setItem('sita_theme', next);
+    localStorage.setItem('platform_theme', next);
     setIsDark(next === 'dark');
   };
 
   const handleLogout = () => { logout(); navigate('/'); };
 
   const userName = user?.email?.split('@')[0] || 'user';
-  const deptIds = user?.department_ids || [];
-  const branchStr = user?.branch_names?.length
-    ? ` » ${user.branch_names[0]}${user.branch_names.length > 1 ? ' (+' + (user.branch_names.length - 1) + ')' : ''}`
-    : '';
-
-  // Strict 4-Tier SITA Tenancy Scoping:
-  // Tier 4: SITA Command Center, Tier 3: National Security Estate, Tier 2: Department (DHA Testbed), Tier 1: Branch
-  let scopeLabel = 'National Security Estate';
-  if (deptIds.length) {
-    const dName = user?.department_name || (deptIds[0] === 'home-affairs-digital' ? 'Department of Home Affairs' : deptIds[0]);
-    scopeLabel = `${dName}${branchStr}`;
-  } else if (user?.roles?.some((r) => ['admin', 'operator'].includes(r))) {
-    scopeLabel = 'SITA National Security Command Center';
-  } else if (user?.roles?.includes('transversal-admin')) {
-    scopeLabel = 'National Security Estate (Transversal)';
-  } else {
-    scopeLabel = 'National Security Estate';
-  }
-
-  const scopeTitle = deptIds.length
-    ? `Tenant scope: ${scopeLabel}`
-    : 'Tenant scope: SITA Whole-of-Government Estate';
-  const extraDepts = deptIds.length > 1 ? `+${deptIds.length - 1}` : null;
-
-  const doSwitch = async (scopeOverride?: { department_id: string | null; branch_id: string | null; province_id?: string | null }) => {
-    setSwitchError('');
-    const scope =
-      scopeOverride ??
-      (province !== ACCOUNT_DEFAULT
-        ? { department_id: null, branch_id: null, province_id: province }
-        : dept !== ACCOUNT_DEFAULT
-        ? { department_id: dept, branch_id: branch || null, province_id: null }
-        : { department_id: null, branch_id: null });
-    const result = await switchTenant(scope);
-    if (result.ok) { setSwitchOpen(false); }
-    else { setSwitchError(result.error || 'Switch failed'); }
+  const selectTenantWorkspace = (workspaceId: string) => {
+    setActiveWorkspaceId(workspaceId);
+    localStorage.setItem(TENANT_WORKSPACE_STORAGE_KEY, workspaceId);
+    const storedUser = localStorage.getItem('platform_user');
+    if (storedUser) {
+      try {
+        localStorage.setItem(
+          'platform_user',
+          JSON.stringify({
+            ...JSON.parse(storedUser),
+            active_tenant_workspace_id: workspaceId,
+          }),
+        );
+      } catch {
+        localStorage.removeItem('platform_user');
+      }
+    }
+    window.dispatchEvent(new Event('tenant-workspace-change'));
+    navigate('/login');
   };
 
   return (
-    <nav className="role-nav">
+    <nav className={`platform-header role-nav${isProviderAdmin ? ' role-nav-provider' : ''}`}>
       {/* Brand */}
-      <div className="nav-brand">
-        <img className="nav-logo-img" src="/sita-logo.gif" alt="SITA" />
+      <div
+        className="nav-brand"
+        onClick={() => navigate('/')}
+        title="Unified Data Security Platform - Return to Home"
+      >
+        <PlatformBrand subtitle={isProviderAdmin ? 'Platform administration' : undefined} />
       </div>
-      <div className="nav-div" />
+      {isProviderAdmin && (
+        <p className="role-nav-provider-description">
+          Register clients and manage their profile, contacts, and lifecycle.
+        </p>
+      )}
+      {!isProviderAdmin && <div className="nav-div" />}
 
       {/* ── Tier Pill Selector ── */}
-      {availableTiers.length > 1 && (
+      {!isProviderAdmin && availableTiers.length > 1 && (
         <div className="tier-pills" role="group" aria-label="Tenancy tier">
           {availableTiers.map((tier) => (
             <button
@@ -192,10 +165,10 @@ export default function RoleNav() {
           ))}
         </div>
       )}
-      <div className="nav-div" />
+      {!isProviderAdmin && <div className="nav-div" />}
 
       {/* ── Role Dashboard Tabs (scoped to active tier) ── */}
-      {ROLE_TABS.filter((t) => activeDashboards.includes(t.role)).map((t) => {
+      {!isProviderAdmin && ROLE_TABS.filter((t) => activeDashboards.includes(t.role)).map((t) => {
         if (t.role === 'ai') {
           return (
             <div
@@ -304,134 +277,63 @@ export default function RoleNav() {
       })}
 
       {/* ── Admin Tab (tier-scoped) ── */}
-      {canAdminThisTier && (
+      {!isProviderAdmin && canAdminThisTier && (
         <button
           id={`dash-tab-${activeTier}-admin`}
           className={`role-tab admin-tab ${activeRole === 'admin' ? 'active' : ''}`}
-          onClick={() => navigate(`/${activeTier}/admin`)}
+          onClick={() => navigate(activeTier === 'platform' ? '/platform/admin' : '/client/tenant-admin')}
         >
           <span className="tab-orb" style={{ background: 'var(--violet)' }} />
           {TIER_META[activeTier].label} Admin
         </button>
       )}
+      {!isProviderAdmin && baseRoles.includes('tenant-admin') && (
+        <button
+          className={`role-tab admin-tab ${location.pathname === '/client/tenant-admin' ? 'active' : ''}`}
+          onClick={() => navigate('/client/tenant-admin')}
+        >
+          Tenant Access
+        </button>
+      )}
 
       {/* ── Right-side controls ── */}
       <div className="nav-right">
+        {tenantWorkspaces.length > 0 && (
+          <label className="tenant-workspace-switcher">
+            <span className="sr-only">Active tenant</span>
+            <select
+              aria-label="Active tenant"
+              value={activeWorkspace?.workspace_id ?? ''}
+              onChange={(event) => selectTenantWorkspace(event.target.value)}
+            >
+              {tenantWorkspaces.map((workspace) => (
+                <option key={workspace.workspace_id} value={workspace.workspace_id}>
+                  {workspace.workspace_name}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <button className="theme-toggle" onClick={toggleTheme}>
           {isDark ? '☀ Light' : '🌙 Dark'}
         </button>
-        <button
-          className={`demo-toggle ${demoMode ? 'active' : ''}`}
-          onClick={toggleDemoMode}
-          title={demoMode ? 'Exit Demo Mode (uses test data)' : 'Enter Demo Mode (uses test data)'}
-        >
-          {demoMode ? '🧪 Demo: ON' : '🧪 Demo'}
-        </button>
-        <button
-          id="btn-demo-director"
-          className="demo-toggle"
-          style={{ background: 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)', color: '#fff', border: 'none', fontWeight: 700 }}
-          onClick={() => setDirectorOpen(true)}
-          title="Open Live Demonstration Director"
-        >
-          ⚡ Execute Demo
-        </button>
-        {demoMode && (
+        {demoMode && !isProviderAdmin && (
           <span className="demo-badge" title="Running in demo mode with seeded test data">DEMO</span>
         )}
 
-        {/* Tenant scope — transversal roles get a switchable button; all others get a locked badge */}
-        <div className="nav-dept-wrap">
-          {canSwitchTenant ? (
-            <button
-              className="nav-dept"
-              title={`${scopeTitle} — click to switch tenant scope`}
-              onClick={() => setSwitchOpen((o) => !o)}
-            >
-              {scopeLabel}
-              {extraDepts && <span className="nav-dept-more" style={{ marginLeft: 4 }}>{extraDepts}</span>}
-            </button>
-          ) : (
-            <span
-              className="nav-dept nav-dept--locked"
-              title={`${scopeTitle} · Scope is fixed for your role`}
-              aria-label="Your tenant scope is fixed and cannot be changed"
-            >
-              {scopeLabel}
-              {extraDepts && <span className="nav-dept-more" style={{ marginLeft: 4 }}>{extraDepts}</span>}
-              <span className="nav-dept-lock" aria-hidden="true">🔒</span>
-            </span>
-          )}
-          {canSwitchTenant && switchOpen && (
-            <div className="tenant-switcher">
-              <div className="tenant-switcher-t">
-                Switch tenancy scope
-                <button type="button" className="tenant-switcher-x" onClick={() => setSwitchOpen(false)} aria-label="Close">&times;</button>
-              </div>
-              {tenancy && filteredTenancy ? (
-                <div className="tenant-switcher-body">
-                  <select
-                    className="form-input"
-                    value={province}
-                    disabled={(filteredTenancy.provinces.length || 0) === 0}
-                    onChange={(e) => {
-                      setProvince(e.target.value);
-                      if (e.target.value !== ACCOUNT_DEFAULT) { setDept(ACCOUNT_DEFAULT); setBranch(''); }
-                    }}
-                  >
-                    <option value={ACCOUNT_DEFAULT}>
-                      {filteredTenancy.provinces.length === 0 ? 'National (no province scope)' : 'Account default'}
-                    </option>
-                    {filteredTenancy.provinces.map((p) => (
-                      <option key={p.id} value={p.id}>{p.name} ({p.department_count} depts)</option>
-                    ))}
-                  </select>
-                  <select
-                    className="form-input"
-                    value={dept}
-                    disabled={isProvinceScoped}
-                    onChange={(e) => { setDept(e.target.value); setBranch(''); }}
-                  >
-                    <option value={ACCOUNT_DEFAULT}>
-                      {entitlement?.isNationwide ? 'National — all departments' : 'Account default'}
-                    </option>
-                    {pickableDepartments.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name} ({d.branch_count} branches)</option>
-                    ))}
-                  </select>
-                  <select
-                    className="form-input"
-                    value={branch}
-                    disabled={!selectedDept || isProvinceScoped}
-                    onChange={(e) => setBranch(e.target.value)}
-                  >
-                    <option value="">Whole department</option>
-                    {selectedDept?.branches.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                  <div className="tenant-switcher-row">
-                    <button type="button" className="btn btn-flare tenant-switcher-go" onClick={() => doSwitch()}>Switch</button>
-                    <button
-                      type="button"
-                      className="btn btn-outline tenant-switcher-reset"
-                      onClick={() => doSwitch({ department_id: null, branch_id: null })}
-                    >Reset to default</button>
-                  </div>
-                  {switchError && <div className="tenant-switcher-err">{switchError}</div>}
-                </div>
-              ) : (
-                <div className="tenant-switcher-body">Loading tenancy…</div>
-              )}
-            </div>
-          )}
-        </div>
+        {!isProviderAdmin && (
+          <span
+            className="nav-dept nav-dept--locked"
+            title={activeWorkspace ? `Tenant workspace: ${activeWorkspace.workspace_name}` : 'Platform scope'}
+          >
+            {activeWorkspace?.workspace_name ?? 'Platform'}
+          </span>
+        )}
 
-        <span className="nav-user">{userName}</span>
+        <span className="nav-user">{isProviderAdmin ? 'Hosi Administrator' : userName}</span>
         <button className="logout-btn" onClick={handleLogout}>Sign Out</button>
       </div>
 
-      <DemoDirectorModal isOpen={directorOpen} onClose={() => setDirectorOpen(false)} />
     </nav>
   );
 }

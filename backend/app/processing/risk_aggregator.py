@@ -18,11 +18,31 @@ from app.processing.risk_engine import (
 )
 
 
-async def estate_appscan_ceiling(session: AsyncSession) -> float:
+def _scope_filters(model, tenant_workspace_id: str | None, tenant_scope_level_key: str | None):
+    if tenant_workspace_id:
+        if not tenant_scope_level_key:
+            raise ValueError("Tenant risk calculations require a hierarchy tier")
+        return [
+            model.tenant_workspace_id == tenant_workspace_id,
+            model.tenant_scope_level_key == tenant_scope_level_key,
+        ]
+    return [model.tenant_workspace_id.is_(None)]
+
+
+async def estate_appscan_ceiling(
+    session: AsyncSession,
+    tenant_workspace_id: str | None = None,
+    tenant_scope_level_key: str | None = None,
+) -> float:
     """Calibrate the AppScan signal ceiling from current estate volume."""
     rows = (
         await session.execute(
-            select(Finding.app_name, Finding.severity).where(Finding.source == "appscan")
+            select(Finding.app_name, Finding.severity).where(
+                Finding.source == "appscan",
+                *_scope_filters(
+                    Finding, tenant_workspace_id, tenant_scope_level_key
+                ),
+            )
         )
     ).all()
     totals: dict[str, float] = {}
@@ -36,6 +56,8 @@ async def compute_risk_for_app(
     session: AsyncSession,
     app_name: str,
     appscan_ceiling: float | None = None,
+    tenant_workspace_id: str | None = None,
+    tenant_scope_level_key: str | None = None,
 ) -> dict | None:
     rows = (
         await session.execute(
@@ -43,7 +65,12 @@ async def compute_risk_for_app(
                 Finding.severity,
                 Finding.source,
                 Finding.raw_data,
-            ).where(Finding.app_name == app_name)
+            ).where(
+                Finding.app_name == app_name,
+                *_scope_filters(
+                    Finding, tenant_workspace_id, tenant_scope_level_key
+                ),
+            )
         )
     ).all()
 
@@ -69,7 +96,14 @@ async def compute_risk_for_app(
     snap = (
         await session.execute(
             select(ComplianceSnapshot.overall_score)
-            .where(ComplianceSnapshot.framework == "popia")
+            .where(
+                ComplianceSnapshot.framework == "popia",
+                *_scope_filters(
+                    ComplianceSnapshot,
+                    tenant_workspace_id,
+                    tenant_scope_level_key,
+                ),
+            )
             .order_by(ComplianceSnapshot.snapshot_date.desc())
             .limit(1)
         )
@@ -86,7 +120,7 @@ async def compute_risk_for_app(
     score = fused_risk(inputs, appscan_ceiling=appscan_ceiling)
     bucket = risk_bucket(score)
 
-    return {
+    result = {
         "app_name": app_name,
         "score_date": date.today(),
         "fused_score": score,
@@ -96,16 +130,61 @@ async def compute_risk_for_app(
         "signal_compliance_penalty": round(compute_signal_compliance(compliance_pct), 1),
         "bucket": bucket,
     }
+    if tenant_workspace_id:
+        result["tenant_workspace_id"] = tenant_workspace_id
+        result["tenant_scope_level_key"] = tenant_scope_level_key
+    return result
 
 
 async def compute_all_risk_scores(session: AsyncSession) -> list[dict]:
-    apps = (
-        await session.execute(select(Finding.app_name).distinct())
-    ).scalars().all()
-    ceiling = await estate_appscan_ceiling(session)
     results = []
-    for app in apps:
-        row = await compute_risk_for_app(session, app, appscan_ceiling=ceiling)
+    global_apps = (
+        await session.execute(
+            select(Finding.app_name)
+            .where(Finding.tenant_workspace_id.is_(None))
+            .distinct()
+        )
+    ).scalars().all()
+    global_ceiling = await estate_appscan_ceiling(session)
+    for app in global_apps:
+        row = await compute_risk_for_app(
+            session, app, appscan_ceiling=global_ceiling
+        )
         if row is not None:
             results.append(row)
+
+    tenant_scopes = (
+        await session.execute(
+            select(
+                Finding.tenant_workspace_id,
+                Finding.tenant_scope_level_key,
+            )
+            .where(Finding.tenant_workspace_id.is_not(None))
+            .distinct()
+        )
+    ).all()
+    for workspace_id, scope_level_key in tenant_scopes:
+        tenant_apps = (
+            await session.execute(
+                select(Finding.app_name)
+                .where(
+                    Finding.tenant_workspace_id == workspace_id,
+                    Finding.tenant_scope_level_key == scope_level_key,
+                )
+                .distinct()
+            )
+        ).scalars().all()
+        tenant_ceiling = await estate_appscan_ceiling(
+            session, workspace_id, scope_level_key
+        )
+        for app in tenant_apps:
+            row = await compute_risk_for_app(
+                session,
+                app,
+                appscan_ceiling=tenant_ceiling,
+                tenant_workspace_id=workspace_id,
+                tenant_scope_level_key=scope_level_key,
+            )
+            if row is not None:
+                results.append(row)
     return results

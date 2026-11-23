@@ -14,25 +14,17 @@ import { useDbSecAiAlerts } from '../hooks/useDbSecAiAlerts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
-  sita: {
-    title: 'Database Security — SITA Command Center (Tier 4)',
-    subtitle: 'Overarching · Transversal DAM across all National & Provincial Department databases, privileged access & DDL monitoring (PFMA Organs of State)',
+  platform: {
+    title: 'Database Security',
+    subtitle: 'Database activity, privileged access, and policy violations.',
   },
-  national: {
-    title: 'Database Security — National Security Estate (Tier 3)',
-    subtitle: 'Strategic · Estate-wide DAM — anomaly patterns, privileged-session trends and database policy compliance across departments',
-  },
-  dept: {
-    title: 'Database Security — Department (Tier 2)',
-    subtitle: 'Tactical · Department DAM alerts, database session anomalies and violation categories within departmental tenancy',
-  },
-  branch: {
-    title: 'Database Security — Branch (Tier 1)',
-    subtitle: 'Granular · Branch DB sessions, DDG-unit database policies and active violations',
+  workspace: {
+    title: 'Database Security',
+    subtitle: 'Database activity, privileged access, and policy violations.',
   },
 };
 
-export default function DbSecDashboard({ tier = 'dept' }: { tier?: TenancyTier }) {
+export default function DbSecDashboard({ tier = 'workspace' }: { tier?: TenancyTier }) {
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useDbSecData();

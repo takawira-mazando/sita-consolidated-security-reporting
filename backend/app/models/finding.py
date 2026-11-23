@@ -1,8 +1,9 @@
 import enum
 
-from sqlalchemy import JSON, Column, DateTime, Integer, String, UniqueConstraint, func
+from sqlalchemy import JSON, Column, DateTime, Index, Integer, String, func, text
 
 from app.models.base import Base
+from app.models.tenant_data_scope import TenantDataScope
 
 
 class Severity(str, enum.Enum):
@@ -12,10 +13,25 @@ class Severity(str, enum.Enum):
     HIGH = "high"
     CRITICAL = "critical"
 
-class Finding(Base):
+class Finding(TenantDataScope, Base):
     __tablename__ = "findings"
     __table_args__ = (
-        UniqueConstraint("source", "external_id"),
+        Index(
+            "uq_findings_global_source_external",
+            "source",
+            "external_id",
+            unique=True,
+            postgresql_where=text("tenant_workspace_id IS NULL"),
+        ),
+        Index(
+            "uq_findings_tenant_source_external",
+            "tenant_workspace_id",
+            "tenant_scope_level_key",
+            "source",
+            "external_id",
+            unique=True,
+            postgresql_where=text("tenant_workspace_id IS NOT NULL"),
+        ),
         {"schema": "warehouse"},
     )
 

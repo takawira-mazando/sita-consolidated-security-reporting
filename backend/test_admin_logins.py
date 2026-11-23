@@ -4,8 +4,14 @@ import time
 import httpx
 
 
+import os
+import pytest
+
 def test_logins():
-    with open('C:\\Users\\HosiTech\\.gemini\\antigravity-ide\\brain\\a54c9896-ca59-4b4d-b434-6d467c42f22e\\admin_credentials.md', 'r', encoding='utf-8') as f:
+    path = 'C:\\Users\\HosiTech\\.gemini\\antigravity-ide\\brain\\a54c9896-ca59-4b4d-b434-6d467c42f22e\\admin_credentials.md'
+    if not os.path.exists(path):
+        pytest.skip("admin_credentials.md not found in legacy brain folder")
+    with open(path, 'r', encoding='utf-8') as f:
         content = f.read()
     
     # Simple regex to extract email and password from the markdown tables

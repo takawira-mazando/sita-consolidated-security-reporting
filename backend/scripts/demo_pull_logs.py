@@ -50,6 +50,9 @@ BOLD = "\033[1m"
 DIM = "\033[2m"
 RESET = "\033[0m"
 
+SAMPLE_DEPARTMENT_ID = "treasury"
+SAMPLE_BRANCH_ID = "treasury-ict"
+
 
 def print_banner():
     print(f"{CYAN}{BOLD}")
@@ -66,14 +69,14 @@ async def pull_appscan_logs(count: int = 15, verbose: bool = False) -> list[dict
     base_url = (os.getenv("APPSCAN_BASE_URL") or settings.appscan_base_url or "https://cloud.appscan.com").rstrip("/")
     key_id = os.getenv("APPSCAN_KEY_ID") or settings.appscan_key_id or ""
     key_secret = os.getenv("APPSCAN_KEY_SECRET") or settings.appscan_key_secret or ""
-    app_id = os.getenv("APPSCAN_APPLICATION_ID") or settings.appscan_application_id or "b816b09c-4240-4ea7-a4b5-f8ae89f62f57"
+    app_id = os.getenv("APPSCAN_APPLICATION_ID") or settings.appscan_application_id or ""
 
     raw_issues = []
     source_type = "LIVE API"
 
     try:
-        if not key_id or not key_secret:
-            raise ValueError("AppScan credentials (KEY_ID / KEY_SECRET) not set")
+        if not key_id or not key_secret or not app_id:
+            raise ValueError("AppScan credentials and application ID must be configured")
 
         async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=8)) as session:
             # Step 1: Authenticate via ApiKeyLogin
@@ -121,7 +124,7 @@ async def pull_appscan_logs(count: int = 15, verbose: bool = False) -> list[dict
     if not raw_issues:
         print(f"  {YELLOW}[!] Generating synthetic AppScan findings fallback...{RESET}")
         feed = SyntheticOEMFeed()
-        return feed.batch("appscan", count, branch_id="dha-digital")
+        return feed.batch("appscan", count, branch_id=SAMPLE_BRANCH_ID)
 
     selected = raw_issues[:count]
     formatted = []
@@ -142,10 +145,10 @@ async def pull_appscan_logs(count: int = 15, verbose: bool = False) -> list[dict
         formatted.append({
             "source": "appscan",
             "external_id": f"ASC-{issue_id}",
-            "application_name": "Department of Home Affairs Digital Portal",
-            "app_name": "Department of Home Affairs Digital Portal",
-            "department_id": "home-affairs-digital",
-            "branch_id": "dha-digital",
+            "application_name": "National Treasury Digital Services",
+            "app_name": "National Treasury Digital Services",
+            "department_id": SAMPLE_DEPARTMENT_ID,
+            "branch_id": SAMPLE_BRANCH_ID,
             "vulnerability_name": name,
             "title": f"AppScan: {name}",
             "description": f"{name} detected at {location}",
@@ -168,18 +171,9 @@ async def pull_thales_logs(count: int = 15, verbose: bool = False) -> list[dict]
     print(f"  {GREEN}[OK] Connected to SonarG Syslog Collector (service: /data/jsonar/apps/4.11.0.0.0-rc5){RESET}")
 
     feed = SyntheticOEMFeed()
-    branches = [
-        "dha-civic",
-        "dha-digital",
-        "dha-immigration",
-        "dha-operations",
-        "dha-hrmd",
-        "dha-finance",
-        "dha-ccss",
-        "dha-planning",
-    ]
+    branches = [SAMPLE_BRANCH_ID]
 
-    print(f"\n  {CYAN}Streaming {count} Thales DAM SonarG events across DHA Cassandra clusters:{RESET}")
+    print(f"\n  {CYAN}Streaming {count} Thales DAM SonarG events for the sample tenant:{RESET}")
     print(f"  {'EVENT TIME':<10} | {'SEVERITY':<10} | {'CLUSTER / BRANCH':<28} | {'OPERATION':<8} | {'KEYSPACE'}")
     print("  " + "-" * 78)
 
@@ -187,9 +181,9 @@ async def pull_thales_logs(count: int = 15, verbose: bool = False) -> list[dict]
     for i in range(count):
         branch = branches[i % len(branches)]
         event = feed.thales_dam_event(branch_id=branch)
-        cluster = event.get("DB Cluster Name", "dha-core-cassandra")
+        cluster = event.get("DB Cluster Name", "treasury-core-cassandra")
         op = event.get("Additional Fields", {}).get("type", "SELECT")
-        keyspace = event.get("Keyspace Name", "citizen_registry")
+        keyspace = event.get("Keyspace Name", "finance_core")
         severity = event.get("severity", "medium").capitalize()
         now_str = datetime.now(timezone.utc).strftime("%H:%M:%S")
 
@@ -200,7 +194,7 @@ async def pull_thales_logs(count: int = 15, verbose: bool = False) -> list[dict]
             "source": "thales",
             "external_id": str(event.get("_id", {}).get("$oid", str(uuid.uuid4()))),
             "app_name": cluster,
-            "department_id": "home-affairs-digital",
+            "department_id": SAMPLE_DEPARTMENT_ID,
             "branch_id": branch,
             "title": f"Thales DAM: {op} on {keyspace}",
             "description": f"Audited {op} query from {event.get('Analyzed Client IP')} on {cluster}. Failed SQLs: {event.get('Failed Sqls', 0)}",
@@ -246,9 +240,9 @@ async def ingest_to_lake(records: list[dict], source: str) -> int:
     for r in norm_records:
         r["source"] = source
         if not r.get("department_id"):
-            r["department_id"] = "home-affairs-digital"
+            r["department_id"] = SAMPLE_DEPARTMENT_ID
         if not r.get("branch_id"):
-            r["branch_id"] = "dha-digital"
+            r["branch_id"] = SAMPLE_BRANCH_ID
         sanitized.append(_clean_for_json(r))
 
     async with SessionFactory() as session:
@@ -280,7 +274,7 @@ async def run_pipeline(source: str = "all", count: int = 15, verbose: bool = Fal
 
     print(f"\n{BOLD}[3/4] Running Normalisation & Tenancy Attributions...{RESET}")
     print(f"  {GREEN}[OK] Applying SITA field mapper (field_mapper.yaml){RESET}")
-    print(f"  {GREEN}[OK] Scoping telemetry to Department of Home Affairs (Tier 3) & Branches (Tier 1){RESET}")
+    print(f"  {GREEN}[OK] Scoping telemetry to the configured sample tenant and unit{RESET}")
 
     total_ingested = 0
     if appscan_records:

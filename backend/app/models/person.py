@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy import (
     Boolean,
+    CheckConstraint,
     Column,
     DateTime,
     ForeignKey,
@@ -15,25 +16,27 @@ from app.pii_crypto import EncryptedText
 
 
 class Person(Base, TimestampMixin):
-    """HR-sourced identity record for a platform user.
+    """LDAP-sourced identity record for a platform user.
 
-    Persons are provisioned from an external HR system. Role/scope assignment
-    lives on the linked identity.users row and is never touched by HR sync.
+    Persons are imported from the configured directory. Role/scope assignment
+    lives on the linked identity.users row and is managed by platform admins.
 
     ``id`` is an internal UUID and is the only key an account references.
-    Authoritative external identifiers — PERSAL number, SAP personnel number,
-    and the originating feed's own identifier — are held as
-    :class:`EmploymentIdentifier` rows against this record. Keeping them
-    separate means a corrected or reissued government number does not require
-    re-keying an account, and it allows one person to carry several schemes at
-    once (a PERSAL number from the national feed and a SAP personnel number from
-    SITA's own HCM).
+    The LDAP directory identifier is held as an :class:`EmploymentIdentifier`
+    row against this record so a directory identifier is not used as the
+    account's primary key.
 
     See ``app.employment`` for scheme definitions and validation.
     """
 
     __tablename__ = "persons"
-    __table_args__ = {"schema": "identity"}
+    __table_args__ = (
+        CheckConstraint(
+            "source IN ('ldap', 'active_directory', 'directory')",
+            name="ck_persons_ldap_source",
+        ),
+        {"schema": "identity"},
+    )
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     employee_number = Column(String(50), unique=True, index=True)
@@ -61,30 +64,24 @@ class Person(Base, TimestampMixin):
     location = Column(String(120))
     employment_status = Column(String(30), default="active")
     clearance_level = Column(String(30))
-    source = Column(String(20), default="hr")
+    source = Column(String(20), default="ldap")
     is_active = Column(Boolean, nullable=False, default=True)
 
 
 class EmploymentIdentifier(Base):
-    """A scheme-qualified external identifier for one employment record.
+    """An LDAP directory identifier linked to an internal person record.
 
-    One person may hold several identifiers across schemes, and a scheme may in
-    principle be re-issued. Uniqueness is therefore enforced per
-    ``(scheme, value)`` globally — two different people must never resolve to
-    the same government identifier — while ``(person_id, scheme, value)`` is the
-    natural key that makes re-ingesting the same feed idempotent.
+    LDAP identifiers are unique by scheme and value, so a directory account
+    cannot resolve to multiple person records.
 
-    Deliberately *not* modelled here: the SA identity number. That identifies
-    the person rather than the employment and is retained only on
-    ``Person.id_number`` under the controls in ``app.pii``. Making it an
-    employment identifier would both collide across reappointment and import
-    the estate's most sensitive unique identifier (POPIA s.13(c), s.57) into
-    account resolution.
+    Personal identity numbers remain in ``Person.id_number`` and are not used
+    for account resolution.
     """
 
     __tablename__ = "employment_identifier"
     __table_args__ = (
         UniqueConstraint("scheme", "value", name="uq_employment_identifier_scheme_value"),
+        CheckConstraint("scheme = 'ldap'", name="ck_employment_identifier_ldap_only"),
         {"schema": "identity"},
     )
 
@@ -97,6 +94,6 @@ class EmploymentIdentifier(Base):
     )
     scheme = Column(String(32), nullable=False, index=True)
     value = Column(String(64), nullable=False, index=True)
-    #: The system the identifier was ingested from, e.g. "persal", "sita-sap-hcm".
+    #: The configured directory that supplied the identifier.
     source_system = Column(String(64))
     created_at = Column(DateTime(timezone=True), server_default=func.now())

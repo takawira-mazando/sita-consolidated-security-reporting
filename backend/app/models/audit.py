@@ -8,7 +8,7 @@ from app.models.base import Base
 class ActionAudit(Base):
     """Append-only action trail (audit schema).
 
-    Records privileged/export actions for non-repudiation. The Auditor-General
+    Records privileged/export actions for non-repudiation. The External audit
     export engine writes one row per signed attestation, binding the SHA-256
     integrity hash to the actor and tenant scope so tampering is detectable.
 

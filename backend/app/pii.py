@@ -22,7 +22,7 @@ ethnic origin, trade union membership, political persuasion, health or sex life,
 biometric information and criminal behaviour. None are stored. See B5 §5.1 for
 the correction of this point.
 
-Because the platform links HR-sourced person records across all department
+Because the platform links LDAP-sourced person records across tenant
 tenants, s.57(1)(a) prior authorisation from the Information Regulator is
 required for that linking and is **not on file**. That is a legal action, not a
 code action — this module implements the complementary s.19 security safeguards.

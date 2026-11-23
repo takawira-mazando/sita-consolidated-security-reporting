@@ -1,13 +1,21 @@
+# requirements for the SITA platform backend (matching currently installed packages)
+# Core API
 fastapi==0.112.0
 uvicorn[standard]==0.30.6
+starlette==0.37.2
 pydantic==2.8.2
 pydantic-settings==2.4.0
+# Database / ORM
 sqlalchemy[asyncio]==2.0.31
 asyncpg==0.30.0
 alembic==1.13.2
+# Auth / security
 python-jose[cryptography]==3.3.0
 python-multipart==0.0.9
+# HTTP utilities
 aiohttp==3.9.5
+httpx==0.27.2
+# Misc libraries used by the project
 pandas==2.2.2
 numpy==1.26.4
 apscheduler==3.10.4
@@ -16,11 +24,9 @@ prometheus-client==0.20.0
 jinja2==3.1.4
 structlog==24.4.0
 redis==5.0.8
-# Runtime HTTP client. Not dev-only: app.ai.aimi.gateway calls the provider over
-# SSE, and app.ai.generator posts to an OpenAI-compatible endpoint.
-httpx==0.27.2
-
-# dev / CI
+ldap3==2.9.1
+# Testing (optional)
 pytest==8.3.2
 pytest-asyncio==0.24.0
-defusedxml==0.7.1
+# Note: the "mcp" plugin requires newer versions of pydantic, uvicorn, and starlette.
+# If you need that plugin, upgrade the packages accordingly (requires internet access).

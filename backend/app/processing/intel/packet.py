@@ -1,7 +1,7 @@
 """Dispute-ready evidence packets. No model.
 
 Backs AVP-12. The platform already signs, hashes and verifies offline for the
-Auditor-General attestation. This applies those same primitives to a different
+External audit attestation. This applies those same primitives to a different
 selection of rows, producing an artefact that answers a specific audit question
 rather than one fixed snapshot.
 
@@ -172,7 +172,7 @@ async def build(
 ) -> dict:
     """Assemble and sign one evidence packet.
 
-    Requires at least one anchor. With neither, the packet would be the AG
+    Requires at least one anchor. With neither, the packet would be the audit
     attestation again, which already exists at ``/api/v1/exports/ag-compliance``.
     """
     if not alert_id and not app_name:
@@ -180,7 +180,7 @@ async def build(
             "error": "an_anchor_required",
             "message": (
                 "Supply alert_id or app_name. A packet with neither anchor is the "
-                "AG attestation, which already exists at "
+                "audit attestation, which already exists at "
                 "/api/v1/exports/ag-compliance."
             ),
         }

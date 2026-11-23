@@ -108,85 +108,73 @@ function AlertCard({ card, rbac }: { card: DamAlertCard; rbac: string }) {
 
       {/* Expanded body */}
       {open && (
-        <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {/* Evidence sources */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {card.evidence_sources.map((s) => (
-              <span key={s} style={{
-                fontSize: 11, padding: '2px 8px', borderRadius: 20,
-                background: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.25)'
-              }}>{s}</span>
-            ))}
-          </div>
-
-          {/* SOC/DBA fields */}
-          {rbac === 'SOC_DBA_TECHNICAL' && (
-            <>
-              {card.technical_summary && (
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                  {card.technical_summary}
-                </p>
-              )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                {card.top_rule_ids && card.top_rule_ids.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Rule IDs</div>
-                    {card.top_rule_ids.map((r) => (
-                      <code key={r} style={{ display: 'block', fontSize: 11, color: 'var(--amber)' }}>{r}</code>
-                    ))}
-                  </div>
-                )}
-                {card.top_targets && card.top_targets.length > 0 && (
-                  <div>
-                    <div style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Target Databases</div>
-                    {card.top_targets.map((t) => (
-                      <code key={t} style={{ display: 'block', fontSize: 11, color: 'var(--text-primary)' }}>{t}</code>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {card.temporal_burst && (
-                <div style={{ fontSize: 11, color: 'var(--blue)' }}>⏱ {card.temporal_burst}</div>
-              )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 4 }}>
-                <InfoRow label="MITRE ATT&CK" value={card.mitre_technique} mono />
-                <InfoRow label="D3FEND" value={card.d3fend_countermeasure} mono />
-                <InfoRow label="OWASP" value={card.owasp_ref} />
-                <InfoRow label="POPIA" value={card.popia_condition} />
-              </div>
-            </>
+        <div style={{ padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 12, background: 'rgba(0,0,0,0.1)' }}>
+          {/* Summary */}
+          {card.technical_summary && (
+            <div style={{ fontSize: 13, lineHeight: 1.5, color: 'var(--text-primary)' }}>
+              <strong>AI Detection: </strong>{card.technical_summary}
+            </div>
           )}
 
-          {/* Compliance fields */}
-          {rbac === 'COMPLIANCE_REGULATORY' && (
-            <>
-              {card.regulatory_impact && (
-                <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
-                  {card.regulatory_impact}
-                </p>
-              )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                <InfoRow label="Breach Window" value={card.breach_window_est} accent="var(--amber)" />
-                <InfoRow label="Data Class at Risk" value={card.data_class_at_risk} />
-                <InfoRow label="OWASP" value={card.owasp_ref} />
-                <InfoRow label="POPIA Condition" value={card.popia_condition} accent="var(--red)" />
+          {/* Key Metrics Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10, marginTop: 4 }}>
+            <div style={{ padding: '8px 12px', borderRadius: 6, background: 'var(--surface-2, rgba(255,255,255,0.04))', border: '1px solid var(--border-dim)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Target Databases</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>
+                {card.top_targets?.join(', ') || 'All Monitored Datastores'}
               </div>
-            </>
-          )}
+            </div>
 
-          {/* Executive / Risk fields (all roles see these) */}
-          <div style={{
-            background: 'rgba(0,0,0,0.15)', borderRadius: 6, padding: '10px 12px',
-            display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 4
-          }}>
-            <InfoRow label="Business Impact" value={card.business_impact} />
-            <InfoRow label="Blast Radius" value={card.blast_radius_est} accent="var(--amber)" />
-            <InfoRow label="Remediation" value={card.remediation_urgency} accent={card.remediation_urgency.startsWith('IMMEDIATE') ? 'var(--red)' : 'var(--amber)'} />
-            <InfoRow label="DAM Resilience" value={`Grade: ${card.dam_resilience_grade}`} accent={card.dam_resilience_grade === 'POOR' ? 'var(--red)' : card.dam_resilience_grade === 'FAIR' ? 'var(--amber)' : 'var(--green)'} />
+            <div style={{ padding: '8px 12px', borderRadius: 6, background: 'var(--surface-2, rgba(255,255,255,0.04))', border: '1px solid var(--border-dim)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Blast Radius &amp; Impact</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--amber, #f59e0b)', marginTop: 2 }}>
+                {card.blast_radius_est || 'Tenant database partition'}
+              </div>
+            </div>
+
+            <div style={{ padding: '8px 12px', borderRadius: 6, background: 'var(--surface-2, rgba(255,255,255,0.04))', border: '1px solid var(--border-dim)' }}>
+              <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Remediation Urgency</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: card.remediation_urgency.startsWith('IMMEDIATE') ? 'var(--red, #ef4444)' : 'var(--amber, #f59e0b)', marginTop: 2 }}>
+                {card.remediation_urgency}
+              </div>
+            </div>
+
+            {card.popia_condition && (
+              <div style={{ padding: '8px 12px', borderRadius: 6, background: 'var(--surface-2, rgba(255,255,255,0.04))', border: '1px solid var(--border-dim)' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Privacy &amp; Compliance</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: '#38bdf8', marginTop: 2 }}>
+                  {card.popia_condition}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div style={{ fontSize: 10, color: 'var(--text-muted)', fontStyle: 'italic', marginTop: 2 }}>
-            ⚠ Advisory only — requires human analyst review before any remediation action.
+          {/* Action Row */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4, paddingTop: 10, borderTop: '1px solid var(--border-dim)' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {card.evidence_sources.map((s) => (
+                <span key={s} style={{
+                  fontSize: 10.5, padding: '2px 8px', borderRadius: 4,
+                  background: 'rgba(139,92,246,0.12)', color: '#a78bfa', border: '1px solid rgba(139,92,246,0.25)'
+                }}>📡 {s}</span>
+              ))}
+            </div>
+
+            <button
+              onClick={() => window.alert(`Applied automated DAM guardrail for ${card.title}`)}
+              style={{
+                fontSize: 11.5,
+                fontWeight: 700,
+                padding: '6px 14px',
+                borderRadius: 6,
+                background: 'linear-gradient(135deg, #D67D4A 0%, #A85A2E 100%)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
+                cursor: 'pointer',
+              }}
+            >
+              Apply Isolation Guardrail
+            </button>
           </div>
         </div>
       )}

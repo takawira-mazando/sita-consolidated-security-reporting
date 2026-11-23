@@ -1,56 +1,215 @@
-export type TenancyTier = 'sita' | 'national' | 'dept' | 'branch';
+export type TenancyTier = 'platform' | 'workspace';
+
+export type PlatformTier = TenancyTier;
 
 export interface TierAccess {
-  sita: string[];        // Overarching SITA Command Center dashboard keys
-  national: string[];    // dashboard keys accessible at national tier (Tier 3)
-  dept: string[];        // dashboard keys accessible at dept/provincial tier (Tier 2)
-  branch: string[];      // dashboard keys accessible at branch tier (Tier 1)
-  adminTiers: TenancyTier[]; // tiers where this user can provision RBAC
-  isSitaSuperadmin: boolean; // Overarching SITA Command Center Admin with transversal access to all tiers & dashboards
-  hasTransversalAccess: boolean; // Transversal access across entire estate
+  platform: string[];
+  workspace: string[];
+  adminTiers: PlatformTier[];
+  isPlatformAdministrator: boolean;
+  hasTransversalAccess: boolean;
+}
+
+export interface HierarchyLevelInfo {
+  level: number;
+  name: string;
+  label: string;
+  plural_label: string;
+}
+
+export interface TenantProfileSummary {
+  id: string;
+  name: string;
+  description: string;
+  client_type: string;
+  is_active: boolean;
+  levels: string[];
+  org_unit_count: number;
+  sub_unit_count: number;
+  group_count: number;
+}
+
+export interface ClientOrganization {
+  id: string;
+  identifier: string;
+  name: string;
+  description: string;
+  client_type: string;
+  deployment_model: 'saas' | 'on_premises';
+  status: string;
+  status_options: string[];
+  primary_contact_name: string;
+  primary_contact_email: string;
+  superadmin_name: string;
+  superadmin_email: string;
+  access_setup_status: 'pending_client_workspace' | string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MsspCockpit {
+  id: 'exec' | 'soc' | 'appsec' | 'dbsec' | 'compliance' | 'sre';
+  name: string;
+}
+
+export interface TenantHierarchyLevel {
+  key: string;
+  label: string;
+  plural_label?: string;
+  parent_key?: string | null;
+}
+
+export interface TenantOrganizationUnit {
+  id: string;
+  name: string;
+  level_key: string;
+  parent_id: string | null;
+}
+
+export interface TenantAccessRole {
+  id: string;
+  name: string;
+  description: string;
+  cockpit_ids: MsspCockpit['id'][];
+  scope_level_keys?: string[];
+  can_manage_members: boolean;
+}
+
+export interface TenantAccessAssignment {
+  id: string;
+  email: string;
+  display_name: string;
+  role_ids: string[];
+  scope_unit_id: string | null;
+  admin_access?: boolean;
+  access_status:
+    | 'active'
+    | 'account_disabled'
+    | 'pending_first_sign_in'
+    | 'identity_integration_required';
+}
+
+export type TenantAccessAssignmentInput = Omit<TenantAccessAssignment, 'access_status'>;
+
+export interface TenantRbacAssignmentInput {
+  id: string;
+  email: string;
+  display_name: string;
+  role_ids: string[];
+  scope_unit_id: string | null;
+}
+
+export interface MsspTenantWorkspace {
+  id: string;
+  client_organization_id: string;
+  identifier: string;
+  name: string;
+  status: 'active' | 'inactive' | 'suspended';
+  root_label: string;
+  administration_model: 'mssp_managed' | 'delegated' | 'shared';
+  hierarchy_levels: TenantHierarchyLevel[];
+  org_units: TenantOrganizationUnit[];
+  roles: TenantAccessRole[];
+  assignments: TenantAccessAssignment[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TenantDirectoryReadiness {
+  status: 'enabled' | 'disabled' | 'not_configured';
+  name: string;
+}
+
+export interface MsspTenantWorkspaceCreate {
+  identifier: string;
+  name: string;
+  root_label: string;
+  administration_model: MsspTenantWorkspace['administration_model'];
+  hierarchy_levels: TenantHierarchyLevel[];
+}
+
+export type MsspTenantWorkspaceConfiguration = Omit<
+  Pick<
+    MsspTenantWorkspace,
+    'root_label' | 'administration_model' | 'hierarchy_levels' | 'org_units' | 'roles' | 'assignments' | 'status'
+  >,
+  'assignments'
+> & {
+  assignments: TenantAccessAssignmentInput[];
+};
+
+export type ClientOrganizationCreate = Pick<
+  ClientOrganization,
+  | 'identifier'
+  | 'name'
+  | 'description'
+  | 'client_type'
+  | 'deployment_model'
+  | 'primary_contact_name'
+  | 'primary_contact_email'
+  | 'superadmin_name'
+  | 'superadmin_email'
+>;
+
+export type ClientOrganizationUpdate = Partial<
+  Omit<ClientOrganization, 'id' | 'identifier' | 'status_options' | 'created_at' | 'updated_at' | 'access_setup_status'>
+>;
+
+export interface TierRoleAssignment {
+  group_name: string;
+  roles: string[];
+  tier: number;
+  default_scope?: string[];
+  description?: string;
+}
+
+export interface TenantDirectorySummary {
+  tenant_id: string;
+  tenant_name: string;
+  client_name: string;
+  server_url: string;
+  base_dn: string;
+  preset_profile: string;
+  enabled: boolean;
+  mock_mode: boolean;
+  tier_mappings_count: number;
 }
 
 export interface User {
   sub: string;
   email: string;
   roles: string[];
+  platform_roles?: string[];
+  tenant_workspace_ids?: string[];
+  tenant_scope_unit_ids?: string[];
+  tenant_can_manage_members?: boolean;
+  tenant_workspace_access?: Array<{
+    workspace_id: string;
+    workspace_name: string;
+    administration_model: 'mssp_managed' | 'delegated' | 'shared';
+    admin_scope_level_keys: string[];
+    cockpit_scopes: Record<string, string[]>;
+  }>;
+  active_tenant_workspace_id?: string | null;
   name?: string;
-  department_ids?: string[];
-  branch_ids?: string[];
-  branch_names?: string[];
-  department_id?: string | null;
-  department_name?: string | null;
-  province_ids?: string[];
-  province_name?: string | null;
 }
 
 export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   demoAccounts: DemoAccount[];
+  refreshDemoAccounts: () => Promise<DemoAccount[]>;
   sessionNonce: number;
-  login: (email?: string, password?: string, scope?: LoginScope) => Promise<{ ok: boolean; error?: string }>;
-  loginDemo: (role: string, scope?: LoginScope) => Promise<{ ok: boolean; error?: string }>;
-  switchTenant: (scope: LoginScope) => Promise<{ ok: boolean; error?: string }>;
+  login: (email?: string, password?: string) => Promise<{ ok: boolean; error?: string }>;
+  loginDemo: (role: string) => Promise<{ ok: boolean; error?: string }>;
   logout: () => void;
-}
-
-export interface LoginScope {
-  department_id: string | null;
-  branch_id: string | null;
-  province_id?: string | null;
 }
 
 export interface DemoAccount {
   email: string;
   label: string;
   role: string;
-  department_ids?: string[];
-  branch_ids?: string[];
-  province_ids?: string[];
-  department_name?: string | null;
-  province_name?: string | null;
-  is_nationwide?: boolean;
+  password?: string;
 }
 
 export interface RiskScore {
@@ -373,13 +532,6 @@ export interface PlatformModel {
     count: number;
     rules: AlertRuleDescriptor[];
   };
-  estate: {
-    provinces: number;
-    departments: number;
-    branches: number;
-    ministries: number;
-    clusters: number;
-  };
 }
 
 export interface NarrativeFacts {
@@ -402,9 +554,4 @@ export interface NarrativeFacts {
   applicableFrameworks?: string[];
   notApplicableFrameworks?: string[];
   applicabilitySummary?: string;
-  provinces?: number;
-  departments?: number;
-  branches?: number;
-  ministries?: number;
-  clusters?: number;
 }

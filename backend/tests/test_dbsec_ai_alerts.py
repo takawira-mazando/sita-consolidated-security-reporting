@@ -72,7 +72,7 @@ def populated_session():
             target_id="CitizenDB.dbo.IdentityProfiles",
             title="DAM: UNION-based SQL Injection detected on IdentityProfiles",
             severity="critical",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             status="active",
             first_triggered=now,
             last_triggered=now,
@@ -84,7 +84,7 @@ def populated_session():
             target_id="PayrollDB.dbo.sysadmin",
             title="DAM: Unauthorized GRANT role sysadmin to svc_backup",
             severity="high",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             status="active",
             first_triggered=now,
             last_triggered=now,
@@ -94,7 +94,7 @@ def populated_session():
         Finding(
             id=101,
             app_name="CitizenDB",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             source="appscan",
             category="sql injection",
             title="CWE-89 SQL Injection in identity query endpoint",
@@ -105,7 +105,7 @@ def populated_session():
         Finding(
             id=102,
             app_name="PayrollDB",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             source="appscan",
             category="privilege escalation",
             title="CWE-250 Execution with Unnecessary Privileges",
@@ -119,7 +119,7 @@ def populated_session():
             id=201,
             block_time=now,
             app_name="CitizenDB",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             src_ip="198.51.100.22",
             request_uri="/api/v1/citizen?id=1' UNION SELECT credit_card,pin FROM users--",
             attack_type="SQL Injection",
@@ -130,14 +130,14 @@ def populated_session():
         DatabaseInventory(
             id="db-1",
             name="CitizenDB",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             engine="PostgreSQL",
             monitored=True,
         ),
         DatabaseInventory(
             id="db-2",
             name="PayrollDB",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             engine="MSSQL",
             monitored=True,
         ),
@@ -156,7 +156,7 @@ async def test_dam_ai_alerts_soc_dba_view(populated_session):
     claims = JWTClaims(
         sub="dba-lead@example.com",
         roles=["findings"],
-        department_ids=["home-affairs-digital"],
+        department_ids=["treasury"],
         branch_ids=[],
         province_ids=[],
     )
@@ -195,7 +195,7 @@ async def test_dam_ai_alerts_compliance_view(populated_session):
     claims = JWTClaims(
         sub="compliance-officer@example.com",
         roles=["compliance"],
-        department_ids=["home-affairs-digital"],
+        department_ids=["treasury"],
         branch_ids=[],
         province_ids=[],
     )

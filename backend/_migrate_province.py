@@ -1,7 +1,7 @@
 """Migration: add the provincial layer + audit action trail.
 
 Adds identity.users.province_ids, warehouse.provinces, warehouse.departments
-.province_id, and the audit.action_audit table for the Auditor-General secure
+.province_id, and the audit.action_audit table for external auditors secure
 export engine. Idempotent (IF NOT EXISTS / ADD COLUMN IF NOT EXISTS).
 
 Run: python _migrate_province.py

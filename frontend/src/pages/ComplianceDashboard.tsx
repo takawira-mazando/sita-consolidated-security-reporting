@@ -13,25 +13,17 @@ import { useNarrativeFacts } from '../hooks/useNarrativeFacts';
 import type { TenancyTier } from '../types';
 
 const TIER_CONFIG: Record<TenancyTier, { title: string; subtitle: string }> = {
-  sita: {
-    title: 'Compliance & Audit — SITA Command Center',
-    subtitle: 'Overarching · Auditor-General & POPIA statutory oversight across all National and Provincial Departments (PFMA Organs of State)',
+  platform: {
+    title: 'Compliance & Audit',
+    subtitle: 'Compliance status, control gaps, evidence, and audit actions.',
   },
-  national: {
-    title: 'Compliance & Audit — National Estate',
-    subtitle: 'Strategic · POPIA/ISO 27001 national posture, audit readiness and estate-wide control gaps',
-  },
-  dept: {
-    title: 'Compliance & Audit — Department',
-    subtitle: 'Tactical · Department compliance score, control gaps and regulatory calendar',
-  },
-  branch: {
-    title: 'Compliance & Audit — Branch',
-    subtitle: 'Granular · Branch compliance checklist, open findings and local audit items',
+  workspace: {
+    title: 'Compliance & Audit',
+    subtitle: 'Compliance status, control gaps, evidence, and audit actions.',
   },
 };
 
-export default function ComplianceDashboard({ tier = 'national' }: { tier?: TenancyTier }) {
+export default function ComplianceDashboard({ tier = 'workspace' }: { tier?: TenancyTier }) {
   const cfg = TIER_CONFIG[tier];
   const [overlay, setOverlay] = useState<null | 'explain' | 'layman'>(null);
   const d = useComplianceData();

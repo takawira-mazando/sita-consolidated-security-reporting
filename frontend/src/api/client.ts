@@ -11,24 +11,36 @@ export const adminApi = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('sita_token');
+  const token = localStorage.getItem('platform_token');
+  const tenantWorkspaceId = localStorage.getItem('platform_active_tenant_workspace');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (tenantWorkspaceId) {
+    config.headers['X-Tenant-Workspace-ID'] = tenantWorkspaceId;
+  } else {
+    delete config.headers['X-Tenant-Workspace-ID'];
   }
   return config;
 });
 
 adminApi.interceptors.request.use((config) => {
-  const token = localStorage.getItem('sita_token');
+  const token = localStorage.getItem('platform_token');
+  const tenantWorkspaceId = localStorage.getItem('platform_active_tenant_workspace');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
+  }
+  if (tenantWorkspaceId) {
+    config.headers['X-Tenant-Workspace-ID'] = tenantWorkspaceId;
+  } else {
+    delete config.headers['X-Tenant-Workspace-ID'];
   }
   return config;
 });
 
 function handle401() {
-  localStorage.removeItem('sita_token');
-  localStorage.removeItem('sita_user');
+  localStorage.removeItem('platform_token');
+  localStorage.removeItem('platform_user');
   if (window.location.pathname !== '/') {
     window.location.href = '/';
   }

@@ -6,6 +6,7 @@ import {
   type ReportMeta,
   type GeneratedReport,
 } from '../../api/reportsAi';
+import { getClientOrgName } from '../../utils/tenantTerminology';
 
 interface CopilotMessage {
   sender: 'user' | 'assistant';
@@ -23,7 +24,7 @@ const FRONTEND_REPORT_CATALOGUE: Array<ReportMeta & { allowed_roles: string[] }>
     title: 'Executive Security Posture Briefing',
     description: 'High-level strategic briefing on cybersecurity health, exposure trends, and estate-wide risk posture.',
     target_audience: 'Ministers, DGs, Board Members, CISOs',
-    classification: 'RESTRICTED // SITA INTERNAL',
+    classification: `RESTRICTED // ${getClientOrgName().toUpperCase()} INTERNAL`,
     claim_class: 'STRATEGIC_AGGREGATE',
     allowed_roles: ['exec', 'admin', 'operator'],
   },
@@ -75,16 +76,6 @@ const FRONTEND_REPORT_CATALOGUE: Array<ReportMeta & { allowed_roles: string[] }>
     target_audience: 'Information Regulators, Legal Counsel, DPOs',
     classification: 'OFFICIAL // PRIVACY REGULATOR',
     claim_class: 'PRIVACY_IMPACT',
-    allowed_roles: ['compliance', 'admin', 'operator'],
-  },
-  {
-    report_type: 'ag_audit_readiness',
-    name: 'Auditor-General (AGSA) Information Systems Audit Brief',
-    title: 'Auditor-General (AGSA) Information Systems Audit Brief',
-    description: 'Formal governance posture, cryptographically verifiable attestation readiness, and internal control status.',
-    target_audience: 'Auditor-General, Audit Committees, IT Risk Leads',
-    classification: 'RESTRICTED // AUDIT ATTESTATION',
-    claim_class: 'AUDIT_ATTESTATION',
     allowed_roles: ['compliance', 'admin', 'operator'],
   },
 ];
@@ -169,7 +160,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
       setCopilotMessages([
         {
           sender: 'assistant',
-          text: `I am your SITA Security Copilot. I have synthesized the "${generated.title}" across your authorized tenancy scope (${generated.scope_summary}). All numbers are 100% grounded in the warehouse fact pack (hash: ${generated.facts.fact_pack_hash?.substring(0, 12)}…). Ask me any questions regarding vulnerabilities, POPIA compliance, or remediation roadmaps!`,
+          text: `Security Copilot initialized. Synthesized "${generated.title}" across authorized tenancy scope (${generated.scope_summary}). All numbers are 100% grounded in the warehouse fact pack (hash: ${generated.facts.fact_pack_hash?.substring(0, 12)}…). Direct queries regarding vulnerabilities, POPIA compliance, or remediation roadmaps below:`,
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -215,7 +206,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
       }),
       '',
       `---`,
-      `*Generated deterministically by SITA G2 AI Reporting Engine.*`,
+      `*Generated deterministically by Cognitive AI Reporting Engine.*`,
     ].join('\n');
 
     navigator.clipboard.writeText(md).then(() => {
@@ -249,9 +240,9 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
       if (qLower.includes('risk') || qLower.includes('score')) {
         reply = `The evaluated estate exhibits an average risk score of ${f.avg_risk_score}/100 across ${f.total_apps} assessed applications (peak maximum score: ${f.max_risk_score}). In terms of distribution, ${f.risk_safe_count} applications are classified as Safe, ${f.risk_monitored_count} are Monitored, and ${f.risk_critical_count} are in the Critical posture tier.`;
       } else if (qLower.includes('vulnerabilit') || qLower.includes('finding') || qLower.includes('critical')) {
-        reply = `Within your authorized scope, there are ${f.total_findings} total findings recorded (${f.critical_findings} critical, ${f.high_findings} high, ${f.medium_findings} medium, and ${f.low_findings} low). The most prevalent vulnerability classification is "${f.top_categories?.[0]?.category || 'Security Misconfiguration'}" with ${f.top_categories?.[0]?.count || 0} occurrences.`;
+        reply = `Within the authorized scope, there are ${f.total_findings} total findings recorded (${f.critical_findings} critical, ${f.high_findings} high, ${f.medium_findings} medium, and ${f.low_findings} low). The most prevalent vulnerability classification is "${f.top_categories?.[0]?.category || 'Security Misconfiguration'}" with ${f.top_categories?.[0]?.count || 0} occurrences.`;
       } else if (qLower.includes('compliance') || qLower.includes('popia') || qLower.includes('audit')) {
-        reply = `The current Compliance Posture Index is computed at ${f.compliance_posture_index}%. Under POPIA Section 22 and Minimum Information Security Standards (MISS), zero critical vulnerabilities are permitted on public-facing gateways. SITA SOC recommends addressing all medium-severity input validation findings to maintain audit readiness before the next Auditor-General cycle.`;
+        reply = `The current Compliance Posture Index is computed at ${f.compliance_posture_index}%. Under POPIA Section 22 and Minimum Information Security Standards (MISS), zero critical vulnerabilities are permitted on public-facing gateways. Security operations recommends addressing all medium-severity input validation findings to maintain compliance posture for the next review.`;
       } else if (qLower.includes('recommend') || qLower.includes('action') || qLower.includes('plan')) {
         const formatRec = (r: unknown) => {
           if (!r) return '';
@@ -261,9 +252,9 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
         };
         const r1 = formatRec(report.recommendations[0]) || 'Enforce strict schema validation and WAF policies.';
         const r2 = formatRec(report.recommendations[1]) || 'Prioritize biometric and identity API protection.';
-        reply = `Key strategic directives identified for this scope:\n1. ${r1}\n2. ${r2}\n3. Maintain continuous real-time telemetry streaming into SITA central SOC.`;
+        reply = `Key strategic directives identified for this scope:\n1. ${r1}\n2. ${r2}\n3. Maintain continuous real-time telemetry streaming into the central SOC.`;
       } else {
-        reply = `Based on the verified report fact pack (hash: ${f.fact_pack_hash?.substring(0, 10)}…), your estate covers ${f.total_apps} services with ${f.total_findings} total findings and an overall compliance index of ${f.compliance_posture_index}%. All findings and recommendations in this report have passed the two-gate numeral fidelity check.`;
+        reply = `Based on the verified report fact pack (hash: ${f.fact_pack_hash?.substring(0, 10)}…), the assessed estate covers ${f.total_apps} services with ${f.total_findings} total findings and an overall compliance index of ${f.compliance_posture_index}%. All findings and recommendations in this report have passed the two-gate numeral fidelity check.`;
       }
 
       setCopilotMessages((prev) => [
@@ -347,12 +338,12 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
             Report Studio — Access Restricted
           </div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 440, lineHeight: 1.7 }}>
-            Your current role (<code style={{ color: '#f87171', background: 'rgba(239,68,68,0.1)', padding: '1px 6px', borderRadius: 4 }}>
+            Active role (<code style={{ color: '#f87171', background: 'rgba(239,68,68,0.1)', padding: '1px 6px', borderRadius: 4 }}>
               {roles.length > 0 ? roles.join(', ') : 'unauthenticated'}
-            </code>) is not authorized to generate any AI intelligence reports.
+            </code>) is not authorized to generate AI intelligence reports.
           </div>
           <div style={{ fontSize: 12, color: 'var(--text-muted)', maxWidth: 480, lineHeight: 1.6 }}>
-            Reports are role-gated: <strong>exec / operator / admin</strong> → Executive Brief &amp; Risk; <strong>soc / appsec</strong> → Threat Intel, Vulnerability &amp; Incident; <strong>compliance</strong> → Regulatory, POPIA &amp; AGSA Audit. Contact your SITA system administrator to request access.
+            Reports are role-gated: <strong>exec / operator / admin</strong> → Executive Brief &amp; Risk; <strong>soc / appsec</strong> → Threat Intel, Vulnerability &amp; Incident; <strong>compliance</strong> → Regulatory and POPIA Impact. Contact a platform administrator to request access.
           </div>
           <div
             style={{
@@ -374,174 +365,174 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
 
       {/* Configuration & Generation Form — only shown when reports are available */}
       {(!loaded || availableReports.length > 0) && (
-      <div
-        style={{
-          background: 'var(--ai-card-bg)',
-          border: '1px solid var(--ai-card-border)',
-          borderRadius: 12,
-          padding: '20px 24px',
-          marginBottom: 24,
-          boxShadow: 'var(--ai-card-shadow)',
-        }}
-      >
-        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr auto', gap: 20, alignItems: 'end' }}>
-          {/* Report Type Selector */}
-          <div>
-            <label
-              style={{
-                display: 'block',
-                fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--text-secondary)',
-                marginBottom: 8,
-                letterSpacing: '0.04em',
-              }}
-            >
-              SELECT REPORT TEMPLATE (ROLE-FILTERED)
-            </label>
-            <select
-              id="ai-report-type-select"
-              value={selectedType}
-              onChange={(e) => setSelectedType(e.target.value)}
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: 8,
-                background: 'var(--ai-input-bg)',
-                color: 'var(--ai-input-color)',
-                border: '1px solid var(--ai-input-border)',
-                fontSize: 13,
-                fontWeight: 600,
-                outline: 'none',
-              }}
-            >
-              {availableReports.map((r) => {
-                const displayName = r.name || r.title || r.report_type;
-                const classLabel = r.classification
-                  ? r.classification.split('//')[0].trim()
-                  : (r.claim_class ? r.claim_class.replace(/_/g, ' ') : 'RESTRICTED');
-                return (
-                  <option key={r.report_type} value={r.report_type}>
-                    {displayName} [{classLabel}]
-                  </option>
-                );
-              })}
-            </select>
-            {selectedMeta && (
-              <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
-                Audience: <em>{selectedMeta.target_audience || selectedMeta.description || 'Authorized Personnel'}</em>
-              </div>
-            )}
+        <div
+          style={{
+            background: 'var(--ai-card-bg)',
+            border: '1px solid var(--ai-card-border)',
+            borderRadius: 12,
+            padding: '20px 24px',
+            marginBottom: 24,
+            boxShadow: 'var(--ai-card-shadow)',
+          }}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.8fr auto', gap: 20, alignItems: 'end' }}>
+            {/* Report Type Selector */}
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: 8,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                SELECT REPORT TEMPLATE (ROLE-FILTERED)
+              </label>
+              <select
+                id="ai-report-type-select"
+                value={selectedType}
+                onChange={(e) => setSelectedType(e.target.value)}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  background: 'var(--ai-input-bg)',
+                  color: 'var(--ai-input-color)',
+                  border: '1px solid var(--ai-input-border)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  outline: 'none',
+                }}
+              >
+                {availableReports.map((r) => {
+                  const displayName = r.name || r.title || r.report_type;
+                  const classLabel = r.classification
+                    ? r.classification.split('//')[0].trim()
+                    : (r.claim_class ? r.claim_class.replace(/_/g, ' ') : 'RESTRICTED');
+                  return (
+                    <option key={r.report_type} value={r.report_type}>
+                      {displayName} [{classLabel}]
+                    </option>
+                  );
+                })}
+              </select>
+              {selectedMeta && (
+                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--text-muted)' }}>
+                  Audience: <em>{selectedMeta.target_audience || selectedMeta.description || 'Authorized Personnel'}</em>
+                </div>
+              )}
+            </div>
+
+            {/* Operational Focus Directive */}
+            <div>
+              <label
+                style={{
+                  display: 'block',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: 'var(--text-secondary)',
+                  marginBottom: 8,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                OPERATIONAL FOCUS / SPECIAL DIRECTIVE (OPTIONAL)
+              </label>
+              <input
+                id="ai-focus-area-input"
+                type="text"
+                placeholder="e.g. Focus on Civic Services BMCS biometric gateway, identity perimeter and POPIA readiness"
+                value={focusArea}
+                onChange={(e) => setFocusArea(e.target.value)}
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: 8,
+                  background: 'var(--ai-input-bg)',
+                  color: 'var(--ai-input-color)',
+                  border: '1px solid var(--ai-input-border)',
+                  fontSize: 13,
+                  outline: 'none',
+                }}
+              />
+            </div>
+
+            {/* Generate Button */}
+            <div>
+              <button
+                id="ai-generate-report-btn"
+                onClick={handleGenerate}
+                disabled={loading || !selectedType}
+                style={{
+                  padding: '11px 24px',
+                  borderRadius: 8,
+                  background: loading
+                    ? 'rgba(99,102,241,0.4)'
+                    : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
+                  border: 'none',
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  boxShadow: loading ? 'none' : '0 4px 14px rgba(99,102,241,0.4)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {loading ? (
+                  <>
+                    <span className="spin" style={{ width: 16, height: 16 }} /> Generating…
+                  </>
+                ) : (
+                  <>⚡ Generate Intelligence Report</>
+                )}
+              </button>
+            </div>
           </div>
 
-          {/* Operational Focus Directive */}
-          <div>
-            <label
+          {/* Progress Step Indicator */}
+          {loading && progressStep && (
+            <div
               style={{
-                display: 'block',
+                marginTop: 16,
+                padding: '10px 16px',
+                borderRadius: 8,
+                background: 'rgba(99,102,241,0.1)',
+                border: '1px solid rgba(99,102,241,0.25)',
                 fontSize: 12,
-                fontWeight: 700,
-                color: 'var(--text-secondary)',
-                marginBottom: 8,
-                letterSpacing: '0.04em',
-              }}
-            >
-              OPERATIONAL FOCUS / SPECIAL DIRECTIVE (OPTIONAL)
-            </label>
-            <input
-              id="ai-focus-area-input"
-              type="text"
-              placeholder="e.g. Focus on Civic Services BMCS biometric gateway, identity perimeter and POPIA readiness"
-              value={focusArea}
-              onChange={(e) => setFocusArea(e.target.value)}
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '10px 14px',
-                borderRadius: 8,
-                background: 'var(--ai-input-bg)',
-                color: 'var(--ai-input-color)',
-                border: '1px solid var(--ai-input-border)',
-                fontSize: 13,
-                outline: 'none',
-              }}
-            />
-          </div>
-
-          {/* Generate Button */}
-          <div>
-            <button
-              id="ai-generate-report-btn"
-              onClick={handleGenerate}
-              disabled={loading || !selectedType}
-              style={{
-                padding: '11px 24px',
-                borderRadius: 8,
-                background: loading
-                  ? 'rgba(99,102,241,0.4)'
-                  : 'linear-gradient(135deg,#6366f1,#8b5cf6)',
-                border: 'none',
-                color: '#fff',
-                fontWeight: 700,
-                fontSize: 14,
-                cursor: loading ? 'not-allowed' : 'pointer',
+                color: '#818cf8',
                 display: 'flex',
                 alignItems: 'center',
                 gap: 10,
-                boxShadow: loading ? 'none' : '0 4px 14px rgba(99,102,241,0.4)',
-                transition: 'all 0.2s ease',
               }}
             >
-              {loading ? (
-                <>
-                  <span className="spin" style={{ width: 16, height: 16 }} /> Generating…
-                </>
-              ) : (
-                <>⚡ Generate Intelligence Report</>
-              )}
-            </button>
-          </div>
+              <span className="spin" style={{ width: 14, height: 14 }} />
+              <span>{progressStep}</span>
+            </div>
+          )}
+
+          {/* Error Notification */}
+          {error && (
+            <div
+              style={{
+                marginTop: 16,
+                padding: '12px 16px',
+                borderRadius: 8,
+                background: 'rgba(239,68,68,0.12)',
+                border: '1px solid rgba(239,68,68,0.3)',
+                color: '#f87171',
+                fontSize: 13,
+              }}
+            >
+              ✗ <strong>Generation Error:</strong> {error}
+            </div>
+          )}
         </div>
-
-        {/* Progress Step Indicator */}
-        {loading && progressStep && (
-          <div
-            style={{
-              marginTop: 16,
-              padding: '10px 16px',
-              borderRadius: 8,
-              background: 'rgba(99,102,241,0.1)',
-              border: '1px solid rgba(99,102,241,0.25)',
-              fontSize: 12,
-              color: '#818cf8',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
-            <span className="spin" style={{ width: 14, height: 14 }} />
-            <span>{progressStep}</span>
-          </div>
-        )}
-
-        {/* Error Notification */}
-        {error && (
-          <div
-            style={{
-              marginTop: 16,
-              padding: '12px 16px',
-              borderRadius: 8,
-              background: 'rgba(239,68,68,0.12)',
-              border: '1px solid rgba(239,68,68,0.3)',
-              color: '#f87171',
-              fontSize: 13,
-            }}
-          >
-            ✗ <strong>Generation Error:</strong> {error}
-          </div>
-        )}
-      </div>
       )}{/* end: (!loaded || availableReports.length > 0) form gate */}
 
       {/* Generated Report View */}
@@ -582,7 +573,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                     letterSpacing: '0.08em',
                   }}
                 >
-                  {selectedMeta?.classification || 'CONFIDENTIAL // SITA ESTATE'}
+                  {selectedMeta?.classification || 'CONFIDENTIAL // TENANT ESTATE'}
                 </span>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                   Generated {report.generated_at} • Scope: <strong>{report.scope_summary}</strong>
@@ -875,8 +866,8 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                       typeof finding === 'string'
                         ? finding
                         : (finding as { finding?: string; text?: string })?.finding ||
-                          (finding as { finding?: string; text?: string })?.text ||
-                          JSON.stringify(finding);
+                        (finding as { finding?: string; text?: string })?.text ||
+                        JSON.stringify(finding);
                     return (
                       <div
                         key={idx}
@@ -1098,7 +1089,7 @@ export default function AiReportStudio({ roles = [] }: { roles?: string[] }) {
                         color: 'var(--text-muted)',
                       }}
                     >
-                      <span>{msg.sender === 'user' ? '👤 You' : '🤖 SITA Security Copilot'}</span>
+                      <span>{msg.sender === 'user' ? '👤 Analyst' : '🤖 Cognitive Security Copilot'}</span>
                       <span>{msg.timestamp}</span>
                     </div>
                     <div

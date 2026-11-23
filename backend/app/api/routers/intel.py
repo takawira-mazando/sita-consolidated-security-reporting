@@ -261,12 +261,12 @@ async def post_packet(
 ):
     """Assemble and sign a dispute-ready evidence packet (AVP-12).
 
-    Reuses the AG attestation's ECDSA primitives, so it verifies by exactly the
+    Reuses the audit attestation's ECDSA primitives, so it verifies by exactly the
     same published procedure. ``generated_at`` is excluded from the signed body,
     so two packets over the same facts are byte-identical.
 
     Requires an anchor. With neither ``alert_id`` nor ``app_name`` this would be
-    the AG attestation, which already exists.
+    the audit attestation, which already exists.
     """
     return await packet.build(session, claims, alert_id, app_name)
 

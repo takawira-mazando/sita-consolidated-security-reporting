@@ -357,7 +357,7 @@ REGISTRY: dict[str, Proposition] = {
                      "findings are upserted in place; no past state is recoverable"),
             ),
             demoted_because=(
-                "The platform already signs, hashes and verifies offline for the AG "
+                "The platform already signs, hashes and verifies offline for the audit "
                 "attestation. A packet is the same primitives applied to a different "
                 "selection of rows. No generation anywhere in it."
             ),

@@ -44,6 +44,47 @@ CREATE TABLE IF NOT EXISTS identity.users (
 CREATE INDEX IF NOT EXISTS idx_users_email ON identity.users(email);
 CREATE INDEX IF NOT EXISTS idx_users_person ON identity.users(person_id);
 
+CREATE TABLE IF NOT EXISTS identity.client_organizations (
+    id                       VARCHAR(36) PRIMARY KEY,
+    identifier               VARCHAR(64) NOT NULL UNIQUE,
+    name                     VARCHAR(128) NOT NULL,
+    description              TEXT NOT NULL DEFAULT '',
+    client_type              VARCHAR(32) NOT NULL,
+    deployment_model         VARCHAR(32) NOT NULL,
+    status                   VARCHAR(64) NOT NULL DEFAULT 'draft',
+    status_options           JSONB NOT NULL DEFAULT '["draft","active","inactive","suspended","archived"]'::jsonb,
+    primary_contact_name     VARCHAR(128) NOT NULL,
+    primary_contact_email    VARCHAR(254) NOT NULL,
+    superadmin_name          VARCHAR(128) NOT NULL,
+    superadmin_email         VARCHAR(254) NOT NULL,
+    access_setup_status      VARCHAR(32) NOT NULL DEFAULT 'pending_client_workspace',
+    created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at               TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_client_organizations_status
+    ON identity.client_organizations(status);
+
+CREATE TABLE IF NOT EXISTS identity.client_tenant_workspaces (
+    id                       VARCHAR(36) PRIMARY KEY,
+    client_organization_id   VARCHAR(36) NOT NULL
+        REFERENCES identity.client_organizations(id) ON DELETE CASCADE,
+    identifier               VARCHAR(64) NOT NULL,
+    name                     VARCHAR(128) NOT NULL,
+    status                   VARCHAR(32) NOT NULL DEFAULT 'active',
+    root_label               VARCHAR(64) NOT NULL DEFAULT 'Organization',
+    administration_model     VARCHAR(24) NOT NULL DEFAULT 'mssp_managed',
+    hierarchy_levels         JSONB NOT NULL DEFAULT '[]'::jsonb,
+    org_units                JSONB NOT NULL DEFAULT '[]'::jsonb,
+    roles                    JSONB NOT NULL DEFAULT '[]'::jsonb,
+    assignments              JSONB NOT NULL DEFAULT '[]'::jsonb,
+    created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT uq_client_tenant_workspace_identifier
+        UNIQUE (client_organization_id, identifier)
+);
+CREATE INDEX IF NOT EXISTS idx_client_tenant_workspaces_client
+    ON identity.client_tenant_workspaces(client_organization_id);
+
 CREATE TABLE IF NOT EXISTS identity.persons (
     id               VARCHAR(36) PRIMARY KEY,
     employee_number  VARCHAR(50) UNIQUE,
@@ -63,11 +104,14 @@ CREATE TABLE IF NOT EXISTS identity.persons (
     location         VARCHAR(120),
     employment_status VARCHAR(30) NOT NULL DEFAULT 'active',
     clearance_level  VARCHAR(30),
-    source           VARCHAR(20) NOT NULL DEFAULT 'hr',
+    source           VARCHAR(20) NOT NULL DEFAULT 'ldap',
     is_active        BOOLEAN NOT NULL DEFAULT TRUE,
     created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
-    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now()
+    updated_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CONSTRAINT ck_persons_ldap_source
+        CHECK (source IN ('ldap', 'active_directory', 'directory'))
 );
+ALTER TABLE identity.persons ALTER COLUMN source SET DEFAULT 'ldap';
 -- identity.persons.id_number is AES-256-GCM encrypted at rest by the
 -- application (app/pii_crypto.py), not by a database extension: pgcrypto is not
 -- shipped with the EDB Windows PostgreSQL build and the application role is not
@@ -85,27 +129,7 @@ CREATE INDEX IF NOT EXISTS idx_persons_email ON identity.persons(email);
 CREATE INDEX IF NOT EXISTS idx_persons_dept ON identity.persons(department_id);
 CREATE INDEX IF NOT EXISTS idx_persons_status ON identity.persons(employment_status);
 
--- Scheme-qualified external employment identifiers.
---
--- Replaces reliance on persons.employee_number alone. The platform must
--- distinguish the South African public service's three identifier concepts:
---
---   persal        8 digits, issued by National Treasury via PERSAL, bound to
---                 the EMPLOYMENT record (a transfer keeps it, a resignation
---                 and reappointment yields a new one)
---   sap_personnel SITA's own SAP HCM estate, and the scheme the IFMS HR module
---                 (DPSA / National Treasury / SITA, payroll excluded) will
---                 carry nationally
---   internal_hr   feeds carrying no national scheme, including the simulated
---                 HR stand-in
---
--- The SA identity number is deliberately NOT modelled here: it identifies the
--- person, not the employment, and is retained only on persons.id_number under
--- the masking controls in app/pii.py.
---
--- identity.users.person_id remains an internal UUID. A government identifier
--- is an attribute of an account, never its primary key, so a corrected or
--- reissued PERSAL number does not require re-keying an account.
+-- LDAP directory identifiers are stored separately from internal person UUIDs.
 CREATE TABLE IF NOT EXISTS identity.employment_identifier (
     id            VARCHAR(36) PRIMARY KEY,
     person_id     VARCHAR(36) NOT NULL REFERENCES identity.persons(id) ON DELETE CASCADE,
@@ -113,78 +137,34 @@ CREATE TABLE IF NOT EXISTS identity.employment_identifier (
     value         VARCHAR(64) NOT NULL,
     source_system VARCHAR(64),
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_employment_identifier_scheme_value UNIQUE (scheme, value)
+    CONSTRAINT uq_employment_identifier_scheme_value UNIQUE (scheme, value),
+    CONSTRAINT ck_employment_identifier_ldap_only CHECK (scheme = 'ldap')
 );
 CREATE INDEX IF NOT EXISTS idx_employment_identifier_person ON identity.employment_identifier(person_id);
 CREATE INDEX IF NOT EXISTS idx_employment_identifier_scheme ON identity.employment_identifier(scheme);
 CREATE INDEX IF NOT EXISTS idx_employment_identifier_value ON identity.employment_identifier(value);
 
--- Idempotent backfill: every person provisioned so far carries the originating
--- feed's own identifier. Existing values are synthetic (EMP-...), so they land
--- under internal_hr; a genuine 8-digit PERSAL number would classify as persal.
-INSERT INTO identity.employment_identifier (id, person_id, scheme, value, source_system)
-SELECT gen_random_uuid()::TEXT,
-       p.id,
-       CASE
-           WHEN p.employee_number ~ '^[0-9]{8}$' THEN 'persal'
-           ELSE 'internal_hr'
-       END,
-       p.employee_number,
-       'backfill'
-  FROM identity.persons p
- WHERE p.employee_number IS NOT NULL
-   AND NOT EXISTS (
-       SELECT 1 FROM identity.employment_identifier ei
-        WHERE ei.person_id = p.id
-          AND ei.value = p.employee_number
-   );
-
--- ============================================================================
--- hr - SIMULATED EXTERNAL HR SYSTEM (PERSAL/payroll employee master)
--- ============================================================================
--- Stands in for SITA's real HR system so the HR -> identity.persons ->
--- platform account pipeline can be exercised end-to-end without a live
--- PERSAL/SCIM feed. It is a SEPARATE logical system: the platform only reads
--- it via the sim endpoints (/admin/hr/sim/*) and never treats it as the
--- identity source of truth. Department/branch codes use the SITA tenancy
--- slugs so the sync validation and tenant scoping apply unchanged.
-
-CREATE SCHEMA IF NOT EXISTS hr;
-
-CREATE TABLE IF NOT EXISTS hr.employees (
-    employee_number         VARCHAR(50) PRIMARY KEY,
-    -- National Treasury PERSAL personnel number (8 digits). NULL in the
-    -- simulated stand-in; a live PERSAL/SCIM feed populates it and HR sync
-    -- records it as an identity.employment_identifier with scheme='persal'.
-    persal_number           VARCHAR(20),
-    id_number               VARCHAR(20),
-    title                   VARCHAR(20),
-    initials                VARCHAR(20),
-    first_name              VARCHAR(100),
-    surname                 VARCHAR(100),
-    display_name            VARCHAR(100),
-    email                   VARCHAR(255) UNIQUE,
-    job_title               VARCHAR(120),
-    org_unit                VARCHAR(120),
-    department_code         VARCHAR(36),
-    branch_code             VARCHAR(36),
-    manager_employee_number VARCHAR(50) REFERENCES hr.employees(employee_number),
-    manager_name            VARCHAR(120),
-    work_phone              VARCHAR(30),
-    location                VARCHAR(120),
-    employment_status       VARCHAR(30) NOT NULL DEFAULT 'active',
-    clearance_level         VARCHAR(30),
-    hire_date               DATE,
-    termination_date        DATE,
-    updated_at              TIMESTAMPTZ NOT NULL DEFAULT now()
+CREATE TABLE IF NOT EXISTS identity.client_superadmin_invitations (
+    id                       VARCHAR(36) PRIMARY KEY,
+    client_organization_id   VARCHAR(36) NOT NULL
+        REFERENCES identity.client_organizations(id) ON DELETE CASCADE,
+    person_id                VARCHAR(36) NOT NULL
+        REFERENCES identity.persons(id) ON DELETE RESTRICT,
+    email                    VARCHAR(255) NOT NULL,
+    token_hash               VARCHAR(64) NOT NULL UNIQUE,
+    expires_at               TIMESTAMPTZ NOT NULL,
+    used_at                  TIMESTAMPTZ,
+    revoked_at               TIMESTAMPTZ,
+    created_by               VARCHAR(255) NOT NULL,
+    created_at               TIMESTAMPTZ NOT NULL DEFAULT now()
 );
-CREATE INDEX IF NOT EXISTS idx_hr_emp_dept ON hr.employees(department_code);
-CREATE INDEX IF NOT EXISTS idx_hr_emp_branch ON hr.employees(branch_code);
-CREATE INDEX IF NOT EXISTS idx_hr_emp_status ON hr.employees(employment_status);
-CREATE INDEX IF NOT EXISTS idx_hr_emp_manager ON hr.employees(manager_employee_number);
+CREATE INDEX IF NOT EXISTS idx_client_superadmin_invitations_client
+    ON identity.client_superadmin_invitations(client_organization_id);
+CREATE INDEX IF NOT EXISTS idx_client_superadmin_invitations_person
+    ON identity.client_superadmin_invitations(person_id);
 
 -- ============================================================================
--- audit - append-only action trail (AG secure export engine)
+-- audit - append-only action trail (audit secure export engine)
 --
 -- Immutability is enforced here, not by application convention: a privileged
 -- session may INSERT but may not UPDATE or DELETE, and a trigger rejects any
@@ -462,8 +442,7 @@ CREATE TABLE IF NOT EXISTS warehouse.findings (
     last_seen     TIMESTAMPTZ NOT NULL,
     status        VARCHAR(50) NOT NULL DEFAULT 'open',
     version       INTEGER NOT NULL DEFAULT 1,
-    ingested_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_findings_source_external UNIQUE (source, external_id)
+    ingested_at   TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_findings_app ON warehouse.findings(app_name);
 CREATE INDEX IF NOT EXISTS idx_findings_severity ON warehouse.findings(severity);
@@ -523,8 +502,7 @@ CREATE TABLE IF NOT EXISTS warehouse.risk_scores (
     signal_api_exposure     NUMERIC(5,1),
     signal_compliance_penalty NUMERIC(5,1),
     bucket                  VARCHAR(20),
-    computed_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
-    CONSTRAINT uq_risk_app_date UNIQUE (app_name, score_date)
+    computed_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_risk_app ON warehouse.risk_scores(app_name);
 CREATE INDEX IF NOT EXISTS idx_risk_bucket ON warehouse.risk_scores(bucket);
@@ -666,8 +644,7 @@ CREATE TABLE IF NOT EXISTS warehouse.slo_metrics (
     id          VARCHAR(36) PRIMARY KEY,
     metric      VARCHAR(20) NOT NULL,
     week_start  DATE NOT NULL,
-    value_hours INTEGER NOT NULL,
-    CONSTRAINT uq_slo_metric_week UNIQUE (metric, week_start)
+    value_hours INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS warehouse.database_inventory (
@@ -680,6 +657,88 @@ CREATE TABLE IF NOT EXISTS warehouse.database_inventory (
     agent_version  VARCHAR(30),
     last_heartbeat TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Tenant-specific records carry both workspace identity and their actual
+-- hierarchy tier. Legacy estate records remain NULL and use legacy scopes.
+ALTER TABLE warehouse.findings
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.risk_scores
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.alerts
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.dispatch_log
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.compliance_snapshots
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.compliance_gaps
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.api_endpoints
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.waf_blocks
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.agents
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.database_inventory
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.slo_metrics
+    ADD COLUMN IF NOT EXISTS tenant_workspace_id VARCHAR(36),
+    ADD COLUMN IF NOT EXISTS tenant_scope_level_key VARCHAR(64);
+ALTER TABLE warehouse.findings
+    DROP CONSTRAINT IF EXISTS uq_findings_source_external;
+ALTER TABLE warehouse.risk_scores
+    DROP CONSTRAINT IF EXISTS uq_risk_app_date;
+ALTER TABLE warehouse.slo_metrics
+    DROP CONSTRAINT IF EXISTS uq_slo_metric_week;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_findings_global_source_external
+    ON warehouse.findings(source, external_id)
+    WHERE tenant_workspace_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_findings_tenant_source_external
+    ON warehouse.findings(tenant_workspace_id, tenant_scope_level_key, source, external_id)
+    WHERE tenant_workspace_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_risk_global_app_date
+    ON warehouse.risk_scores(app_name, score_date)
+    WHERE tenant_workspace_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_risk_tenant_app_date
+    ON warehouse.risk_scores(tenant_workspace_id, tenant_scope_level_key, app_name, score_date)
+    WHERE tenant_workspace_id IS NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_slo_global_metric_week
+    ON warehouse.slo_metrics(metric, week_start)
+    WHERE tenant_workspace_id IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_slo_tenant_metric_week
+    ON warehouse.slo_metrics(tenant_workspace_id, tenant_scope_level_key, metric, week_start)
+    WHERE tenant_workspace_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_findings_tenant_scope
+    ON warehouse.findings(tenant_workspace_id, tenant_scope_level_key);
+CREATE INDEX IF NOT EXISTS idx_risk_scores_tenant_scope
+    ON warehouse.risk_scores(tenant_workspace_id, tenant_scope_level_key);
+CREATE INDEX IF NOT EXISTS idx_alerts_tenant_scope
+    ON warehouse.alerts(tenant_workspace_id, tenant_scope_level_key);
+CREATE INDEX IF NOT EXISTS idx_dispatch_tenant_scope
+    ON warehouse.dispatch_log(tenant_workspace_id, tenant_scope_level_key);
+CREATE INDEX IF NOT EXISTS idx_compliance_snapshots_tenant_scope
+    ON warehouse.compliance_snapshots(tenant_workspace_id, tenant_scope_level_key);
+CREATE INDEX IF NOT EXISTS idx_compliance_gaps_tenant_scope
+    ON warehouse.compliance_gaps(tenant_workspace_id, tenant_scope_level_key);
+CREATE INDEX IF NOT EXISTS idx_api_endpoints_tenant_scope
+    ON warehouse.api_endpoints(tenant_workspace_id, tenant_scope_level_key);
+CREATE INDEX IF NOT EXISTS idx_waf_blocks_tenant_scope
+    ON warehouse.waf_blocks(tenant_workspace_id, tenant_scope_level_key);
+CREATE INDEX IF NOT EXISTS idx_agents_tenant_scope
+    ON warehouse.agents(tenant_workspace_id, tenant_scope_level_key);
+CREATE INDEX IF NOT EXISTS idx_database_inventory_tenant_scope
+    ON warehouse.database_inventory(tenant_workspace_id, tenant_scope_level_key);
+CREATE INDEX IF NOT EXISTS idx_slo_metrics_tenant_scope
+    ON warehouse.slo_metrics(tenant_workspace_id, tenant_scope_level_key);
 
 -- Imperva WAF block telemetry (AppSec WAF Block Summary / WAF Blocks stat).
 CREATE TABLE IF NOT EXISTS warehouse.waf_blocks (
@@ -722,8 +781,7 @@ CREATE TABLE IF NOT EXISTS warehouse.slo_metrics (
     id          VARCHAR(36) PRIMARY KEY,
     metric      VARCHAR(20) NOT NULL,
     week_start  DATE NOT NULL,
-    value_hours NUMERIC(6,2) NOT NULL,
-    CONSTRAINT uq_slo_metric_week UNIQUE (metric, week_start)
+    value_hours NUMERIC(6,2) NOT NULL
 );
 
 -- Database inventory (DBSec Databases Monitored / Coverage).

@@ -52,8 +52,8 @@ FRAMEWORKS: dict[str, Framework] = {
         applicability=APPLIES,
         regulator="Information Regulator (not ICASA)",
         rationale=(
-            "The platform is a responsible party for HR-sourced person records "
-            "and an operator for department tenants."
+            "The platform is a responsible party for LDAP-sourced identity "
+            "records and an operator for tenant organizations."
         ),
         coverage=(
             "Weighted domain scoring exists but is seeded, not computed; "

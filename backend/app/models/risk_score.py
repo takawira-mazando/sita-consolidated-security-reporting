@@ -1,8 +1,9 @@
 import enum
 
-from sqlalchemy import Column, Date, DateTime, Numeric, String, func
+from sqlalchemy import Column, Date, DateTime, Index, Numeric, String, func, text
 
 from app.models.base import Base
+from app.models.tenant_data_scope import TenantDataScope
 
 
 class RiskBucket(str, enum.Enum):
@@ -10,9 +11,27 @@ class RiskBucket(str, enum.Enum):
     MONITORED = "monitored"
     CRITICAL = "critical"
 
-class RiskScore(Base):
+class RiskScore(TenantDataScope, Base):
     __tablename__ = "risk_scores"
-    __table_args__ = {"schema": "warehouse"}
+    __table_args__ = (
+        Index(
+            "uq_risk_global_app_date",
+            "app_name",
+            "score_date",
+            unique=True,
+            postgresql_where=text("tenant_workspace_id IS NULL"),
+        ),
+        Index(
+            "uq_risk_tenant_app_date",
+            "tenant_workspace_id",
+            "tenant_scope_level_key",
+            "app_name",
+            "score_date",
+            unique=True,
+            postgresql_where=text("tenant_workspace_id IS NOT NULL"),
+        ),
+        {"schema": "warehouse"},
+    )
 
     id = Column(String, primary_key=True)
     app_name = Column(String(255), nullable=False)

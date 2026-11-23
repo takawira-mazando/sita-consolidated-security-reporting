@@ -85,26 +85,26 @@ export default function DemoTourGuide() {
     {
       actNumber: 2,
       title: 'Act 2: Multi-Tier Authentication & Tenancy',
-      subtitle: '4-Tier Government Hierarchy · 2 Transversal Superadmins · Branch Scoping',
+      subtitle: 'SITA Managed Security Service · scoped data tenants',
       talkingPoints: [
-        'Two Transversal Superadmins govern the Control Plane cascade: SITA Superadmin #1 (admin@, Tier 4) is created by our Developers — the single SITA client contact. National Gov Transversal Superadmin #2 (transversal@, Tier 3) is created by SITA Superadmin #1.',
-        'Strict 4-tier delegation: Tier 4 (SITA Command Center) → Tier 3 (National Security Estate) → Tier 2 (Department of Home Affairs) → Tier 1 (DDG Operational Branches).',
-        'Admin roles are pure Control Plane — they provision downstream access but hold zero telemetry dashboards. Security cockpits are a separate Data Plane.',
-        'National Gov Transversal Superadmin #2 delegates Department Superadmins across all organs of state. Dept Superadmin provisions Branch Admins. Branch Admin provisions operational specialists.',
-        'Branch-level scoping: 8 DHA DDG units — Civic Services, Digital, Immigration, Operations, HRMD, CCSS, Finance, Planning. Department roles are cryptographically jailed to their tenancy.',
+        'Platform administrators manage the service administration. The managed-service administrator provisions authorized operators; departments remain data tenants.',
+        'SITA provisions service identities and approved tenant scopes. Department and branch identifiers constrain data access, not administrative authority.',
+        'SITA administrators provision approved service roles. Interactive SOC, AppSec and DBsec dashboards are available to SITA operators; client reporting requires explicit authorization.',
+        'SITA managed-service administrators provision SITA operators. Department and branch user-administration roles are disabled.',
+        'Tenant scoping remains enforced for SITA operators; organizational units define data scope, not separate admin authorities.',
       ],
       suggestedAction: {
         label: '👑 Login as SITA Superadmin #1 (admin@)',
         action: async () => {
           await loginDemo('admin');
-          navigate('/sita/admin');
+          navigate('/national/admin');
         },
       },
       secondaryActions: [
         {
-          label: '🏛 Login as National Gov Transversal Superadmin #2 (transversal@)',
+          label: '🏛 Login as SITA Superadmin (admin@)',
           action: async () => {
-            await loginDemo('transversal-admin');
+            await loginDemo('admin');
             navigate('/national/admin');
           },
         },
@@ -116,17 +116,17 @@ export default function DemoTourGuide() {
           },
         },
         {
-          label: '🏢 Login as DHA SOC Analyst (soc-ha@)',
+          label: '🏢 Login as SITA SOC Operator (soc@)',
           action: async () => {
-            await loginDemo('soc-ha', { department_id: 'home-affairs-digital', branch_id: null, province_id: null });
-            navigate('/dept/soc');
+            await loginDemo('soc');
+            navigate('/national/soc');
           },
         },
         {
-          label: '📍 Scope to DHA Immigration Branch',
+          label: '📍 Scope to Treasury ICT Branch (SITA operator)',
           action: async () => {
-            await loginDemo('soc-ha', { department_id: 'home-affairs-digital', branch_id: 'dha-immigration', province_id: null });
-            navigate('/branch/soc');
+            await loginDemo('soc');
+            navigate('/national/soc');
           },
         },
       ],
@@ -134,13 +134,13 @@ export default function DemoTourGuide() {
     {
       actNumber: 3,
       title: 'Act 3: Role-Based Security Dashboards',
-      subtitle: '6 Purpose-Built Cockpits with Live Telemetry',
+      subtitle: '6 Purpose-Built Dashboards with Live Telemetry',
       talkingPoints: [
         'Executive Dashboard: Multi-source Fused Risk Score (CVSS × exposure × blast radius) with interactive "Explain This" AI narrative.',
         'SOC Analyst Dashboard: Real-time telemetry feed from AppScan, Imperva WAF, and Thales DAM.',
         'AppSec Dashboard: Vulnerability trends mapped directly to OWASP Top 10 2021/2023 with remediation velocity tracking.',
         'DbSec Dashboard: Database activity monitoring (DAM), Cassandra/PostgreSQL clusters, and sensitive PII inventory.',
-        'Compliance & SRE: POPIA, ISO 27001, and Auditor-General audit readiness gauges alongside microservice SLO health.',
+        'Compliance & SRE: POPIA, ISO 27001, and compliance posture gauges alongside microservice SLO health.',
       ],
       suggestedAction: {
         label: '📊 Open Executive Dashboard',
@@ -154,18 +154,18 @@ export default function DemoTourGuide() {
       secondaryActions: [
         {
           label: '🛡️ SOC Telemetry Dashboard',
-          action: () => navigate('/dept/soc'),
+          action: () => navigate('/national/soc'),
         },
         {
           label: '🔍 AppSec OWASP Dashboard',
-          action: () => navigate('/dept/appsec'),
+          action: () => navigate('/national/appsec'),
         },
         {
           label: '🗄️ DbSec DAM Dashboard',
-          action: () => navigate('/dept/dbsec'),
+          action: () => navigate('/national/dbsec'),
         },
         {
-          label: '📜 Compliance & AG Readiness',
+          label: '📜 Compliance & audit Readiness',
           action: () => navigate('/national/compliance'),
         },
       ],
@@ -206,43 +206,29 @@ export default function DemoTourGuide() {
     },
     {
       actNumber: 5,
-      title: 'Act 5: Delegated Admin Cascade — 2 Transversal Superadmins',
-      subtitle: 'Control Plane · 4-Tier Provisioning & Authoritative HR Verification',
+      title: 'Act 5: SITA Superadmin Role Provisioning',
+      subtitle: 'Administration & Governance · LDAP-verified identities',
       talkingPoints: [
-        'Two Transversal Superadmins govern the Control Plane: SITA Superadmin #1 (admin@, Tier 4) is created by the Developers — our single SITA client contact. National Gov Transversal Superadmin #2 (transversal@, Tier 3) is created exclusively by SITA Superadmin #1.',
-        'SITA Superadmin #1 provisions National Gov Transversal Superadmin #2 and grants national-tier security cockpit roles (Executive, Compliance, SRE) estate-wide.',
-        'National Gov Transversal Superadmin #2 provisions Department Superadmins across all organs of state. Each Dept Superadmin then provisions Branch Admins within its tenancy.',
-        'Strict Non-Escalation: Every tier can only grant roles at or below its own node — never sideways, never upward.',
-        'Authoritative HR Verification: Every new user must bind to a real government Person ID from SITA SAP HCM or National Treasury PERSAL before being activated.',
-        'Immutable Audit Log: All provisioning, scoping, and privilege changes are permanently recorded for Auditor-General review.',
+        'The superadmin manages provisioning and directly assigns SOC, AppSec, DBsec, regional security, and reporting roles to identities verified in the configured LDAP directory.',
+        'Department, branch, and province assignments scope the employee’s data access; they do not create local administrator tiers.',
+        'Department and branch admin grants are disabled; SITA retains platform user administration.',
+        'Only the platform operator can create or rotate SITA superadmin accounts. Tenant admin roles cannot be granted.',
+        'Authoritative Directory Verification: New role assignments require an active LDAP directory identity.',
+        'Immutable Activity Log: Provisioning, scoping, and privilege changes are recorded for internal review.',
       ],
       suggestedAction: {
         label: '👑 Open SITA Superadmin #1 Console (admin@)',
         action: async () => {
           await loginDemo('admin');
-          navigate('/sita/admin');
+          navigate('/national/admin');
         },
       },
       secondaryActions: [
         {
-          label: '🏛 Open National Gov Transversal Superadmin #2 Console (transversal@)',
+          label: '🏛 Open SITA Superadmin Provisioner (admin@)',
           action: async () => {
-            await loginDemo('transversal-admin');
+            await loginDemo('admin');
             navigate('/national/admin');
-          },
-        },
-        {
-          label: '🏢 Open DHA Department Admin Console (deptadmin-ha@)',
-          action: async () => {
-            await loginDemo('deptadmin-ha', { department_id: 'home-affairs-digital', branch_id: null, province_id: null });
-            navigate('/dept/admin');
-          },
-        },
-        {
-          label: '📍 Open DHA Branch Admin Console (branchadmin-ha@)',
-          action: async () => {
-            await loginDemo('branchadmin-ha', { department_id: 'home-affairs-digital', branch_id: 'dha-immigration', province_id: null });
-            navigate('/branch/admin');
           },
         },
       ],
@@ -250,15 +236,14 @@ export default function DemoTourGuide() {
     {
       actNumber: 6,
       title: 'Act 6: Export & Reporting Engine',
-      subtitle: 'Auditor-General Digital Signatures & Multi-Format Exports',
+      subtitle: 'Executive Reporting & Multi-Format Exports',
       talkingPoints: [
-        'Auditor-General Attestations: Cryptographically signed SHA-256 compliance exports verifying immutable data state.',
         'Multi-Format Deliverables: Executive Word briefs (.docx), styled spreadsheets (.xlsx), and raw telemetry CSVs.',
-        'Transversal Benchmarking: Compare DHA risk posture against peer national departments while preserving tenant anonymity.',
+        'Cross-Tenant Benchmarking: Compare client risk posture against peer organizations while preserving tenant anonymity.',
         'Single-click generation for executive board packs and parliamentary committee presentations.',
       ],
       suggestedAction: {
-        label: '📜 View AG Compliance Attestations',
+        label: '📊 View Compliance Dashboard',
         action: async () => {
           if (!user) await loginDemo('exec');
           navigate('/national/compliance');

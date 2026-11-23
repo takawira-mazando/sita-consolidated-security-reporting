@@ -1,6 +1,6 @@
 """
 Asymmetric Cryptographic Signing Engine (ECDSA NIST P-256) for SITA Platform.
-Enables offline verifiable digital signatures for Auditor-General (AG) compliance exports.
+Enables offline verifiable digital signatures for External audit compliance exports.
 
 Key material resolution is deliberately separated into a signing path and a
 verification path:
@@ -63,7 +63,7 @@ def _read_bytes(path: Path) -> bytes:
 def _ensure_ec_private_key(key) -> ec.EllipticCurvePrivateKey:
     if not isinstance(key, ec.EllipticCurvePrivateKey):
         raise SigningKeyUnavailable(
-            "AG signing key must be an EllipticCurvePrivateKey "
+            "audit signing key must be an EllipticCurvePrivateKey "
             f"(got {type(key).__name__}); ECDSA SECP256R1 required."
         )
     return key
@@ -72,7 +72,7 @@ def _ensure_ec_private_key(key) -> ec.EllipticCurvePrivateKey:
 def _ensure_ec_public_key(key) -> ec.EllipticCurvePublicKey:
     if not isinstance(key, ec.EllipticCurvePublicKey):
         raise PublicKeyUnavailable(
-            "AG public key must be an EllipticCurvePublicKey "
+            "audit public key must be an EllipticCurvePublicKey "
             f"(got {type(key).__name__}); ECDSA SECP256R1 required."
         )
     return key
@@ -156,7 +156,7 @@ def get_ec_private_key() -> ec.EllipticCurvePrivateKey:
     # environment demands static key material.
     if settings.require_static_signing_key:
         raise SigningKeyUnavailable(
-            "No AG signing key is configured and generating one is not permitted. "
+            "No audit signing key is configured and generating one is not permitted. "
             "Set AG_SIGNING_PRIVATE_KEY_PEM, or place the key at "
             f"{DEFAULT_KEY_PATH}, before starting. Generating a key here would "
             "invalidate every attestation already issued under a previous key_id."

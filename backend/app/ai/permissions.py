@@ -56,7 +56,7 @@ REPORT_CATALOGUE: dict[str, dict[str, Any]] = {
         "icon": "lock",
     },
     "ag_audit_readiness": {
-        "title": "Auditor-General (AGSA) Information Systems Audit Brief",
+        "title": "External Audit Brief",
         "description": "Formal governance posture, cryptographically verifiable attestation readiness, and internal control status.",
         "allowed_roles": {"compliance", "admin", "operator"},
         "claim_class": "AUDIT_ATTESTATION",
@@ -78,22 +78,22 @@ def can_access_report(user_roles: list[str], report_type: str) -> bool:
 def get_available_reports(user_roles: list[str]) -> list[dict[str, Any]]:
     """Return catalogue metadata for reports accessible to the given role set."""
     classifications = {
-        "executive_summary": "RESTRICTED // SITA INTERNAL",
+        "executive_summary": "RESTRICTED // PLATFORM INTERNAL",
         "threat_intel_brief": "CONFIDENTIAL // SOC OPERATIONS",
         "vulnerability_posture": "INTERNAL // DEVSECOPS USE ONLY",
-        "compliance_status": "OFFICIAL // COMPLIANCE DIVISION",
+        "compliance_status": "INTERNAL // COMPLIANCE",
         "incident_summary": "CONFIDENTIAL // INCIDENT RESPONSE",
         "popia_impact_assessment": "OFFICIAL // PRIVACY REGULATOR",
         "ag_audit_readiness": "RESTRICTED // AUDIT ATTESTATION",
     }
     audiences = {
-        "executive_summary": "Ministers, DGs, Board Members, CISOs",
+        "executive_summary": "Executive leadership, board members, CISOs",
         "threat_intel_brief": "SOC Analysts, Incident Responders, Threat Hunters",
         "vulnerability_posture": "AppSec Engineers, DevSecOps, System Architects",
-        "compliance_status": "Compliance Officers, Information Regulators, Legal Counsel",
+        "compliance_status": "Compliance officers, regulators, legal counsel",
         "incident_summary": "Incident Commanders, SOC Leads, Forensic Analysts",
-        "popia_impact_assessment": "Information Regulators, Legal Counsel, DPOs",
-        "ag_audit_readiness": "Auditor-General, Audit Committees, IT Risk Leads",
+        "popia_impact_assessment": "Privacy officers, regulators, legal counsel",
+        "ag_audit_readiness": "External auditors, audit committees, IT risk leads",
     }
     available = []
     for report_id, meta in REPORT_CATALOGUE.items():
@@ -104,7 +104,7 @@ def get_available_reports(user_roles: list[str]) -> list[dict[str, Any]]:
                 "title": meta["title"],
                 "description": meta["description"],
                 "target_audience": audiences.get(report_id, meta["description"]),
-                "classification": classifications.get(report_id, "RESTRICTED // SITA INTERNAL"),
+                "classification": classifications.get(report_id, "RESTRICTED // PLATFORM INTERNAL"),
                 "claim_class": meta["claim_class"],
                 "cadence": meta["cadence"],
                 "icon": meta["icon"],

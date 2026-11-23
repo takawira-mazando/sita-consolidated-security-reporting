@@ -1,92 +1,89 @@
-"""Gate 2: ReportScope Value Object & Tenancy Hash.
-
-Implements Gate 2 of the G2 specification:
-Encapsulates caller tenancy into an immutable, frozen ReportScope.
-Calculates a canonical SHA-256 scope_hash for caching, auditing, and isolation.
-"""
+"""Authenticated tenant scope for AI reports."""
 from dataclasses import dataclass
 import hashlib
 import json
 from typing import Any
 
-from app.api.auth import JWTClaims, is_nationwide, tenant_filter
-from app.tenant import DEPARTMENTS, provincial_departments_for_province
+from app.api.auth import JWTClaims, is_global_scope, tenant_filter
 
 
 @dataclass(frozen=True)
 class ReportScope:
-    department_ids: tuple[str, ...]
-    branch_ids: tuple[str, ...]
-    province_ids: tuple[str, ...]
-    is_nationwide: bool
+    is_platform_scope: bool
     scope_hash: str
+    tenant_workspace_id: str | None = None
+    tenant_workspace_name: str | None = None
+    tenant_scope_unit_ids: tuple[str, ...] = ()
+    tenant_scope_level_keys: tuple[str, ...] = ()
 
     def get_filter(self, model: Any) -> Any:
-        """Delegate directly to platform tenant_filter for 100% parity."""
+        """Use the same fail-closed data predicate as the request handler."""
         dummy_claims = JWTClaims(
-            roles=["admin"] if self.is_nationwide else ["soc"],
-            department_ids=list(self.department_ids),
-            branch_ids=list(self.branch_ids),
-            province_ids=list(self.province_ids),
+            roles=["operator"] if self.is_platform_scope else ["soc"],
+            tenant_workspace_ids=(
+                [self.tenant_workspace_id] if self.tenant_workspace_id else []
+            ),
+            tenant_scope_unit_ids=list(self.tenant_scope_unit_ids),
+            active_tenant_workspace_id=self.tenant_workspace_id,
+            active_tenant_scope_level_keys=list(self.tenant_scope_level_keys),
         )
         return tenant_filter(dummy_claims, model)
 
     def describe(self) -> str:
-        """Human-readable scope description for disclosure banner."""
-        if self.is_nationwide and not self.department_ids and not self.branch_ids:
-            return "Estate-Wide (All 43 National Departments & 9 Provinces)"
-        parts = []
-        if self.department_ids:
-            dept_names = [DEPARTMENTS.get(d, d) for d in self.department_ids[:3]]
-            if len(self.department_ids) > 3:
-                dept_names.append(f"+{len(self.department_ids) - 3} more")
-            parts.append(f"Departments: {', '.join(dept_names)}")
-        if self.branch_ids:
-            parts.append(f"Branches: {len(self.branch_ids)} assigned")
-        if self.province_ids:
-            parts.append(f"Provinces: {', '.join(self.province_ids).upper()}")
-        return " | ".join(parts) if parts else "Assigned Department Scope"
+        if self.tenant_workspace_id:
+            scope = (
+                "Entire workspace"
+                if "root" in self.tenant_scope_level_keys
+                else ", ".join(self.tenant_scope_level_keys) or "No authorized tiers"
+            )
+            return f"{self.tenant_workspace_name or 'Tenant workspace'} - {scope}"
+        if self.is_platform_scope:
+            return "Platform scope"
+        return "No authorized tenant workspace"
 
 
 def compute_scope_hash(
-    department_ids: list[str],
-    branch_ids: list[str],
-    province_ids: list[str],
-    is_nationwide: bool,
+    tenant_workspace_ids: list[str],
+    tenant_scope_unit_ids: list[str],
+    tenant_scope_level_keys: list[str],
+    is_platform_scope: bool,
 ) -> str:
-    """Canonical SHA-256 hash representing this exact tenancy boundary."""
-    canonical_dict = {
-        "depts": sorted(department_ids),
-        "branches": sorted(branch_ids),
-        "provinces": sorted(province_ids),
-        "nationwide": bool(is_nationwide),
+    canonical = {
+        "tenant_workspace_ids": sorted(tenant_workspace_ids),
+        "tenant_scope_unit_ids": sorted(tenant_scope_unit_ids),
+        "tenant_scope_level_keys": sorted(tenant_scope_level_keys),
+        "platform_scope": bool(is_platform_scope),
     }
-    canonical_json = json.dumps(canonical_dict, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(canonical_json.encode("utf-8")).hexdigest()
+    encoded = json.dumps(canonical, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
 
 
 def resolve_report_scope(claims: JWTClaims) -> ReportScope:
-    """Derive frozen ReportScope from authenticated caller claims."""
-    nationwide = is_nationwide(claims)
-    raw_depts = list(getattr(claims, "department_ids", None) or [])
-    raw_branches = list(getattr(claims, "branch_ids", None) or [])
-    raw_provinces = list(getattr(claims, "province_ids", None) or [])
-
-    # If provincial persona, expand province to all departments in province
-    expanded_depts = set(raw_depts)
-    for prov in raw_provinces:
-        expanded_depts.update(provincial_departments_for_province(prov))
-
-    final_depts = sorted(expanded_depts)
-    final_branches = sorted(set(raw_branches))
-    final_provinces = sorted(set(raw_provinces))
-
-    shash = compute_scope_hash(final_depts, final_branches, final_provinces, nationwide)
+    tenant_workspace_id = claims.active_tenant_workspace_id
+    tenant_scope_unit_ids = sorted(set(claims.tenant_scope_unit_ids or []))
+    tenant_scope_level_keys = sorted(
+        set(claims.active_tenant_scope_level_keys or [])
+    )
+    tenant_access = next(
+        (
+            item
+            for item in claims.tenant_workspace_access
+            if item.get("workspace_id") == tenant_workspace_id
+        ),
+        {},
+    )
+    is_platform_scope = is_global_scope(claims) and tenant_workspace_id is None
 
     return ReportScope(
-        department_ids=tuple(final_depts),
-        branch_ids=tuple(final_branches),
-        province_ids=tuple(final_provinces),
-        is_nationwide=nationwide and not final_depts and not final_branches,
-        scope_hash=shash,
+        is_platform_scope=is_platform_scope,
+        scope_hash=compute_scope_hash(
+            [tenant_workspace_id] if tenant_workspace_id else list(claims.tenant_workspace_ids),
+            tenant_scope_unit_ids,
+            tenant_scope_level_keys,
+            is_platform_scope,
+        ),
+        tenant_workspace_id=tenant_workspace_id,
+        tenant_workspace_name=tenant_access.get("workspace_name"),
+        tenant_scope_unit_ids=tuple(tenant_scope_unit_ids),
+        tenant_scope_level_keys=tuple(tenant_scope_level_keys),
     )

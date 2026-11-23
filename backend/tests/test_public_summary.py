@@ -4,7 +4,6 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 
 from app.api.routers import public_summary
-from app.tenant import BRANCHES, DEPARTMENTS, PROVINCES, PROVINCIAL_DEPARTMENTS
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
@@ -149,12 +148,7 @@ def test_public_summary_populated():
     ]
     assert body["connectors"] == {"total": 5, "healthy": 4, "degraded": 0, "down": 1}
     assert body["latest_ingest"] == "2026-08-01T03:15:00+00:00"
-    assert body["tenancy"] == {
-        "departments": len(DEPARTMENTS),
-        "branches": len(BRANCHES),
-        "provinces": len(PROVINCES),
-        "provincial_departments": len(PROVINCIAL_DEPARTMENTS),
-    }
+    assert "tenancy" not in body
 
 
 def test_public_summary_empty_graceful():

@@ -1,7 +1,7 @@
 """Append-only audit of access to personal and security data.
 
 Closes gap G-10 in ``docs/B5_ICASA_ECT_Gap_Analysis.md``: before this module
-the only writer to ``audit.action_audit`` was the Auditor-General export engine,
+the only writer to ``audit.action_audit`` was external auditors export engine,
 so the platform could not answer the first question any Information Regulator
 inspection or internal audit asks:
 

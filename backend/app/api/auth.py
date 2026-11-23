@@ -1,20 +1,14 @@
 from functools import lru_cache
+from typing import Any
 
-from fastapi import Depends, HTTPException
+from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
 from pydantic import BaseModel
 from sqlalchemy.sql import and_, expression
 
 from app.config import settings
-from app.tenant import (
-    BRANCHES,
-    DEPARTMENT_ROLES,
-    GRANTABLE_ROLES,
-    NATIONWIDE_ROLES,
-    provincial_departments_for_province,
-    tier_for_role,
-)
+from app.tenant import GRANTABLE_ROLES, PLATFORM_SCOPE_ROLES, SCOPED_COCKPIT_ROLES, tier_for_role
 
 security = HTTPBearer(auto_error=False)
 
@@ -24,16 +18,14 @@ ROLES_HIERARCHY = {
     "appsec": {"risks", "findings", "dashboard"},
     "dbsec": {"risks", "findings", "alerts_read", "dashboard"},
     "compliance": {"compliance", "dashboard"},
-    "sre": {"admin_read", "admin_write", "alerts_read", "dashboard"},
+    "sre": {"sre", "alerts_read", "dashboard"},
+    "ai": {"dashboard"},
     "transversal-admin": {"admin_read", "admin_write", "dashboard"},
-    "dept-admin": {"admin_read", "admin_write", "dashboard"},
-    "branch-admin": {"admin_read", "admin_write", "dashboard"},
-    "province-soc-lead": {"findings", "alerts_read", "alerts_write", "dashboard"},
-    "province-dept-admin": {"admin_read", "admin_write", "dashboard"},
-    "local-appsec": {"risks", "findings", "dashboard"},
+    "tenant-admin": set(),
     "admin": {"*"},
     "operator": {"*"},
 }
+
 
 class JWTClaims(BaseModel):
     sub: str = ""
@@ -43,13 +35,24 @@ class JWTClaims(BaseModel):
     department_ids: list[str] = []
     branch_ids: list[str] = []
     province_ids: list[str] = []
+    tenant_workspace_ids: list[str] = []
+    tenant_scope_unit_ids: list[str] = []
+    tenant_can_manage_members: bool = False
+    tenant_workspace_access: list[dict[str, Any]] = []
+    active_tenant_workspace_id: str | None = None
+    active_tenant_scope_level_keys: list[str] = []
     exp: int = 0
+
 
 @lru_cache
 def get_jwks():
     return {}
 
-async def verify_token(credentials: HTTPAuthorizationCredentials | None = Depends(security)) -> JWTClaims:
+
+async def verify_token(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> JWTClaims:
     if credentials is None:
         raise HTTPException(status_code=401, detail="Authentication required")
     try:
@@ -68,9 +71,21 @@ async def verify_token(credentials: HTTPAuthorizationCredentials | None = Depend
                 algorithms=["HS256"],
                 options={"verify_signature": True},
             )
-        return JWTClaims(**payload)
+        claims = JWTClaims(**payload)
+        active_workspace_id = request.headers.get("X-Tenant-Workspace-ID")
+        if active_workspace_id:
+            if active_workspace_id not in claims.tenant_workspace_ids:
+                raise HTTPException(
+                    status_code=403,
+                    detail="Tenant workspace is outside your assigned access",
+                )
+            claims = claims.model_copy(
+                update={"active_tenant_workspace_id": active_workspace_id}
+            )
+        return claims
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
+
 
 def require_roles(*required: str):
     async def checker(claims: JWTClaims = Depends(verify_token)):
@@ -78,256 +93,150 @@ def require_roles(*required: str):
         allowed = any(
             user_role in ("admin", "operator")
             or "*" in ROLES_HIERARCHY.get(user_role, set())
-            or perm in ROLES_HIERARCHY.get(user_role, set())
+            or permission in ROLES_HIERARCHY.get(user_role, set())
             for user_role in user_roles
-            for perm in required
+            for permission in required
         )
+        active_scope_levels: set[str] = set()
+        if claims.active_tenant_workspace_id:
+            workspace_access = next(
+                (
+                    item
+                    for item in claims.tenant_workspace_access
+                    if item.get("workspace_id") == claims.active_tenant_workspace_id
+                ),
+                None,
+            )
+            cockpit_scopes = (
+                workspace_access.get("cockpit_scopes", {})
+                if workspace_access
+                else {}
+            )
+            for cockpit_id, scope_levels in cockpit_scopes.items():
+                permissions = ROLES_HIERARCHY.get(cockpit_id, set())
+                if any(permission in permissions for permission in required):
+                    allowed = True
+                    active_scope_levels.update(scope_levels)
         if not allowed:
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        return claims
+        return claims.model_copy(
+            update={"active_tenant_scope_level_keys": sorted(active_scope_levels)}
+        )
     return checker
 
 
-def is_nationwide(claims: JWTClaims) -> bool:
-    """True when the caller's roles grant whole-estate capability."""
-    return any(role in NATIONWIDE_ROLES for role in claims.roles)
+def is_global_scope(claims: JWTClaims) -> bool:
+    """Whether a role grants global access outside an active tenant workspace."""
+    return bool(set(claims.roles) & PLATFORM_SCOPE_ROLES)
 
 
-def is_department_scoped(claims: JWTClaims) -> bool:
-    """True when the caller holds a department-scoped role."""
-    return any(role in DEPARTMENT_ROLES for role in claims.roles)
+def is_scoped_role(claims: JWTClaims) -> bool:
+    return bool(set(claims.roles) & SCOPED_COCKPIT_ROLES)
 
 
-def grantable_roles(claims: JWTClaims) -> set[str] | None:
-    """Roles the caller may assign to other users. None = anything (system admin).
-
-    Delegation is a strict one-way cascade down the tenancy tree. The
-    managed-service creator (`operator`) may create the SITA superuser
-    (`admin`) and peer `operator` accounts only. The SITA superuser (`admin`)
-    may create department superusers (`dept-admin`, `province-dept-admin`,
-    `branch-admin`) and provision national-level dashboard access
-    (`exec`, `compliance`, `sre`) estate-wide — never a peer `admin`.
-    Beneath it, delegation follows the existing tree: `transversal-admin`
-    grants the operational department roles plus the admin tiers below it and
-    the specialist national roles; `dept-admin` adds `branch-admin`;
-    `branch-admin` and nationwide `sre` grant the operational department
-    roles only. See GRANTABLE_ROLES.
-    """
-    granted: set[str] = set()
-    for role in claims.roles:
-        granted |= GRANTABLE_ROLES.get(role, set())
-    return granted
+def grantable_roles(claims: JWTClaims) -> set[str]:
+    return set().union(*(GRANTABLE_ROLES.get(role, set()) for role in claims.roles))
 
 
-def _caller_tier(claims: JWTClaims) -> int:
-    """Highest admin tier held by the caller (0 = not an admin)."""
-    return max((tier_for_role(r) for r in claims.roles), default=0)
+def _caller_scope_units(claims: JWTClaims) -> set[str]:
+    return set(claims.tenant_scope_unit_ids or [])
 
 
-def _tenant_consistent(department_ids: list[str], branch_ids: list[str]) -> bool:
-    """True when every branch belongs to one of the given departments.
-
-    A scope is only valid within the tenancy tree: branches must be children
-    of the departments they are attached to. Guards against scopes like
-    depts=[treasury] + branches=[dha-ict].
-    """
-    depts = set(department_ids or [])
-    for branch in branch_ids or []:
-        parent = BRANCHES.get(branch, (None, None))[1]
-        if parent is None or parent not in depts:
-            return False
-    return True
-
-
-def scope_covers(claims: JWTClaims, department_ids: list[str], branch_ids: list[str], province_ids: list[str] | None = None) -> bool:
-    """True when the caller's admin-set scope covers the target scope.
-
-    The caller covers a target when its departments are a subset of the
-    caller's departments and (if the caller is branch-narrowed) its branches
-    are a subset of the caller's branches. Province scope expands a scope to
-    the province's full department set on both sides, so a province-wide
-    target (e.g. `province-soc-lead` scoped to Gauteng) is covered only by a
-    caller whose province scope spans all of Gauteng. Scopes that are not
-    internally tenancy-consistent (branch not under its department) never
-    pass. A caller with no admin-set scope covers the estate only via a
-    nationwide role; whole-estate (unscoped) targets are unreachable for
-    scoped callers.
-    """
-    caller_depts = set(getattr(claims, "department_ids", None) or [])
-    for province in getattr(claims, "province_ids", None) or []:
-        caller_depts.update(provincial_departments_for_province(province))
-    caller_branches = set(getattr(claims, "branch_ids", None) or [])
-    target_depts = set(department_ids or [])
-    for province in province_ids or []:
-        target_depts.update(provincial_departments_for_province(province))
-    target_branches = set(branch_ids or [])
-
-    if target_branches and not _tenant_consistent(department_ids, branch_ids):
-        return False
-
-    if not caller_depts and not caller_branches:
-        return is_nationwide(claims)
-    if not target_depts and not target_branches:
-        return False
-    if caller_depts and not target_depts <= caller_depts:
-        return False
-    if caller_branches and not (target_branches and target_branches <= caller_branches):
-        return False
-    return True
+def scope_covers(
+    claims: JWTClaims,
+    organization_unit_ids: list[str],
+    legacy_unit_ids: list[str] | None = None,
+    unused_scope_ids: list[str] | None = None,
+) -> bool:
+    """Check that requested unit identifiers fall within the caller's grant."""
+    target_units = set(organization_unit_ids or [])
+    target_units.update(legacy_unit_ids or [])
+    target_units.update(unused_scope_ids or [])
+    if not target_units:
+        return is_global_scope(claims) or (
+            claims.active_tenant_workspace_id is not None
+            and "root" in claims.active_tenant_scope_level_keys
+        )
+    if is_global_scope(claims) and not claims.active_tenant_workspace_id:
+        return True
+    return target_units <= _caller_scope_units(claims)
 
 
 def check_tenancy_access(
     claims: JWTClaims,
-    department_id: str | None = None,
-    branch_id: str | None = None,
+    organization_unit_id: str | None = None,
+    legacy_unit_id: str | None = None,
 ) -> None:
-    """Validate that requested department/branch filter is within caller's assigned scope.
-
-    - Nationwide roles with no narrowing may query any department or branch.
-    - Department-scoped callers may only query departments within their assigned scope.
-    - Branch-scoped callers may only query branches within their assigned scope.
-    """
-    if not department_id and not branch_id:
+    requested = {unit for unit in (organization_unit_id, legacy_unit_id) if unit}
+    if not requested:
         return
-
-    caller_depts = set(getattr(claims, "department_ids", None) or [])
-    for province in getattr(claims, "province_ids", None) or []:
-        caller_depts.update(provincial_departments_for_province(province))
-    caller_branches = set(getattr(claims, "branch_ids", None) or [])
-    nationwide = is_nationwide(claims) and not caller_depts and not caller_branches
-
-    if nationwide:
-        return
-
-    if department_id:
-        if caller_depts and department_id not in caller_depts:
-            raise HTTPException(
-                status_code=403,
-                detail="Requested tenancy scope is outside your assigned scope",
-            )
-
-    if branch_id:
-        if branch_id not in BRANCHES:
-            raise HTTPException(
-                status_code=400,
-                detail="Unknown branch specified",
-            )
-        parent_dept = BRANCHES[branch_id][1]
-        if caller_depts and parent_dept not in caller_depts:
-            raise HTTPException(
-                status_code=403,
-                detail="Requested tenancy scope is outside your assigned scope",
-            )
-        if caller_branches and branch_id not in caller_branches:
-            raise HTTPException(
-                status_code=403,
-                detail="Requested tenancy scope is outside your assigned scope",
-            )
-        if department_id and department_id != parent_dept:
-            raise HTTPException(
-                status_code=400,
-                detail="Branch does not belong to specified department",
-            )
+    if not scope_covers(claims, list(requested)):
+        raise HTTPException(
+            status_code=403,
+            detail="Requested organization scope is outside your assigned tenant access",
+        )
 
 
 def person_within_scope(claims: JWTClaims, person) -> bool:
-    """True when an HR-provisioned employee sits inside the caller's tenancy.
+    """Do not infer tenant scope from directory department or office labels."""
+    if is_global_scope(claims) and not claims.active_tenant_workspace_id:
+        return True
+    person_scope = getattr(person, "tenant_scope_unit_id", None)
+    if not person_scope:
+        return False
+    return scope_covers(claims, [str(person_scope)])
 
-    Distinct from :func:`can_manage`, which asks *"may the caller grant this
-    authority?"* — a question about roles and the scope being granted. This asks
-    *"whose employee is this?"* — a question about the person.
 
-    Both are required to provision an account. Without this gate a
-    department-scoped admin could provision an account for an employee belonging
-    to a different department, as long as the authority they granted happened to
-    fall inside their own scope: the account would then carry a foreign
-    employee's identity inside the admin's tenant. That is a cross-tenant
-    provisioning hole that the delegation check alone cannot see, because the
-    grant looked entirely legitimate.
-
-    Fails closed. An employee with no department and no branch cannot be placed
-    in a tenant, so a scoped caller may not provision against that record; only
-    an estate-wide caller holding a nationwide role may.
-    """
-    department_id = getattr(person, "department_id", None)
-    branch_id = getattr(person, "branch_id", None)
-    if not department_id and not branch_id:
-        # Cannot be placed in any tenant; only nationwide authority may proceed.
-        return is_nationwide(claims) and not (
-            getattr(claims, "department_ids", None)
-            or getattr(claims, "branch_ids", None)
-            or getattr(claims, "province_ids", None)
-        )
+def can_manage(
+    claims: JWTClaims,
+    roles: list[str],
+    organization_unit_ids: list[str],
+    legacy_unit_ids: list[str] | None = None,
+    unused_scope_ids: list[str] | None = None,
+) -> bool:
+    """Allow only permitted downward role grants within the caller's scope."""
+    if not set(roles) <= grantable_roles(claims):
+        return False
+    caller_tier = max((tier_for_role(role) for role in claims.roles), default=0)
+    for role in roles:
+        role_tier = tier_for_role(role)
+        if role_tier and role_tier >= caller_tier:
+            if role != "operator" or "operator" not in claims.roles:
+                return False
     return scope_covers(
         claims,
-        [department_id] if department_id else [],
-        [branch_id] if branch_id else [],
+        organization_unit_ids,
+        legacy_unit_ids,
+        unused_scope_ids,
     )
 
 
-def can_manage(claims: JWTClaims, roles: list[str], department_ids: list[str], branch_ids: list[str], province_ids: list[str] | None = None) -> bool:
-    """True when the caller may create/update/delete a user with these roles/scope.
-
-    Two gates, both enforced:
-
-    - Roles: every target role must be grantable by the caller, and no target
-      admin-tier role may sit at or above the caller's own tier (delegation is
-      strictly one-way down the tenancy tree). Only the managed-service
-      creator (`operator`) sits above the SITA superuser, so only `operator`
-      can create/rotate a superuser (`admin`).
-    - Scope: the target scope must be within the caller's admin-set scope.
-    """
-    granted = grantable_roles(claims)
-    if granted is None:
-        return True
-    caller_tier = _caller_tier(claims)
-    for role in roles:
-        role_tier = tier_for_role(role)
-        # Allow operator to manage peer operators (creator rotation).
-        if role == "operator" and "operator" in claims.roles:
-            continue
-        # Allow transversal-admin to grant/manage peer transversal-admin accounts.
-        if role == "transversal-admin" and "transversal-admin" in claims.roles:
-            continue
-        if role_tier and role_tier >= caller_tier:
-            return False
-    if not set(roles) <= granted:
-        return False
-    return scope_covers(claims, department_ids, branch_ids, province_ids)
-
-
 def tenant_filter(claims: JWTClaims, model):
-    """SQLAlchemy filter scoping a query to the caller's admin-set scope.
+    """Build a fail-closed filter using the active workspace and configured tiers."""
+    active_workspace_id = claims.active_tenant_workspace_id
+    if active_workspace_id:
+        if not hasattr(model, "tenant_workspace_id") or not hasattr(
+            model, "tenant_scope_level_key"
+        ):
+            return expression.false()
+        levels = claims.active_tenant_scope_level_keys or []
+        if not levels:
+            return expression.false()
+        return and_(
+            model.tenant_workspace_id == active_workspace_id,
+            model.tenant_scope_level_key.in_(levels),
+        )
 
-    Scope = department_ids (allowed departments) plus optional branch_ids
-    (finer restriction within those departments). Province scope
-    (province_ids) expands to that province's full department set, so a
-    province-level persona (e.g. `province-soc-lead`) is scoped to every
-    department inside its province without listing them all. The admin may
-    narrow any role, including nationwide ones.
-
-    - Departments set  -> department_id IN (assigned, province-expanded)
-    - Branches set     -> branch_id IN (assigned)  (intersects department scope)
-    - No scope set     -> nationwide roles see everything (None);
-                          department roles fail closed (false()).
-    """
-    depts = set(getattr(claims, "department_ids", None) or [])
-    branches = list(getattr(claims, "branch_ids", None) or [])
-    for province in getattr(claims, "province_ids", None) or []:
-        depts.update(provincial_departments_for_province(province))
-    depts = list(depts)
-    conds = []
-    if depts:
-        conds.append(model.department_id.in_(depts))
-    if branches:
-        conds.append(model.branch_id.in_(branches))
-    if conds:
-        return and_(*conds)
-    # No scope: nationwide capability wins (admin/exec/compliance/sre see the
-    # whole estate even when they also hold a department role); otherwise a
-    # department role fails closed until admin assigns it a department.
-    if is_nationwide(claims):
+    if claims.tenant_workspace_ids and hasattr(model, "tenant_workspace_id"):
+        return model.tenant_workspace_id.is_(None)
+    if is_global_scope(claims):
         return None
-    if is_department_scoped(claims):
+    if (
+        is_scoped_role(claims)
+        or claims.tenant_scope_unit_ids
+        or claims.department_ids
+        or claims.branch_ids
+        or claims.province_ids
+    ):
         return expression.false()
     return None

@@ -1,7 +1,7 @@
 """Tests for the access-audit control (gap G-10).
 
 Before this control the only writer to ``audit.action_audit`` was the
-Auditor-General export engine, so the platform could not answer "who accessed
+External audit export engine, so the platform could not answer "who accessed
 what personal data, in which tenancy scope, and when".
 
 These tests pin the three properties that make the control trustworthy:
@@ -252,7 +252,7 @@ def _claims():
         sub="u1",
         email="soc@example.com",
         roles=["soc"],
-        department_ids=["home-affairs-digital"],
+        department_ids=["treasury"],
         branch_ids=[],
         province_ids=[],
     )
@@ -275,7 +275,7 @@ async def test_csv_export_records_an_audit_row():
     # The release size and the scope it was released under are both recorded,
     # so a routine extract is distinguishable from a full-estate dump.
     assert '"row_count":1' in row.signed_payload
-    assert row.tenant_scope["department_ids"] == ["home-affairs-digital"]
+    assert row.tenant_scope["department_ids"] == ["treasury"]
 
 
 async def test_csv_export_audit_records_the_source_address():

@@ -8,14 +8,25 @@ interface DemoContextType {
 }
 
 const DemoContext = createContext<DemoContextType | undefined>(undefined);
+const DEMO_MODE_DEFAULT_VERSION_KEY = 'sita_demo_mode_default_version';
 
 export function DemoProvider({ children }: { children: ReactNode }) {
   const [demoMode, setDemoMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const search = new URLSearchParams(window.location.search);
+      if (search.get('demo') === 'true' || search.get('demo') === '1' || search.get('demo') === 'on') {
+        return true;
+      }
+    }
+    if (localStorage.getItem(DEMO_MODE_DEFAULT_VERSION_KEY) !== '1') {
+      return true;
+    }
     const stored = localStorage.getItem('sita_demo_mode');
-    return stored === 'true';
+    return stored !== 'false';
   });
 
   useEffect(() => {
+    localStorage.setItem(DEMO_MODE_DEFAULT_VERSION_KEY, '1');
     localStorage.setItem('sita_demo_mode', String(demoMode));
     // Sync across tabs
     window.dispatchEvent(new StorageEvent('storage', { key: 'sita_demo_mode', newValue: String(demoMode) }));

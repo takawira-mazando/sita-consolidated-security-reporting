@@ -61,7 +61,7 @@ def mock_session():
             id=1,
             block_time=now,
             app_name="demo.testfire.net",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             src_ip="192.0.2.45",
             request_uri="/login.aspx?user=' OR '1'='1",
             attack_type="SQL Injection",
@@ -71,7 +71,7 @@ def mock_session():
             id=2,
             block_time=now,
             app_name="demo.testfire.net",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             src_ip="192.0.2.78",
             request_uri="/search.aspx?q=<script>alert(1)</script>",
             attack_type="Cross-Site Scripting (XSS)",
@@ -81,7 +81,7 @@ def mock_session():
             id=3,
             block_time=now,
             app_name="demo.testfire.net",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             src_ip="192.0.2.99",
             request_uri="/view.aspx?page=../../../../etc/passwd",
             attack_type="Local File Inclusion",
@@ -92,7 +92,7 @@ def mock_session():
         Finding(
             id=1,
             app_name="demo.testfire.net",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             source="appscan",
             title="SQL Injection in login.aspx",
             severity="critical",
@@ -108,7 +108,7 @@ def mock_session():
             target_id="demo.testfire.net",
             severity="critical",
             title="SQL Injection surge detected",
-            department_id="home-affairs-digital",
+            department_id="treasury",
             status="active",
             first_triggered=now,
             last_triggered=now,
@@ -144,16 +144,16 @@ async def test_vapt_log_interpretation_scenarios(mock_session):
     assert insights_admin["compliance"]["authorized"] is True
     assert insights_admin["exec_risks"]["authorized"] is True
 
-    # Scenario 2: DHA SOC Analyst (department scoped, findings role)
+    # Scenario 2: Tenant-scoped SOC analyst
     claims_soc = JWTClaims(
-        sub="soc-ha@example.com",
-        roles=["soc-ha"],
-        department_ids=["home-affairs-digital"],
-        branch_ids=["dha-civic"],
+        sub="soc@example.com",
+        roles=["soc"],
+        department_ids=["treasury"],
+        branch_ids=["treasury-ict"],
         province_ids=[],
     )
     res_soc = await interpret_logs_with_vapt(session, claims_soc, lookback_hours=72)
-    assert "home-affairs-digital" in res_soc["tenant_scope"]["scope_label"]
+    assert "treasury" in res_soc["tenant_scope"]["scope_label"]
     insights_soc = res_soc["role_gated_insights"]
     assert insights_soc["soc_appsec"]["authorized"] is True
     assert insights_soc["compliance"]["authorized"] is False
